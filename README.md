@@ -1,2 +1,2 @@
 # stempel
-stencil templated engineering library
+Stencil TEMPlate Engineering Library
