@@ -14,17 +14,18 @@ import string
 import six
 import pickle
 
-def signum(k=1):
-    if k < 0:
+def signum(number=1):
+    if type(number)==unicode or type(number)==str:
+        number = int(number)
+    if number < 0:
         sig = '-'
     else:
         sig = '+'
     return sig
 
 def value(number = 1):
-    if type(number)==str:
+    if type(number)==unicode or type(number)==str:
         number = int(number)
-
     if abs(number) != 1:
         mystring = str(abs(number))+'*'
     else:
@@ -49,14 +50,13 @@ class Star(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, simmetricity=((1,1,1), (1,1,1)), kind='star', coeff=None , datatype = 'double', args=None, parser=None):
+    def __init__(self, dimensions=2, simmetricity=((1,1,1), (1,1,1)), coeff=None , datatype = 'double', args=None, parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to 2 (2 dimensional stencil)
         *sizes* is the size of the stencil in each of the dimensions. It defaults to 50 in x and 50 in y
         *simmetricity* is a tuple representing the grid points from which the stencil depends. values of the stencil. For each dimension
         we have a tuple representing the coefficients of the neighbours in that side of the subdimension (left or right). A tuple consists
         always of an odd number of values: if a value equals to 0, it means that that neighbour does not play a role in the stencil computation
-        *kind* represents the kind of stencil we deal with. It can be for instance a star or box stencil. It defaults to star
         *coeff* represents the coefficient of the stencil, in case they are not a constant, thus it is not possible to specify them in the simmetricity input.
         *datatype* represents the type of the data to be store in the grids. By default double precision.
         *args* (optional) are the parsed arguments from the comand line
@@ -70,7 +70,6 @@ class Star(object):
             self.dims.append(string.ascii_uppercase[12+i])
 
         self.simmetricity = simmetricity
-        self.kind = kind
         self.coeff = coeff
         self.datatype = datatype
         
@@ -91,7 +90,6 @@ class Star(object):
   
         self._args = args
         self._parser = parser
-
 
         if args:
             # handle CLI info
@@ -147,17 +145,46 @@ class Star(object):
         centerpoint = self.input
         lefthand = self.output
         coefficient = self.coefficient
+        # build the centerpoint and the lefthand of the equation
         for i in range(0, self.dimensions):
             lefthand = lefthand + '[' + self.loop_variables[i] + ']'
             centerpoint = centerpoint + '[' + self.loop_variables[i] + ']'
 
+        # declare an empty stencil line (string)
         stencil = ''
+        #count if the coefficient of the centerpoint in each dimension is not 0
+        count = 0
+        # store how many of the coefficient of the centerpoint (in each axis) are negative
+        sig = 0
+        #store the product of all the coefficient of the centerpoint in each axis
+        centercoeff = 1
+        # for each of the dimensions of the simmetricity (==dimensions)
         for i in range(len(self.simmetricity)):
+            # take each value (simmetricity[0] == 1 1 1)
             for k in range(len(self.simmetricity[i])):
+                # each element which is in the left part of the array, it means that is a value on the left of the centerpoint in the grid and is not 0 (otherwise we would not consider it)
                 if k < len(self.simmetricity[i])//2 and int(self.simmetricity[i][k]) != 0:
-                    stencil = stencil + '{}{}{} '.format(signum(self.simmetricity[i][k]), value(self.simmetricity[i][k]), left(centerpoint, i, self.loop_variables, k-1))
+                    # build the value as a gridpoint
+                    stencil = stencil + '{}{}{} '.format(signum(self.simmetricity[i][k]), value(self.simmetricity[i][k]), left(centerpoint, i, self.loop_variables, k-len(self.simmetricity[i])//2))
+                # each element which is in the right part of the array, it means that is a value on the right of the centerpoint in the grid and is not 0 (otherwise we would not consider it)
                 elif k > len(self.simmetricity[i])//2 and int(self.simmetricity[i][k]) != 0:
-                    stencil = stencil + '{}{}{} '.format(signum(self.simmetricity[i][k]), value(self.simmetricity[i][k]), right(centerpoint, i, self.loop_variables, k-1))
+                    stencil = stencil + '{}{}{} '.format(signum(self.simmetricity[i][k]), value(self.simmetricity[i][k]), right(centerpoint, i, self.loop_variables, k-len(self.simmetricity[i])//2))
+
+                assert bool(len(self.simmetricity[i]) & 1), "each tuple of simmetricity must contain an odd number of values (always with centerpoint)"
+                if k == len(self.simmetricity[i])//2 and int(self.simmetricity[i][k]) != 0:
+                    count = count + 1
+                    if signum(self.simmetricity[i][k]) == '-':
+                        sig = sig + 1
+                    centercoeff = centercoeff * int(self.simmetricity[i][k])
+
+        if count == len(self.simmetricity):
+            # if sig is odd
+            if  bool(sig & 1):
+                centersig = '-'
+            else:
+                centersig = '+'
+
+            stencil = stencil + '{}{}{} '.format(centersig, value(centercoeff), centerpoint)
         
 
         if self.coeff=='scalar':
@@ -183,7 +210,7 @@ class Star(object):
 
 # if __name__ == "__main__":
 
-#     stencil = Stencil(dimensions=2, simmetricity=((1,1,1), (1,1,2)), kind='star', coeff='scalar' , datatype = 'float')
+#     stencil = Stencil(dimensions=2, simmetricity=((1,1,1), (1,1,2)), coeff='scalar' , datatype = 'float')
 #     a = []
 #     for i in range(0,len(stencil.simmetricity)):
 #         a.append(len(stencil.simmetricity[i]))

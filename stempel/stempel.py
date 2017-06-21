@@ -27,7 +27,15 @@ import six
 from six.moves import range
 
 import stencils
+import importlib
 
+
+def class_for_name(module_name, class_name):
+    # load the module, will raise ImportError if module cannot be loaded
+    m = importlib.import_module(module_name)
+    # get the class, will raise AttributeError if class cannot be found
+    c = getattr(m, class_name)
+    return c
 
 
 
@@ -36,10 +44,10 @@ def create_parser():
     parser.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'), type=int, default=2, required=True,
                         help='Define the number of dimensions to create in the final C code. Values must be integer.')
 
-    parser.add_argument('-S', '--simmetricity', nargs='*', metavar=('SIMMETRICITY'), type=tuple, default="111 111", required=True,
+    parser.add_argument('-S', '--simmetricity', metavar=('SIMMETRICITY'), type=str, default="1,1,1 1,1,1", required=True,
                         help='Define the size of the previously specified dimensions. Values must be integer.')
 
-    parser.add_argument('-k', '--kind', metavar=('VALUE'), choices=stencils.__all__, type=str, default='star',
+    parser.add_argument('-k', '--kind', metavar=('KIND'), choices=stencils.__all__, type=str, default='star',
                         help='Kind of stencil to generate. Value must be star or box')
 
     parser.add_argument('-C', '--coefficient',  metavar=('COEFF'), type=str, default='scalar', choices=['scalar', 'matrix'], 
@@ -59,17 +67,26 @@ def check_arguments(args, parser):
         parser.error('--coefficient can only be "scalar" or "matrix"')
     if args.datatype not in ['float', 'double']:
         parser.error('--coefficient can only be "float" or "double"')
+
+    args.simmetricity = args.simmetricity.split()
     if len(args.simmetricity) != args.dimensions:
         parser.error('--simmetricty cannot accept a number of simmetricity levels different from dimensions')
-    args.simmetricity = [tuple(x for x in y if x != ',') for y in args.simmetricity]
 
-    
+    #adjust the content of the tuple of simmetricity points
+    string = []
+    for i in range(len(args.simmetricity)):
+        string.append(''.join(args.simmetricity[i]).split(','))
+    args.simmetricity = string
+    # print(args.simmetricity)
+
 
 def run(parser, args):
 
     # Create a new Stencil
-    stencil = stencils.Star(dimensions=args.dimensions, simmetricity=args.simmetricity, kind=args.kind, coeff=args.coefficient , datatype =args.datatype)
-
+    #first we need to retrive the name of the stencil class out of the "kind" passed via command line
+    stencil_class = class_for_name('stencils', (args.kind).title())
+    # stencil = stencils.Star(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
+    stencil = stencil_class(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
     # get the maximum diameter
     a = []
     for i in range(0,len(stencil.simmetricity)):
@@ -103,7 +120,6 @@ def main():
 
     # BUSINESS LOGIC IS FOLLOWING
     run(parser, args)
-
 
 if __name__ == '__main__':
     main()
