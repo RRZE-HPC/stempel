@@ -6,7 +6,8 @@ The exported classes must have the following class level attributes:
   * loop()
 '''
 from starstencil import Star
+from starstencil import StarMat
 from boxstencil import Box
 
 
-__all__ = ['Star', 'Box']
+__all__ = ['Star', 'StarMat', 'Box']

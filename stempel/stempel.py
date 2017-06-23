@@ -14,26 +14,16 @@ if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
 
 import argparse
 import os.path
-import pickle
-import shutil
-import math
-import re
 import itertools
-import operator
-from functools import reduce
-
-import sympy
-import six
-from six.moves import range
 
 import stencils
 import importlib
-
 
 def class_for_name(module_name, class_name):
     # load the module, will raise ImportError if module cannot be loaded
     m = importlib.import_module(module_name)
     # get the class, will raise AttributeError if class cannot be found
+    print(class_name)
     c = getattr(m, class_name)
     return c
 
@@ -84,7 +74,11 @@ def run(parser, args):
 
     # Create a new Stencil
     #first we need to retrive the name of the stencil class out of the "kind" passed via command line
-    stencil_class = class_for_name('stencils', (args.kind).title())
+    mykind = (args.kind).title()
+    if(args.coefficient) == 'matrix':
+        mykind = mykind + 'Mat'
+    
+    stencil_class = class_for_name('stencils', mykind)
     # stencil = stencils.Star(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
     stencil = stencil_class(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
     # get the maximum diameter
