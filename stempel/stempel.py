@@ -15,7 +15,7 @@ if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
 import argparse
 import os.path
 import itertools
-
+import distutils.util
 import stencils
 import importlib
 
@@ -23,25 +23,40 @@ def class_for_name(module_name, class_name):
     # load the module, will raise ImportError if module cannot be loaded
     m = importlib.import_module(module_name)
     # get the class, will raise AttributeError if class cannot be found
-    print(class_name)
     c = getattr(m, class_name)
     return c
 
 
-
 def create_parser():
+
     parser = argparse.ArgumentParser()
+    
     parser.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'), type=int, default=2, required=True,
-                        help='Define the number of dimensions to create in the final C code. Values must be integer.')
+                        help='Define the number of dimensions to create in the final C code. Value must be integer.')
+    
+    parser.add_argument('-r', '--radius', metavar=('RADIUS'), type=int, default=2, required=True,
+                        help='Define the radius of the stencil in each dimension. Value must be integer.')
 
-    parser.add_argument('-S', '--simmetricity', metavar=('SIMMETRICITY'), type=str, default="1,1,1 1,1,1", required=True,
-                        help='Define the size of the previously specified dimensions. Values must be integer.')
+    parser.add_argument('-s', '--simmetric', action='store_true',
+                        help='Define if the coefficient is simmetric along the two sides of an axis.')
+    
+    parser.add_argument('-i', '--isotropic', action='store_true',
+                        help='Define if the coefficients are isotropic (does not depend on the direction).')
 
-    parser.add_argument('-k', '--kind', metavar=('KIND'), choices=stencils.__all__, type=str, default='star',
+    parser.add_argument('-a', '--asimmetric', action='store_true',
+                        help='Define if the coefficient is simmetric along the two sides of an axis.')
+    
+    parser.add_argument('-A', '--anisotropic', action='store_true',
+                        help='Define if the coefficients are isotropic (does not depend on the direction).')
+
+    parser.add_argument('-k', '--kind', metavar=('KIND'), choices=['star', 'box'], type=str, default='star',
                         help='Kind of stencil to generate. Value must be star or box')
 
-    parser.add_argument('-C', '--coefficient',  metavar=('COEFF'), type=str, default='scalar', choices=['scalar', 'matrix'], 
+    parser.add_argument('-C', '--coefficient',  metavar=('COEFF'), type=str, default='constant', choices=['constant', 'variable'], 
                         help='Define if the stencil has a fixed coeffient or a matrix of coefficients. Value must be scalar or matrix')
+
+    parser.add_argument('-g', '--inputgrids', metavar=('INPUTGRIDS'), type=int, default=1, required=True,
+                        help='Define the number of input grids to create in the final C code. Value must be integer.')
 
     parser.add_argument('-t', '--datatype', metavar=('DATATYPE'), type=str, choices=['float', 'double'], default='double',
                         help='Define the datatype of the grids used in the stencil. Value must be double or float')
@@ -53,21 +68,10 @@ def create_parser():
     return parser
 
 def check_arguments(args, parser):
-    if args.coefficient not in ['scalar', 'matrix']:
+    if args.coefficient not in ['constant', 'variable']:
         parser.error('--coefficient can only be "scalar" or "matrix"')
     if args.datatype not in ['float', 'double']:
         parser.error('--coefficient can only be "float" or "double"')
-
-    args.simmetricity = args.simmetricity.split()
-    if len(args.simmetricity) != args.dimensions:
-        parser.error('--simmetricty cannot accept a number of simmetricity levels different from dimensions')
-
-    #adjust the content of the tuple of simmetricity points
-    string = []
-    for i in range(len(args.simmetricity)):
-        string.append(''.join(args.simmetricity[i]).split(','))
-    args.simmetricity = string
-    # print(args.simmetricity)
 
 
 def run(parser, args):
@@ -75,27 +79,37 @@ def run(parser, args):
     # Create a new Stencil
     #first we need to retrive the name of the stencil class out of the "kind" passed via command line
     mykind = (args.kind).title()
-    if(args.coefficient) == 'matrix':
-        mykind = mykind + 'Mat'
+    if(args.coefficient) == 'constant':
+        mykind = mykind + 'Constant'
+    elif(args.coefficient) == 'variable':
+        mykind = mykind + 'Variable'
     
     stencil_class = class_for_name('stencils', mykind)
-    # stencil = stencils.Star(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
-    stencil = stencil_class(dimensions=args.dimensions, simmetricity=args.simmetricity, coeff=args.coefficient , datatype =args.datatype)
-    # get the maximum diameter
-    a = []
-    for i in range(0,len(stencil.simmetricity)):
-        a.append(len(stencil.simmetricity[i]))
-    myrange = max(a)
+
+    if args.asimmetric:
+        simmetricity = False
+    else:
+        simmetricity = True
+
+    if args.anisotropic:
+        isotropy = False
+    else:
+        isotropy = True
+
+
+    stencil = stencil_class(dimensions=args.dimensions, radius=args.radius, simmetricity=simmetricity, isotropy=isotropy , datatype =args.datatype, inputgrids=args.inputgrids)
+    
+    # get the diameter
+    diameter = 2 * args.radius + 1
 
     # build the name of the output file according to dimensions and diameter
-    output_file = '{}d-{}pt.c'.format(stencil.dimensions, myrange)
+    output_file = '{}d-{}pt.c'.format(stencil.dimensions, diameter)
 
     # create the declaration part of the final C code
     declaration = stencil.declaration()
-    code = declaration
     # create the loop part of the final C code
     loop = stencil.loop()
-    code = code + '\n'.join(loop)
+    code = declaration + '\n'.join(loop)
 
     # Save storage to file
     with open(output_file, 'w') as f:
