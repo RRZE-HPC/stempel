@@ -182,27 +182,38 @@ class StarConstant(object):
 
         # isotropic and simmetric
         if self.simmetricity and self.isotropy:
+            print("simmetric and isotropic")
             assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[i+1], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    # stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[i+1], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                count = count + 1
         
         # asimmetric
         elif not self.simmetricity:
+            print("asimmetric")
             assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asimmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[j + (i+1)*(j+1)], left(centerpoint, j, self.loop_variables, i+1), coefficients[j + (i+1)*(j+1) + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    # stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[j + i + (i+1)*(j+1)], left(centerpoint, j, self.loop_variables, i+1), coefficients[j + i + (i+1)*(j+1) + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[count], left(centerpoint, j, self.loop_variables, i+1), coefficients[count + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    count = count + 2
         
         # anisotropic and simmetric
         elif not self.isotropy and self.simmetricity:
+            print("simmetric and anisotropic")
             assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[(i+1)*(j+1)], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    count = count + 1
         
 
         righthand = '({});'.format(stencil)
@@ -373,27 +384,33 @@ class StarVariable(object):
             print("simmetric and isotropic")
             assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[i+1], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                count = count + 1
         
         # asimmetric
         elif not self.simmetricity:
             print("asimmetric")
             assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asimmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            coun = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[j + (i+1)*(j+1)], left(centerpoint, j, self.loop_variables, i+1), coefficients[j + (i+1)*(j+1) + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[count], left(centerpoint, j, self.loop_variables, i+1), coefficients[count + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    count = count + 2
         
         # anisotropic and simmetric
         elif (not self.isotropy and self.simmetricity):
             print("simmetric and anisotropic")
             assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[(i+1)*(j+1)], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                    count = count + 1
         
 
         righthand = '({});'.format(stencil)

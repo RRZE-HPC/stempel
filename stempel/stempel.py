@@ -88,14 +88,17 @@ def run(parser, args):
 
     if args.asimmetric:
         simmetricity = False
+        simmetric = 'asimmetric'
     else:
         simmetricity = True
+        simmetric = 'simmetric'
 
     if args.anisotropic:
         isotropy = False
+        isotropic = 'anisotropic'
     else:
         isotropy = True
-
+        isotropic = 'isotropic'
 
     stencil = stencil_class(dimensions=args.dimensions, radius=args.radius, simmetricity=simmetricity, isotropy=isotropy , datatype =args.datatype, inputgrids=args.inputgrids)
     
@@ -103,7 +106,7 @@ def run(parser, args):
     diameter = 2 * args.radius + 1
 
     # build the name of the output file according to dimensions and diameter
-    output_file = '{}d-{}pt.c'.format(stencil.dimensions, diameter)
+    output_file = '{}d-{}pt-{}-{}-{}_{}.c'.format(stencil.dimensions, diameter, isotropic, simmetric, args.coefficient, 'coefficients')
 
     # create the declaration part of the final C code
     declaration = stencil.declaration()
