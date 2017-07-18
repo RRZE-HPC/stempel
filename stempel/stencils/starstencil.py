@@ -395,7 +395,7 @@ class StarVariable(object):
             print("asimmetric")
             assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asimmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
-            coun = 1
+            count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[count], left(centerpoint, j, self.loop_variables, i+1), coefficients[count + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'

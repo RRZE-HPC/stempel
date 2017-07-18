@@ -37,16 +37,16 @@ def create_parser():
     parser.add_argument('-r', '--radius', metavar=('RADIUS'), type=int, default=2, required=True,
                         help='Define the radius of the stencil in each dimension. Value must be integer.')
 
-    parser.add_argument('-s', '--simmetric', action='store_true',
+    simmetry_group = parser.add_mutually_exclusive_group()
+    simmetry_group.add_argument('-s', '--simmetric', action='store_true',
+                        help='Define if the coefficient is simmetric along the two sides of an axis.')
+    simmetry_group.add_argument('-a', '--asimmetric', action='store_true',
                         help='Define if the coefficient is simmetric along the two sides of an axis.')
     
-    parser.add_argument('-i', '--isotropic', action='store_true',
+    isotropy_group = parser.add_mutually_exclusive_group()
+    isotropy_group.add_argument('-i', '--isotropic', action='store_true',
                         help='Define if the coefficients are isotropic (does not depend on the direction).')
-
-    parser.add_argument('-a', '--asimmetric', action='store_true',
-                        help='Define if the coefficient is simmetric along the two sides of an axis.')
-    
-    parser.add_argument('-A', '--anisotropic', action='store_true',
+    isotropy_group.add_argument('-A', '--anisotropic', action='store_true',
                         help='Define if the coefficients are isotropic (does not depend on the direction).')
 
     parser.add_argument('-k', '--kind', metavar=('KIND'), choices=['star', 'box'], type=str, default='star',
