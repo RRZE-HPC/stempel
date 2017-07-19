@@ -39,9 +39,9 @@ def right(centerpoint='a[j][i]', dimension=2, loop_variables=['j', 'i'], myrange
 class StarConstant(object):
     """class for the stencil with constant coefficients
     It can be:
-        simmetric->isotropic
-        simmetric->anisotropic
-        asimmetric->anisotropic
+        symmetric->isotropic
+        symmetric->anisotropic
+        asymmetric->anisotropic
     """
 
     name = "star"
@@ -50,11 +50,11 @@ class StarConstant(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, radius=1, simmetricity=True, isotropy=True , datatype = 'double', inputgrids=1, args=None, parser=None):
+    def __init__(self, dimensions=2, radius=1, symmetricity=True, isotropy=True , datatype = 'double', inputgrids=1, args=None, parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to 2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on each side of each dimension
-        *simmetricity* is a boolean representing the simmetricity of the stencil with respect to the coefficients
+        *symmetricity* is a boolean representing the symmetricity of the stencil with respect to the coefficients
         *isotropy* is a boolean representing the isotropy of the stencil (no dependency on the direction)
         *coeff* represents the coefficients of the stencil: can be either constant or variable.
         *datatype* represents the type of the data to be store in the grids. By default double precision.
@@ -69,7 +69,7 @@ class StarConstant(object):
             self.dims.append(string.ascii_uppercase[12+i])
 
         self.radius = radius
-        self.simmetricity = simmetricity
+        self.symmetricity = symmetricity
         self.isotropy = isotropy
         self.datatype = datatype
         
@@ -85,11 +85,11 @@ class StarConstant(object):
         # #else we name it with a constant w
         # else:
         #     self.coefficient = string.ascii_lowercase[inputgrids+1]
-        if self.isotropy and self.simmetricity:
+        if self.isotropy and self.symmetricity:
             num_coefficients = radius+1
-        elif self.simmetricity and not self.isotropy:
+        elif self.symmetricity and not self.isotropy:
             num_coefficients = (radius * self.dimensions) + 1
-        else:#not simmetricity and not isotropy)
+        else:#not symmetricity and not isotropy)
             num_coefficients = (2 * radius * self.dimensions) + 1
 
         # myformat = '{}' * num_coefficients
@@ -180,10 +180,10 @@ class StarConstant(object):
         # declare an empty stencil line (string)
         stencil = ''
 
-        # isotropic and simmetric
-        if self.simmetricity and self.isotropy:
-            print("simmetric and isotropic")
-            assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
+        # isotropic and symmetric
+        if self.symmetricity and self.isotropy:
+            print("symmetric and isotropic")
+            assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and symmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
@@ -192,10 +192,10 @@ class StarConstant(object):
                     stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                 count = count + 1
         
-        # asimmetric
-        elif not self.simmetricity:
-            print("asimmetric")
-            assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asimmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
+        # asymmetric
+        elif not self.symmetricity:
+            print("asymmetric")
+            assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asymmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
@@ -204,10 +204,10 @@ class StarConstant(object):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[count], left(centerpoint, j, self.loop_variables, i+1), coefficients[count + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 2
         
-        # anisotropic and simmetric
-        elif not self.isotropy and self.simmetricity:
-            print("simmetric and anisotropic")
-            assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
+        # anisotropic and symmetric
+        elif not self.isotropy and self.symmetricity:
+            print("symmetric and anisotropic")
+            assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and symmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
@@ -233,9 +233,9 @@ class StarConstant(object):
 class StarVariable(object):
     """class for the stencil with variable coefficients
     It can be:
-        simmetric->isotropic
-        simmetric->anisotropic
-        asimmetric->anisotropic
+        symmetric->isotropic
+        symmetric->anisotropic
+        asymmetric->anisotropic
     """
     name = "starVariable"
 
@@ -243,11 +243,11 @@ class StarVariable(object):
     def configure_arggroup(cls, parser):
         pass
     
-    def __init__(self, dimensions=2, radius=1, simmetricity=True, isotropy=True , datatype = 'double', inputgrids=1, args=None, parser=None):
+    def __init__(self, dimensions=2, radius=1, symmetricity=True, isotropy=True , datatype = 'double', inputgrids=1, args=None, parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to 2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on each side of each dimension
-        *simmetricity* is a boolean representing the simmetricity of the stencil with respect to the coefficients
+        *symmetricity* is a boolean representing the symmetricity of the stencil with respect to the coefficients
         *isotropy* is a boolean representing the isotropy of the stencil (no dependency on the direction)
         *coeff* represents the coefficients of the stencil: can be either constant or variable.
         *datatype* represents the type of the data to be store in the grids. By default double precision.
@@ -262,7 +262,7 @@ class StarVariable(object):
             self.dims.append(string.ascii_uppercase[12+i])
 
         self.radius = radius
-        self.simmetricity = simmetricity
+        self.symmetricity = symmetricity
         self.isotropy = isotropy
         self.datatype = datatype
         
@@ -271,11 +271,11 @@ class StarVariable(object):
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
 
-        if self.isotropy and self.simmetricity:
+        if self.isotropy and self.symmetricity:
             num_coefficients = radius+1
-        elif self.simmetricity and not self.isotropy:
+        elif self.symmetricity and not self.isotropy:
             num_coefficients = (radius * self.dimensions) + 1
-        else:#not simmetricity and not isotropy)
+        else:#not symmetricity and not isotropy)
             num_coefficients = (2 * radius * self.dimensions) + 1
 
         # myformat = '{}' * num_coefficients
@@ -379,10 +379,10 @@ class StarVariable(object):
         # declare an empty stencil line (string)
         stencil = ''
 
-        # isotropic and simmetric
-        if (self.simmetricity and self.isotropy):
-            print("simmetric and isotropic")
-            assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
+        # isotropic and symmetric
+        if (self.symmetricity and self.isotropy):
+            print("symmetric and isotropic")
+            assert (len(self.coefficients) == (self.radius + 1)), "In case of an isotropic and symmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
@@ -390,10 +390,10 @@ class StarVariable(object):
                     stencil = stencil + '+ {} * ({} + {})'.format(self.coefficients[count], left(centerpoint, j, self.loop_variables, i+1), right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                 count = count + 1
         
-        # asimmetric
-        elif not self.simmetricity:
-            print("asimmetric")
-            assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asimmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
+        # asymmetric
+        elif not self.symmetricity:
+            print("asymmetric")
+            assert (len(self.coefficients) == (2 * self.radius * self.dimensions + 1)), "In case of an asymmetric stencil with constant coefficient, the number of the coefficient must be equal to (2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
@@ -401,10 +401,10 @@ class StarVariable(object):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(coefficients[count], left(centerpoint, j, self.loop_variables, i+1), coefficients[count + 1], right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 2
         
-        # anisotropic and simmetric
-        elif (not self.isotropy and self.simmetricity):
-            print("simmetric and anisotropic")
-            assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and simmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
+        # anisotropic and symmetric
+        elif (not self.isotropy and self.symmetricity):
+            print("symmetric and anisotropic")
+            assert (len(self.coefficients) == (self.radius * self.dimensions + 1)), "In case of anisotropic and symmetric stencil with constant coefficient, the number of the coefficient must be equal to (radius * dimensions + 1)"
             stencil = self.coefficients[0] + '*' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):

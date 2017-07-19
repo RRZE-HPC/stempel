@@ -37,11 +37,11 @@ def create_parser():
     parser.add_argument('-r', '--radius', metavar=('RADIUS'), type=int, default=2, required=True,
                         help='Define the radius of the stencil in each dimension. Value must be integer.')
 
-    simmetry_group = parser.add_mutually_exclusive_group()
-    simmetry_group.add_argument('-s', '--simmetric', action='store_true',
-                        help='Define if the coefficient is simmetric along the two sides of an axis.')
-    simmetry_group.add_argument('-a', '--asimmetric', action='store_true',
-                        help='Define if the coefficient is simmetric along the two sides of an axis.')
+    symmetry_group = parser.add_mutually_exclusive_group()
+    symmetry_group.add_argument('-s', '--symmetric', action='store_true',
+                        help='Define if the coefficient is symmetric along the two sides of an axis.')
+    symmetry_group.add_argument('-a', '--asymmetric', action='store_true',
+                        help='Define if the coefficient is symmetric along the two sides of an axis.')
     
     isotropy_group = parser.add_mutually_exclusive_group()
     isotropy_group.add_argument('-i', '--isotropic', action='store_true',
@@ -86,12 +86,12 @@ def run(parser, args):
     
     stencil_class = class_for_name('stencils', mykind)
 
-    if args.asimmetric:
-        simmetricity = False
-        simmetric = 'asimmetric'
+    if args.asymmetric:
+        symmetricity = False
+        symmetric = 'asymmetric'
     else:
-        simmetricity = True
-        simmetric = 'simmetric'
+        symmetricity = True
+        symmetric = 'symmetric'
 
     if args.anisotropic:
         isotropy = False
@@ -100,13 +100,13 @@ def run(parser, args):
         isotropy = True
         isotropic = 'isotropic'
 
-    stencil = stencil_class(dimensions=args.dimensions, radius=args.radius, simmetricity=simmetricity, isotropy=isotropy , datatype =args.datatype, inputgrids=args.inputgrids)
+    stencil = stencil_class(dimensions=args.dimensions, radius=args.radius, symmetricity=symmetricity, isotropy=isotropy , datatype =args.datatype, inputgrids=args.inputgrids)
     
     # get the diameter
     diameter = 2 * args.radius + 1
 
     # build the name of the output file according to dimensions and diameter
-    output_file = '{}d-{}pt-{}-{}-{}_{}.c'.format(stencil.dimensions, diameter, isotropic, simmetric, args.coefficient, 'coefficients')
+    output_file = '{}d-{}pt-{}-{}-{}_{}.c'.format(stencil.dimensions, diameter, isotropic, symmetric, args.coefficient, 'coefficients')
 
     # create the declaration part of the final C code
     declaration = stencil.declaration()

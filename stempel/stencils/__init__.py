@@ -5,9 +5,9 @@ The exported classes must have the following class level attributes:
   * declaration()
   * loop()
 '''
-from starstencil import StarConstant
-from starstencil import StarVariable
-from boxstencil import Box
+from .starstencil import StarConstant
+from .starstencil import StarVariable
+from .boxstencil import Box
 
 
 __all__ = ['StarConstant', 'StarVariable', 'Box']
