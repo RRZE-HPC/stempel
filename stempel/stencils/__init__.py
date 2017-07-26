@@ -7,7 +7,12 @@ The exported classes must have the following class level attributes:
 '''
 from .starstencil import StarConstant
 from .starstencil import StarVariable
+<<<<<<< Updated upstream
 from .boxstencil import Box
+=======
+from .boxstencil import BoxConstant
+from .boxstencil import BoxVariable
+>>>>>>> Stashed changes
 
 
-__all__ = ['StarConstant', 'StarVariable', 'Box']
+__all__ = ['StarConstant', 'StarVariable', 'BoxConstant', 'BoxVariable']
