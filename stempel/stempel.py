@@ -51,6 +51,9 @@ def create_parser():
     symmetry_group.add_argument('-a', '--asymmetric', action='store_true',
                                 help='Define if the coefficient is symmetric '
                                 'along the two sides of an axis.')
+    symmetry_group.add_argument('-o', '--homogeneus', action='store_true',
+                                help='Define if the coefficient is symmetric '
+                                'along the two sides of an axis.')
 
     isotropy_group = parser.add_mutually_exclusive_group()
     isotropy_group.add_argument('-i', '--isotropic', action='store_true',
@@ -71,18 +74,19 @@ def create_parser():
                         ' matrix of coefficients. Value must be scalar or '
                         'matrix')
 
-    parser.add_argument('-g', '--inputgrids', metavar=('INPUTGRIDS'), type=int,
-                        default=1, required=True, help='Define the number of '
-                        'input grids to create in the final C code. Value must '
-                        'be integer.')
-
     parser.add_argument('-t', '--datatype', metavar=('DATATYPE'), type=str,
                         choices=['float', 'double'], default='double',
                         help='Define the datatype of the grids used in the '
                         'stencil. Value must be double or float')
 
+    parser.add_argument('--store', metavar='CF', type=argparse.FileType('a+b'),
+                        help='Addes results to a C file for later processing.')
+
+    # parser.add_argument('--verbose', '-v', action='count', default=0,
+    #                     help='Increases verbosity level.')
     # for s in stencils.__all__:
-    #     ag = parser.add_argument_group('arguments for '+s+' stencil', getattr(stencils, s).name)
+    #     ag = parser.add_argument_group('arguments for '+s+' stencil',
+    #         getattr(stencils, s).name)
     #     getattr(stencils, s).configure_arggroup(ag)
 
     return parser
@@ -98,10 +102,11 @@ def check_arguments(args, parser):
         parser.error('--coefficient can only be "float" or "double"')
 
 
-def run(args):
+def run(args, output_file=sys.stdout):
     """This method creates an object of type Stencil and calls the appropriate
     methods to generate the C code
     """
+
     # Create a new Stencil
     # first we need to retrive the name of the stencil class out of the "kind"
     # passed via command line
@@ -111,41 +116,29 @@ def run(args):
     elif(args.coefficient) == 'variable':
         mykind = mykind + 'Variable'
 
+    # with tox
+    #stencil_class = class_for_name('stempel.stencils', mykind)
+    # without tox
     stencil_class = class_for_name('stencils', mykind)
 
+    #our default value if not differently specified
+    symmetricity = 'symmetric'
     if args.asymmetric:
-        symmetricity = False
-        symmetric = 'asymmetric'
-    else:
-        symmetricity = True
-        symmetric = 'symmetric'
+        symmetricity = 'asymmetric'
+
+    if args.homogeneus:
+        symmetricity = 'homogeneus'
+
 
     if args.anisotropic:
         isotropy = False
-        isotropic = 'anisotropic'
     else:
         isotropy = True
-        isotropic = 'isotropic'
+
 
     stencil = stencil_class(dimensions=args.dimensions, radius=args.radius,
                             symmetricity=symmetricity, isotropy=isotropy,
-                            datatype=args.datatype, inputgrids=args.inputgrids)
-
-    # build the name of the output file according to dimensions and diameter
-    if args.kind == 'box':
-        points = (stencil.radius * 2 + 1)**stencil.dimensions
-        output_file = '{}d-{}pt-{}.c'.format(stencil.dimensions, points, 'box')
-    
-    else:
-        # diameter = 2 * radius
-        # points = diamiter * dimensions + 1 (centerpoint)
-        points = 2 * stencil.radius * stencil.dimensions + 1
-    
-        output_file = '{}d-{}pt-{}-{}-{}_{}.c'.format(stencil.dimensions,
-                                                      points,
-                                                      isotropic, symmetric,
-                                                      args.coefficient,
-                                                      'coefficients')
+                            datatype=args.datatype)
 
     # create the declaration part of the final C code
     declaration = stencil.declaration()
@@ -153,9 +146,15 @@ def run(args):
     loop = stencil.loop()
     code = declaration + '\n'.join(loop)
 
-    # Save storage to file
-    with open(output_file, 'w') as outfile:
-        outfile.write(code)
+    # Save storage to file or print to STDOUT
+    if args.store:
+        # build the name of the output file according to dimensions and diameter
+        output_file = args.store.name + '.c'
+
+        with open(output_file, 'w') as out:
+            out.write(code)
+    else:
+        print(code)
 
 
 def main():
@@ -171,7 +170,7 @@ def main():
     # Checking arguments
     check_arguments(args, parser)
 
-    # BUSINESS LOGIC IS FOLLOWING
+    # BUSINESS LOGIC
     run(args)
 
 if __name__ == '__main__':
