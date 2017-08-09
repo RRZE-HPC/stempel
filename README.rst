@@ -34,9 +34,12 @@ Usage
 
 Credits
 =======
-|Implementation: Danilo Guerrera
-|kerncraft : Julian Hammer
-|ECM Model (theory): Georg Hager, Holger Stengel, Jan Treibig
+
+Implementation: Danilo Guerrera
+
+kerncraft : Julian Hammer
+
+ECM Model (theory): Georg Hager, Holger Stengel, Jan Treibig
 
 License
 =======
