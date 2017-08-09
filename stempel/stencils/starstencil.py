@@ -85,7 +85,7 @@ class StarConstant(object):
         *radius* represents the radius of the stencil on each side of each
             dimension
         *symmetricity* represents the symmetricity of the stencil with respect
-            to the coefficients: it can be symmetric, asymmetric or homogeneus.
+            to the coefficients: it can be symmetric, asymmetric or homogeneous.
         *isotropy* is a boolean representing the isotropy of the stencil (no
             dependency on the direction)
         *coeff* represents the coefficients of the stencil: can be either
@@ -126,12 +126,12 @@ class StarConstant(object):
             self.num_coefficients = radius + 1
         elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneus':
+        elif self.symmetricity == 'homogeneous':
             self.num_coefficients = 1
         else:#not symmetricity and not isotropy)
             self.num_coefficients = (2 * radius * self.dimensions) + 1
 
-        # myformat = '{}' * num_coefficients
+        #creae all the coefficients, like c0, c1, ...
         myletter = string.ascii_lowercase[inputgrids+1]
         self.coefficients = [
         myletter+str(i) for i in range(self.num_coefficients)
@@ -285,10 +285,10 @@ class StarConstant(object):
                         right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 1
 
-        elif self.symmetricity == 'homogeneus':
-            print("homogeneus")
+        elif self.symmetricity == 'homogeneous':
+            print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
-                " an homogeneus stencil with constant coefficient"\
+                " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
             stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
             for i in range(self.radius):
@@ -364,7 +364,7 @@ class StarVariable(object):
             self.num_coefficients = radius+1
         elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneus':
+        elif self.symmetricity == 'homogeneous':
             self.num_coefficients = 1
         else:#not symmetricity and not isotropy
             self.num_coefficients = (2 * radius * self.dimensions) + 1
@@ -465,10 +465,9 @@ class StarVariable(object):
         centerpoint = self.inputs[0]
         lefthand = self.output
         coefficients = self.coefficients
-        dimensions = self.dimensions
 
         # build centerpoint, lefthand and coefficients of the equation
-        for i in range(0, dimensions):
+        for i in range(0, self.dimensions):
             lefthand = lefthand + '[' + self.loop_variables[i] + ']'
             centerpoint = centerpoint + '[' + self.loop_variables[i] + ']'
             for coefficient in range(0, len(coefficients)):
@@ -487,7 +486,7 @@ class StarVariable(object):
             "In case of an isotropic and symmetric stencil with constant "\
             "coefficient, the number of the coefficient must be equal to "\
             "(radius + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
@@ -535,10 +534,10 @@ class StarVariable(object):
                         ) + '\n'
                     count = count + 1
 
-        elif self.symmetricity == 'homogeneus':
-            print("homogeneus")
+        elif self.symmetricity == 'homogeneous':
+            print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
-                " an homogeneus stencil with constant coefficient"\
+                " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
             stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
             for i in range(self.radius):
