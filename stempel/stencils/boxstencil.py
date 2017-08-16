@@ -45,28 +45,27 @@ def left(centerpoint='a[j][i]', dimension=2, loop_variables=None,
     letter = loop_variables[dimension-1]
     newpoint = centerpoint.replace(letter, letter+'-{}'.format(abs(myrange)))
     return newpoint
-def orderbydistance(centerpoint='a[j][i]', point='a[j][i]', dimensions=2,
-                    loop_variables=None):
-    """This function takes in input a point, the dimensions of the grid and
-    the loop variables. It returns the distance of the point from the
-    centerpoint
-    """
-    newpoint = centerpoint
 
 def distance_from_center(point='a[j][i]', loop_variables=None):
+    """This function takes in input a point and the loop variables.
+    It returns the distance of the point from the centerpoint
+    """
     chars = ['a', 'b', '[', ']', '+', '-', ' ']
     chars += loop_variables
 
     for c in chars:
-        point = point.replace(c,'')
+        point = point.replace(c, '')
 
     distance = 0
     for i in point:
         distance += int(i)
-    
+
     return distance
 
 def points_at_distance(points=None, loop_variables=None, distance=1):
+    """This function takes in input a list of points, the loop variables and a
+    distance. It returns a list containing all the points at the given distance
+    """
     good_points = []
     for point in points:
         if distance_from_center(point, loop_variables) == distance:
@@ -88,21 +87,21 @@ def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
     newpoint = centerpoint
     for i in range(dimensions):
         if i == 0:
-            value = point % (radius * 2 + 1)
+            myvalue = point % (radius * 2 + 1)
         elif i == 1:
-            value = (point // (radius * 2 + 1)) % (radius * 2 + 1)
+            myvalue = (point // (radius * 2 + 1)) % (radius * 2 + 1)
         elif i == 2:
             #elements_per_plane = (radius * 2 + 1)**2
-            value = point // ((radius * 2 + 1)**2)
+            myvalue = point // ((radius * 2 + 1)**2)
 
-        if value < radius:
-            signum = '-'
-        elif value > radius:
-            signum = '+'
+        if myvalue < radius:
+            sig = '-'
+        elif myvalue > radius:
+            sig = '+'
         else:
-            signum = ''
+            sig = ''
 
-        number = abs(int(value - radius))
+        number = abs(int(myvalue - radius))
         if number == 0:
             strnumber = ''
         else:
@@ -110,7 +109,7 @@ def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
 
 
         newpoint = newpoint.replace(loop_variables[i], loop_variables[i]
-                                    + '{}{}'.format(signum, strnumber))
+                                    + '{}{}'.format(sig, strnumber))
     # print(str(point) + ' ' + newpoint)
     if newpoint == centerpoint:
         return None
@@ -243,7 +242,7 @@ class BoxConstant(object):
         # ]
         myletter = string.ascii_lowercase[inputgrids+1]
         self.coefficients = [
-        myletter+str(i) for i in range(self.num_coefficients)
+            myletter+str(i) for i in range(self.num_coefficients)
         ]
 
 
@@ -327,7 +326,6 @@ class BoxConstant(object):
 
         centerpoint = self.inputs[0]
         lefthand = self.output
-        coefficients = self.coefficients
 
         # build the centerpoint and the lefthand of the equation
         for i in range(0, self.dimensions):
@@ -338,17 +336,17 @@ class BoxConstant(object):
         stencil = ''
         max_distance = self.dimensions * self.radius
 
-        points=[]
+        points = []
         for i in range((self.radius * 2 + 1)**self.dimensions):
             mypoint = boxpoint(centerpoint, i, self.dimensions, self.radius,
-                           self.loop_variables)
+                               self.loop_variables)
             if mypoint:
                 points.append(mypoint)
 
         ordered_points = []
         for i in range(1, max_distance+1):
-            ordered_points.insert(i,points_at_distance(points,
-                self.loop_variables, i))
+            ordered_points.insert(i, points_at_distance(points,
+                                                        self.loop_variables, i))
 
         if self.symmetricity == 'symmetric' and self.isotropy:
             print("symmetric and isotropic")
@@ -394,7 +392,7 @@ class BoxConstant(object):
             print("homogeneous")
 
             stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
-            
+
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'
 
@@ -461,7 +459,7 @@ class BoxVariable(object):
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
 
-        
+
         if self.isotropy and self.symmetricity == 'symmetric':#iso-sym
             self.num_coefficients = (radius * self.dimensions) + 1
         elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
@@ -580,17 +578,17 @@ class BoxVariable(object):
 
         max_distance = self.dimensions * self.radius
 
-        points=[]
+        points = []
         for i in range((self.radius * 2 + 1)**self.dimensions):
             mypoint = boxpoint(centerpoint, i, self.dimensions, self.radius,
-                           self.loop_variables)
+                               self.loop_variables)
             if mypoint:
                 points.append(mypoint)
 
         ordered_points = []
         for i in range(1, max_distance+1):
-            ordered_points.insert(i,points_at_distance(points,
-                self.loop_variables, i))
+            ordered_points.insert(i, points_at_distance(points,
+                                                        self.loop_variables, i))
 
         # isotropic and symmetric
         if self.symmetricity and self.isotropy:
@@ -638,7 +636,7 @@ class BoxVariable(object):
             print("homogeneous")
 
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
-            
+
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'
 
