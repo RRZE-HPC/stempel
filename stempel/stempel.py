@@ -97,8 +97,6 @@ def check_arguments(args, parser):
     """This method checks that some of the arguments given to the parser
     respect our convention (are what they are supposed to be)
     """
-    if args.coefficient not in ['constant', 'variable']:
-        parser.error('--coefficient can only be "scalar" or "matrix"')
     if args.datatype not in ['float', 'double']:
         parser.error('--coefficient can only be "float" or "double"')
 
