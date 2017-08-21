@@ -34,7 +34,8 @@ def class_for_name(module_name, class_name):
 def create_parser():
     """This method creates a parser
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'), type=int,
                         default=2, required=True, help='Define the number of '
@@ -64,23 +65,23 @@ def create_parser():
                                 help='Define if the coefficients are isotropic '
                                 '(does not depend on the direction).')
 
-    parser.add_argument('-k', '--kind', metavar=('KIND'),
-                        choices=['star', 'box'], type=str, default='star',
+    parser.add_argument('-k', '--kind', choices=['star', 'box'],
+                        type=str, default='star',
                         help='Kind of stencil to generate. Value must be star '
                         'or box')
 
-    parser.add_argument('-C', '--coefficient', metavar=('COEFF'), type=str,
+    parser.add_argument('-C', '--coefficient', type=str,
                         default='constant', choices=['constant', 'variable'],
                         help='Define if the stencil has a fixed coeffient or a'
                         ' matrix of coefficients. Value must be scalar or '
                         'matrix')
 
-    parser.add_argument('-t', '--datatype', metavar=('DATATYPE'), type=str,
+    parser.add_argument('-t', '--datatype', type=str,
                         choices=['float', 'double'], default='double',
                         help='Define the datatype of the grids used in the '
                         'stencil. Value must be double or float')
 
-    parser.add_argument('--store', metavar='CF', type=argparse.FileType('a+b'),
+    parser.add_argument('--store', type=argparse.FileType('a+b'),
                         help='Addes results to a C file for later processing.')
 
     # parser.add_argument('--verbose', '-v', action='count', default=0,

@@ -13,10 +13,6 @@ import string
 from utilities import signum, value, left, right
 
 
-def variable_coefficient(coefficients, position):
-
-    return mystring
-
 class StarConstant(object):
     """class for the stencil with constant coefficients
     It can be:
