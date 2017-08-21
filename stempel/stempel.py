@@ -11,6 +11,7 @@ from __future__ import division
 import sys
 import argparse
 import importlib
+import subprocess
 
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
@@ -28,7 +29,6 @@ def class_for_name(module_name, class_name):
     # get the class, will raise AttributeError if class cannot be found
     myclass = getattr(mod, class_name)
     return myclass
-
 
 def create_parser():
     """This method creates a parser
@@ -127,7 +127,7 @@ def run(args, output_file=sys.stdout):
         symmetricity = 'asymmetric'
 
     if args.homogeneus:
-        symmetricity = 'homogeneus'
+        symmetricity = 'homogeneous'
 
 
     if args.anisotropic:
