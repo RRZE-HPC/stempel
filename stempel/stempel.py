@@ -12,6 +12,7 @@ import sys
 import argparse
 import importlib
 import subprocess
+import shutil
 
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
@@ -149,10 +150,11 @@ def run(args, output_file=sys.stdout):
     # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter
-        output_file = args.store.name + '.c'
+        tempname = args.store.name + '.tmp'
 
-        with open(output_file, 'w') as out:
+        with open(tempname, 'w') as out:
             out.write(code)
+        shutil.move(tempname, args.store.name)
     else:
         print(code)
 
