@@ -31,6 +31,44 @@ def class_for_name(module_name, class_name):
     myclass = getattr(mod, class_name)
     return myclass
 
+def print_header(args, output_file, stencil):
+
+    symmetricity = ''
+    isotropic = ''
+    if args.anisotropic:
+        isotropic = 'anisotropic'
+    else:
+        isotropic = 'isotropic'
+
+    if args.asymmetric:
+        symmetricity = 'asymmetric'
+    elif args.symmetric:
+        symmetricity = 'symmetric'
+    elif args.homogeneous:
+        symmetricity = 'homogeneous'
+
+    # print header (taken from kerncraft)
+    print('{:=^80}'.format(' stempel '), file=output_file)
+    print('{:<40}{:>40}'.format('-D ', args.dimensions), file=output_file)
+    print('{:<40}{:>40}'.format('-r ', args.radius), file=output_file)
+    if args.asymmetric:
+        print('{}'.format('--asymmetric'), file=output_file)
+    elif args.symmetric:
+        print('{}'.format('--symmetric'), file=output_file)
+    elif args.homogeneous:
+        print('{}'.format('--homogeneous'), file=output_file)
+
+    if args.isotropic:
+        print('{}'.format('--isotropic'), file=output_file)
+    elif args.anisotropic:
+        print('{}'.format('--anisotropic'), file=output_file)
+    print('{:<40}{:>40}'.format('-k ', args.kind), file=output_file)
+    print('{:<40}{:>40}'.format('-t ', args.datatype), file=output_file)
+    print('{:<40}{:>40}'.format('-C ', args.coefficient), file=output_file)
+    print('{:-^80}'.format(' ' + stencil.name + ' ' + symmetricity + ' ' +
+          isotropic + ' stencil '), file=output_file)
+
+
 def create_parser():
     """This method creates a parser
     """
@@ -53,7 +91,7 @@ def create_parser():
     symmetry_group.add_argument('-a', '--asymmetric', action='store_true',
                                 help='Define if the coefficient is symmetric '
                                 'along the two sides of an axis.')
-    symmetry_group.add_argument('-o', '--homogeneus', action='store_true',
+    symmetry_group.add_argument('-o', '--homogeneous', action='store_true',
                                 help='Define if the coefficient is symmetric '
                                 'along the two sides of an axis.')
 
@@ -81,11 +119,11 @@ def create_parser():
                         help='Define the datatype of the grids used in the '
                         'stencil. Value must be double or float')
 
-    parser.add_argument('--store', type=argparse.FileType('a+b'),
+    parser.add_argument('--store', type=argparse.FileType('w'),
                         help='Addes results to a C file for later processing.')
 
-    # parser.add_argument('--verbose', '-v', action='count', default=0,
-    #                     help='Increases verbosity level.')
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help='Increases verbosity level.')
     # for s in stencils.__all__:
     #     ag = parser.add_argument_group('arguments for '+s+' stencil',
     #         getattr(stencils, s).name)
@@ -126,7 +164,7 @@ def run(args, output_file=sys.stdout):
     if args.asymmetric:
         symmetricity = 'asymmetric'
 
-    if args.homogeneus:
+    if args.homogeneous:
         symmetricity = 'homogeneous'
 
 
@@ -146,6 +184,8 @@ def run(args, output_file=sys.stdout):
     loop = stencil.loop()
     code = declaration + '\n'.join(loop)
 
+    print_header(args, output_file, stencil)
+    
     # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter
@@ -157,6 +197,11 @@ def run(args, output_file=sys.stdout):
     else:
         print(code)
 
+    # if verbose print a little bit more infos
+    if args.verbose > 0:
+        for arg in vars(args):
+            print('{:<40}{:>40}'.format(arg, getattr(args, arg)),
+                  file=output_file)
 
 def main():
     """This method is the main, it creates a paerser, uses it and runs the
