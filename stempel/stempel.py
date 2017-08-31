@@ -13,6 +13,14 @@ import argparse
 import importlib
 import subprocess
 import shutil
+from pycparser import clean_code
+import sympy
+import six
+from six.moves import range
+from ruamel import yaml
+
+from benchkernel import KernelBench#, loop_to_function
+from kerncraft.machinemodel import MachineModel
 
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
@@ -69,22 +77,54 @@ def print_header(args, output_file, stencil):
           isotropic + ' stencil '), file=output_file)
 
 
+def call_kerncraft(code='', verbosity=''):
+    """
+    this method tries to call kerncraft on the C like code generated in the
+    first place. It calls it in order to get an analysis via ECM of the code
+    provided as input on the machine. In order to make it simplier, at the
+    moment is not possible to pass a machine file to it, but it will take a
+    default one.
+    """
+    verb = ''
+    if verbosity > 0:
+        verb = ' -v'
+    if verbosity > 1:
+        verb += 'v'
+    try:
+        model = subprocess.Popen(
+            ['kerncraft -p ECMData -m phinally.yaml {} -D N 10000 -D M '\
+            '10000{}'.format(code, verb)], stdout=subprocess.PIPE
+            ).communicate()[0].decode("utf-8")
+    except OSError:
+        print('likwid-topology execution failed, is it installed and loaded?',
+              file=sys.stderr)
+        sys.exit(1)
+
+    return model
+
+
 def create_parser():
     """This method creates a parser
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'), type=int,
-                        default=2, required=True, help='Define the number of '
-                        'dimensions to create in the final C code. Value must '
-                        'be integer.')
+    subparsers = parser.add_subparsers(dest='subparser_name',
+                                       help='sub-command help')
 
-    parser.add_argument('-r', '--radius', metavar=('RADIUS'), type=int,
+    parser_gen = subparsers.add_parser('gen', help='Generate a C-like code for '
+                                       'the stencil computation descrivbed by '
+                                       'the command line parameters')
+    parser_gen.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'),
+                            type=int, default=2, required=True, help='Define '
+                            'the number of dimensions to create in the final C '
+                            'code. Value must be integer.')
+
+    parser_gen.add_argument('-r', '--radius', metavar=('RADIUS'), type=int,
                         default=2, required=True, help='Define the radius of '
                         'the stencil in each dimension. Value must be integer.')
 
-    symmetry_group = parser.add_mutually_exclusive_group()
+    symmetry_group = parser_gen.add_mutually_exclusive_group()
     symmetry_group.add_argument('-s', '--symmetric', action='store_true',
                                 help='Define if the coefficient is symmetric '
                                 'along the two sides of an axis.')
@@ -95,7 +135,7 @@ def create_parser():
                                 help='Define if the coefficient is symmetric '
                                 'along the two sides of an axis.')
 
-    isotropy_group = parser.add_mutually_exclusive_group()
+    isotropy_group = parser_gen.add_mutually_exclusive_group()
     isotropy_group.add_argument('-i', '--isotropic', action='store_true',
                                 help='Define if the coefficients are isotropic '
                                 '(does not depend on the direction).')
@@ -103,27 +143,43 @@ def create_parser():
                                 help='Define if the coefficients are isotropic '
                                 '(does not depend on the direction).')
 
-    parser.add_argument('-k', '--kind', choices=['star', 'box'],
+    parser_gen.add_argument('-k', '--kind', choices=['star', 'box'],
                         type=str, default='star',
                         help='Kind of stencil to generate. Value must be star '
                         'or box')
 
-    parser.add_argument('-C', '--coefficient', type=str,
+    parser_gen.add_argument('-C', '--coefficient', type=str,
                         default='constant', choices=['constant', 'variable'],
                         help='Define if the stencil has a fixed coeffient or a'
                         ' matrix of coefficients. Value must be scalar or '
                         'matrix')
 
-    parser.add_argument('-t', '--datatype', type=str,
+    parser_gen.add_argument('-t', '--datatype', type=str,
                         choices=['float', 'double'], default='double',
                         help='Define the datatype of the grids used in the '
                         'stencil. Value must be double or float')
 
-    parser.add_argument('--store', type=argparse.FileType('w'),
+    parser_gen.add_argument('--store', type=argparse.FileType('w'),
                         help='Addes results to a C file for later processing.')
 
-    parser.add_argument('--verbose', '-v', action='count', default=0,
+    parser_gen.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increases verbosity level.')
+
+    parser_gen.set_defaults(func=run_gen)
+
+    parser_bench = subparsers.add_parser('bench', help='Generate a benchmark '
+                                         'code for the stencil kernel passed as'
+                                         'input. It must be a C source code.')
+
+    parser_bench.add_argument('code_file', metavar='FILE',
+                              type=argparse.FileType(),
+                              help='File with declarations and C loop kernel')
+    
+    parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
+                              required=True, help='Path to machine description '
+                              'yaml file.')
+
+    parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
     #     ag = parser.add_argument_group('arguments for '+s+' stencil',
     #         getattr(stencils, s).name)
@@ -140,11 +196,12 @@ def check_arguments(args, parser):
         parser.error('--coefficient can only be "float" or "double"')
 
 
-def run(args, output_file=sys.stdout):
+def run_gen(args, output_file=sys.stdout):
     """This method creates an object of type Stencil and calls the appropriate
     methods to generate the C code
     """
-
+    # Checking arguments
+    check_arguments(args, parser)
     # Create a new Stencil
     # first we need to retrive the name of the stencil class out of the "kind"
     # passed via command line
@@ -203,6 +260,30 @@ def run(args, output_file=sys.stdout):
             print('{:<40}{:>40}'.format(arg, getattr(args, arg)),
                   file=output_file)
 
+    # if args.store:
+    #     code = args.store.name
+    #     call_kerncraft(code, args.verbose)
+
+def run_bench(args, output_file=sys.stdout):
+    """This method creates a benchmark code starting from the C code passed as
+    input
+    """
+    # process kernel
+
+    # machine information
+    # Read machine description
+    machine = MachineModel(args.machine.name)
+
+    code = six.text_type(args.code_file.read())
+    code = clean_code(code)
+    kernel = KernelBench(code, filename=args.code_file.name, machine=machine)
+
+    c_code = kernel.as_code(type_='likwid')
+
+    # new_c_code = loop_to_function(c_code)
+
+    print(c_code)
+
 def main():
     """This method is the main, it creates a paerser, uses it and runs the
     business logic
@@ -213,11 +294,8 @@ def main():
     # Parse given arguments
     args = parser.parse_args()
 
-    # Checking arguments
-    check_arguments(args, parser)
-
     # BUSINESS LOGIC
-    run(args)
+    args.func(args)
 
 if __name__ == '__main__':
     main()
