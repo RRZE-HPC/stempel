@@ -178,6 +178,9 @@ def create_parser():
     parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
                               required=True, help='Path to machine description '
                               'yaml file.')
+    parser_bench.add_argument('--block', '-b', type=int,
+                              help='Path to machine description '
+                              'yaml file.')
 
     parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
@@ -278,7 +281,7 @@ def run_bench(args, output_file=sys.stdout):
     code = clean_code(code)
     kernel = KernelBench(code, filename=args.code_file.name, machine=machine)
 
-    c_code = kernel.as_code(type_='likwid')
+    c_code = kernel.as_code(type_='likwid', block_factor=args.block)
 
     # new_c_code = loop_to_function(c_code)
 

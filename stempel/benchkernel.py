@@ -124,7 +124,8 @@ def find_array_references(ast):
     elif ast is None:
         return []
     else:
-        return reduce(operator.add, [find_array_references(o[1]) for o in ast.children()], [])
+        return reduce(operator.add,
+                      [find_array_references(o[1]) for o in ast.children()], [])
 
 
 # Make sure that functions will return iterable objects:
@@ -406,7 +407,7 @@ class KernelBench(Kernel):
 
         return sources
 
-    def as_code(self, type_='iaca'):
+    def as_code(self, type_='iaca', block_factor=''):
         """
         generates compilable source code from AST
         *type* can be iaca or likwid.
@@ -539,23 +540,27 @@ class KernelBench(Kernel):
                 c_ast.ID('likwid_markerStartRegion'),
                 c_ast.ExprList([c_ast.Constant('string', '"loop"')])))
 
+            #add declaration of the block
+            if block_factor:
+                type_decl = c_ast.TypeDecl('block_factor', [], c_ast.IdentifierType(['int']))
+                decl = c_ast.Decl(
+                    'block_factor', ['const'], [], [],
+                    type_decl, c_ast.Constant('int', str(block_factor)), None)
+                ast.block_items.insert(-3, decl)
+
+                #add it to the list of declarations, so it gets passed to the kernel_loop
+                declarations.append(decl)
+
             # Wrap everything in a loop
             # int repeat = atoi(argv[2])
             type_decl = c_ast.TypeDecl('repeat', [], c_ast.IdentifierType(['int']))
             init = c_ast.FuncCall(
                 c_ast.ID('atoi'),
                 c_ast.ExprList([c_ast.ArrayRef(
-                    c_ast.ID('argv'), c_ast.Constant('int', str(len(self.constants)+1)))]))
+                    c_ast.ID('argv'), c_ast.Constant('int', str(len(self.constants)+2)))]))
             ast.block_items.insert(-3, c_ast.Decl(
                 'repeat', ['const'], [], [],
                 type_decl, init, None))
-
-            # call the function of the kernel
-            # ast.block_items.insert(-1, c_ast.FuncCall(
-            #     c_ast.ID('kernel_loop'),
-            #     c_ast.ExprList([c_ast.ID(declarations[0].name),
-            #     				c_ast.ID(declarations[1].name)])))
-
 
             # for(; repeat > 0; repeat--) {...}
             cond = c_ast.BinaryOp( '>', c_ast.ID('repeat'), c_ast.Constant('int', '0'))
@@ -593,22 +598,80 @@ class KernelBench(Kernel):
         # embed Compound AST into FileAST
         #ast = c_ast.FileAST([ast])
 
-        # listamia = []
-        # for d in declarations:
-        # 	try:
-        # 		listamia.append(c_ast.Typename(None, [], c_ast.PtrDecl(
-        #         [], c_ast.TypeDecl(d.name, [], d.type.type))))
-        # 	except AttributeError:
-        # 		listamia.append(c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], c_ast.IdentifierType([d.type]))))
+        #WORKING HERE
+        mydims = len(array_dimensions.get('a'))
+        myvariables = []
+        for i in range(0, mydims):
+                myvariables.append(chr(ord('i')+i))
 
+        pragma_int = c_ast.Pragma('omp parallel for private({}) schedule(runtime)'.format(','.join(myvariables)))
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList([c_ast.Typename(None, [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if d.type.type]),
             c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['void']))),
             None, None)
 
+        if block_factor:
+            if mydims == 2: #blocking on the inner-most loop
+                beginning = myvariables[0]+'b'
+                end = myvariables[0]+'end'
+                pragma = c_ast.Pragma('omp parallel for private({}, {})'.format(beginning, end))
+
+                init = c_ast.DeclList([
+                        c_ast.Decl(
+                            beginning, [], [], [], c_ast.TypeDecl(
+                                beginning, [], c_ast.IdentifierType(['int'])),
+                            forloop.stmt.init.decls[0].init,
+                            None)],
+                        None)
+                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
+                next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+                
+                assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
+                        c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
+                
+                forloop.stmt.init.decls[0].init = c_ast.ID(beginning)
+                forloop.stmt.cond.right = c_ast.ID(end)
+
+                mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
+                
+                newfor = c_ast.For(init, cond, next_, mycompound)
+
+                mycompound = c_ast.Compound([pragma, newfor])
+                                    
+            elif mydims == 3: #blocking on the middle loop
+                beginning = myvariables[1]+'b'
+                end = myvariables[1]+'end'
+                pragma = c_ast.Pragma('omp parallel for private({}, {})'.format(beginning, end))
+
+                init = c_ast.DeclList([
+                        c_ast.Decl(
+                            beginning, [], [], [], c_ast.TypeDecl(
+                                beginning, [], c_ast.IdentifierType(['int'])),
+                            forloop.stmt.init.decls[0].init,
+                            None)],
+                        None)
+                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
+                next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+                
+                assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
+                        c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
+                mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
+                
+                newfor = c_ast.For(init, cond, next_, mycompound)
+
+                mycompound = c_ast.Compound([pragma, newfor])
+
+        else:
+            mycompound = c_ast.Compound([pragma_int, forloop]+dummies)
+
+        #mycode = CGenerator().visit(mycompound)
+
         #logging.warning(type(forloop))
-        mycompound = c_ast.Compound([forloop])
         ast1 = c_ast.FuncDef(decl, None, mycompound)
         ast = c_ast.FileAST([ast1, ast])
         #ast.ext.insert(0, decl)
@@ -634,6 +697,7 @@ class KernelBench(Kernel):
         # add "#include"s for dummy, var_false and stdlib (for malloc)
         code = '#include <stdlib.h>\n\n' + code
         code = '#include "kerncraft.h"\n' + code
+        code = '#include "timing.h"\n' + code
         if type_ == 'likwid':
             code = '#include <likwid.h>\n' + code
 
@@ -643,7 +707,9 @@ class KernelBench(Kernel):
         code = code.rstrip()
        	if code.endswith(';'):
        		code = code = code[0:-1]
-       	return code
+       	#return mycode
+        return code
+
 
     def assemble(self, in_filename, out_filename=None, iaca_markers=True,
                  asm_block='auto', asm_increment=0, verbose=False):
