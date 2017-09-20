@@ -20,7 +20,7 @@ from six.moves import range
 from ruamel import yaml
 import itertools
 
-from benchkernel import KernelBench, symbol_pos_int
+from benchkernel import KernelBench
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
 # Version check
@@ -309,10 +309,10 @@ def run_bench(args, output_file=sys.stdout):
                     if v not in define_dict[name]:
                         define_dict[name].append([name, v])
         else:
-            my_constant_value = 100
+            my_constant_size = 100
             for name in list(required_consts):
                 if name not in define_dict:
-                    define_dict[name] = [[name, my_constant_value]]
+                    define_dict[name] = [[name, my_constant_size]]
         define_product = list(itertools.product(*list(define_dict.values())))
 
         # Check that all consts have been defined

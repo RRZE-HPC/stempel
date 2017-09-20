@@ -605,15 +605,23 @@ class KernelBench(Kernel):
             # take out the for loop that will be written in a function on top
             forloop = ast.block_items.pop(-2)
 
-            # for(; repeat > 0; repeat--) {...}
-            cond = c_ast.BinaryOp( '>', c_ast.ID('repeat'), c_ast.Constant('int', '0'))
-            next_ = c_ast.UnaryOp('--', c_ast.ID('repeat'))
+            # for(n = 0; n < repeat; n++) {...}
+            index_name = 'n'
+            init = c_ast.DeclList([
+                    c_ast.Decl(
+                        index_name, [], [], [], c_ast.TypeDecl(
+                            index_name, [], c_ast.IdentifierType(['int'])),
+                        c_ast.Constant('int', '0'),
+                        None)],
+                    None)
+            cond = c_ast.BinaryOp( '<', c_ast.ID(index_name), c_ast.ID('repeat'))
+            next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
             #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
             stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
             		c_ast.ExprList([c_ast.ID(d.name) for d in declarations]))
 									# c_ast.ID(declarations[0].name),
             						# c_ast.ID(declarations[1].name)]))])
-            myfor = c_ast.For(None, cond, next_, stmt)
+            myfor = c_ast.For(init, cond, next_, stmt)
             
             #call the timing function at the beginning
             end_timing = c_ast.FuncCall(c_ast.ID('timing'),
