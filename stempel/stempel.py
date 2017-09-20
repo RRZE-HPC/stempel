@@ -18,10 +18,11 @@ import sympy
 import six
 from six.moves import range
 from ruamel import yaml
+import itertools
 
-from benchkernel import KernelBench#, loop_to_function
+from benchkernel import KernelBench, symbol_pos_int
 from kerncraft.machinemodel import MachineModel
-
+from kerncraft.kerncraft import AppendStringRange
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
         sys.version_info[0] == 3 and sys.version_info < (3, 4):
@@ -181,6 +182,14 @@ def create_parser():
     parser_bench.add_argument('--block', '-b', type=int,
                               help='Path to machine description '
                               'yaml file.')
+    parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
+                        action=AppendStringRange,
+                        help='Define constant to be used in C code. Values must be integer or '
+                             'match start-stop[:num[log[base]]]. If range is given, all '
+                             'permutation s will be tested. Overwrites constants from testcase '
+                             'file.')
+    parser_bench.add_argument('--store', type=argparse.FileType('w'),
+                        help='Addes results to a C file for later processing.')
 
     parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
@@ -263,9 +272,6 @@ def run_gen(args, output_file=sys.stdout):
             print('{:<40}{:>40}'.format(arg, getattr(args, arg)),
                   file=output_file)
 
-    # if args.store:
-    #     code = args.store.name
-    #     call_kerncraft(code, args.verbose)
 
 def run_bench(args, output_file=sys.stdout):
     """This method creates a benchmark code starting from the C code passed as
@@ -279,13 +285,64 @@ def run_bench(args, output_file=sys.stdout):
 
     code = six.text_type(args.code_file.read())
     code = clean_code(code)
-    kernel = KernelBench(code, filename=args.code_file.name, machine=machine)
+    kernel = KernelBench(code, filename=args.code_file.name, machine=machine, block_factor=args.block)
 
-    c_code = kernel.as_code(type_='likwid', block_factor=args.block)
+    #taken from kerncraft
+    # if no defines were given, guess suitable defines in-mem
+    # TODO support in-cache
+    # TODO broaden cases to n-dimensions
+    # TODO make configurable (no hardcoded 512MB/1GB/min. 3 iteration ...)
+    # works only for up to 3 dimensions
+    required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
+    required_consts = set([i for l in required_consts for i in l])
+    
 
-    # new_c_code = loop_to_function(c_code)
+    if len(required_consts) > 0:
+        define_dict = {}
+        if args.define:
+            # build defines permutations
+            for name, values in args.define:
+                if name not in define_dict:
+                    define_dict[name] = [[name, v] for v in values]
+                    continue
+                for v in values:
+                    if v not in define_dict[name]:
+                        define_dict[name].append([name, v])
+        else:
+            my_constant_value = 100
+            for name in list(required_consts):
+                if name not in define_dict:
+                    define_dict[name] = [[name, my_constant_value]]
+        define_product = list(itertools.product(*list(define_dict.values())))
 
-    print(c_code)
+        # Check that all consts have been defined
+        # if set(required_consts).difference(set([symbol_pos_int(k) for k in define_dict.keys()])):
+        #     raise ValueError("Not all constants have been defined. Required are: {}".format(
+        #         required_consts))
+    else:
+        define_product = [{}]
+
+    for define in define_product:
+        # Reset state of kernel
+        kernel.clear_state()
+
+        # Add constants from define arguments
+        for k, v in define:
+            kernel.set_constant(k, v)
+
+    #get compilable C code
+    c_code = kernel.as_code()
+
+    # Save storage to file or print to STDOUT
+    if args.store:
+        # build the name of the output file according to dimensions and diameter
+        tempname = args.store.name + '.tmp'
+
+        with open(tempname, 'w') as out:
+            out.write(c_code)
+        shutil.move(tempname, args.store.name)
+    else:
+        print(c_code)
 
 def main():
     """This method is the main, it creates a paerser, uses it and runs the
