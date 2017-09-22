@@ -699,11 +699,14 @@ class KernelBench(Kernel):
                 myvariables.append(chr(ord('i')+i))
 
         pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
-        #WORKING HERE
+        
+        #creating a list of pointer to all the variables of type pointer
         pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
+        #creating a list of standard types for all the non-pointer variables
         variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
 
+        #declaring the function of the kernel with the parameters list built before
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList(pointers_list + variables_list),
             c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['void']))),
