@@ -19,3 +19,7 @@ coverage.xml
 env/
 venv/
 ENV/
+
+# Parser and Lexter stuff
+lextab.py
+yacctab.py
