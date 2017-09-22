@@ -19,6 +19,7 @@ from string import ascii_letters
 from itertools import chain
 from collections import defaultdict
 import logging
+from distutils.spawn import find_executable
 
 import sympy
 from sympy.utilities.lambdify import implemented_function
@@ -907,15 +908,17 @@ class KernelBench(Kernel):
         # Let's return the out_file name
         return os.path.splitext(in_file.name)[0]+'.s'
 
-    def build(self, lflags=None, verbose=False):
+    def build(self, compiler=None, compiler_args=None, lflags=None, verbose=False):
         """
         compiles source to executable with likwid capabilities
         returns the executable name
         """
 
         #compiler, compiler_args = self._machine.get_compiler()
-        compiler = 'gcc'
-        compiler_args = ['-O3']
+        if not compiler:
+            compiler = 'gcc'
+        if not compiler_args:
+            compiler_args = ['-O3']
 
         # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
         #         'LIKWID_LIB' in os.environ):
