@@ -23,6 +23,8 @@ import itertools
 from benchkernel import KernelBench
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
+
+
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
         sys.version_info[0] == 3 and sys.version_info < (3, 4):
@@ -281,11 +283,13 @@ def run_bench(args, output_file=sys.stdout):
 
     # machine information
     # Read machine description
-    machine = MachineModel(args.machine.name)
+    machine = MachineModel(args.machine.name)#, args=args)
+    #compiler, compiler_args = machine.get_compiler()
 
     code = six.text_type(args.code_file.read())
     code = clean_code(code)
     kernel = KernelBench(code, filename=args.code_file.name, machine=machine, block_factor=args.block)
+
 
     #taken from kerncraft
     # if no defines were given, guess suitable defines in-mem
@@ -333,6 +337,13 @@ def run_bench(args, output_file=sys.stdout):
     #get compilable C code
     c_code = kernel.as_code()
 
+    benchmark = kernel.build()
+    # Build arguments to pass to command:
+    args = [bench] + [six.text_type(s) for s in list(kernel.constants.values())]
+
+    results = kernel.perfctr(args)
+
+    print(results)
     # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter
