@@ -606,6 +606,15 @@ class KernelBench(Kernel):
             # take out the for loop that will be written in a function on top
             forloop = ast.block_items.pop(-2)
 
+            #creating a list of pointer to all the variables of type pointer
+            pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
+                [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
+            first_array_name = pointers_list[0].type.type.declname
+            #get the number of dimensions by fetching the size of the first array
+            mydims = len(array_dimensions.get(first_array_name))
+            #get the type of the first array
+            first_array_type = pointers_list[0].type.type.type.type.names[0]
+
             # for(n = 0; n < repeat; n++) {...}
             index_name = 'n'
             init = c_ast.DeclList([
@@ -620,8 +629,13 @@ class KernelBench(Kernel):
             #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
             stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
             		c_ast.ExprList([c_ast.ID(d.name) for d in declarations]))
-									# c_ast.ID(declarations[0].name),
-            						# c_ast.ID(declarations[1].name)]))])
+            swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
+                c_ast.ID(pointers_list[0].type.type.declname))
+            swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
+                c_ast.ID(pointers_list[1].type.type.declname))
+            last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
+                c_ast.ID(pointers_list[0].type.type.declname))
+            stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
             myfor = c_ast.For(init, cond, next_, stmt)
             
             #call the timing function at the beginning
@@ -651,10 +665,16 @@ class KernelBench(Kernel):
 
             #calculate the size of the grid, taking the letters representing its dimensions from the array of constants
             size = '(' + ' * '.join(k.name for k in self.constants) + ')'
-            
-            #get the number of dimensions by fetching the size of the array called "a".
-            #TODO MUST get the number of dimensions in a better way (what if we do not have the grid "a"?) 
-            mydims = len(array_dimensions.get('a'))
+
+            decl = c_ast.Decl('tmp', [], [], [], c_ast.PtrDecl(
+                [], c_ast.TypeDecl('tmp', [],
+                    pointers_list[0].type.type.type.type)),
+                None, None)
+            ast.block_items.insert(-5, decl)
+
+            #creating a list of standard types for all the non-pointer variables
+            variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
+
 
             #generate the LUP expression according to the number of dimensions
             # it is necessary to do so since we do not know a priori how many nested for we have
@@ -694,18 +714,11 @@ class KernelBench(Kernel):
         # embed Compound AST into FileAST
         #ast = c_ast.FileAST([ast])
 
-        mydims = len(array_dimensions.get('a'))
         myvariables = []
         for i in range(0, mydims):
                 myvariables.append(chr(ord('i')+i))
 
         pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
-        
-        #creating a list of pointer to all the variables of type pointer
-        pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
-                [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
-        #creating a list of standard types for all the non-pointer variables
-        variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
 
         #declaring the function of the kernel with the parameters list built before
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
@@ -920,11 +933,11 @@ class KernelBench(Kernel):
         if not compiler_args:
             compiler_args = ['-O3']
 
-        # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
-        #         'LIKWID_LIB' in os.environ):
-        #     print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
-        #           file=sys.stderr)
-        #     sys.exit(1)
+        if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
+                'LIKWID_LIB' in os.environ):
+            print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
+                  file=sys.stderr)
+            sys.exit(1)
 
         compiler_args += [
             '-std=c99',
