@@ -7,7 +7,7 @@ This tool allows automatic generation of loop kernels for several kind of stenci
 Stempel provides a framework to generate, perform static analysis of the code (exploiting kerncraft),
 generate a full C code and parallelize it via openMP and blocking.
 
-For a detailed documentation see in `<doc/>`_.
+For a detailed documentation see in `<docs/>`_.
 
 Installation
 ============
