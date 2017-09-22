@@ -34,7 +34,9 @@ Usage
 
 2. Run stempel benchmark generator
 
-``stempel bench code.c -m machine_file.yaml``
+``stempel bench code.c -m machine_file.yaml -b 32``
+
+
 Credits
 =======
 
