@@ -28,10 +28,13 @@ Additional requirements are:
 Usage
 =====
 
-1. Run stempel
+1. Run stempel C code generator
 
-``stempel -D 2 -r 1 -s -i``
+``stempel gen -D 2 -r 1 -s -i``
 
+2. Run stempel benchmark generator
+
+``stempel bench code.c -m machine_file.yaml``
 Credits
 =======
 
