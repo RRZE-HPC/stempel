@@ -165,7 +165,7 @@ class StarConstant(object):
                 self.loop_variables[i],
                 self.dims[i], self.radius,
                 self.loop_variables[i]
-                ) + '{'
+                )
             loop_lines.insert(i, line)
 
         centerpoint = self.inputs[0]
@@ -186,15 +186,21 @@ class StarConstant(object):
             assert (len(self.coefficients) == (self.radius + 1)), "In case of"\
                 " an isotropic and symmetric stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to (radius + 1)"
-            stencil = self.coefficients[0] + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
-                for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(
-                        self.coefficients[count],
+                stencil = stencil + '+ {} * (({} + {})'.format(
+                    self.coefficients[count],
+                    left(centerpoint, 0, self.loop_variables, i+1),
+                    right(centerpoint, 0, self.loop_variables, i+1)
+                    )
+                for j in range(1, self.dimensions):
+                    stencil = stencil + ' + ({} + {})'.format(
                         left(centerpoint, j, self.loop_variables, i+1),
                         right(centerpoint, j, self.loop_variables, i+1)
-                        ) + '\n'
+                        )
+
+                stencil = stencil + ')\n'
                 count = count + 1
 
         # asymmetric
@@ -206,7 +212,7 @@ class StarConstant(object):
                     "coefficient, the number of the coefficient must " \
                     "be equal to (2 * radius * dimensions + 1)"
 
-            stencil = self.coefficients[0] + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
@@ -225,7 +231,7 @@ class StarConstant(object):
                 "In case of anisotropic and symmetric stencil with constant "\
                 "coefficient, the number of the coefficient must be equal to "\
                 "(radius * dimensions + 1)"
-            stencil = self.coefficients[0] + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
@@ -252,9 +258,7 @@ class StarConstant(object):
 
         righthand = '{};'.format(stencil)
 
-        closing = '}\n' * self.dimensions
-
-        computation = lefthand + ' = ' + righthand + '\n' + closing
+        computation = lefthand + ' = ' + righthand + '\n'
 
         loop_lines.append(computation)
 
@@ -410,7 +414,7 @@ class StarVariable(object):
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
-                self.dims[i], self.radius, self.loop_variables[i]) + '{'
+                self.dims[i], self.radius, self.loop_variables[i])
             loop_lines.insert(i, line)
 
         centerpoint = self.inputs[0]
@@ -440,11 +444,17 @@ class StarVariable(object):
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
-                for j in range(self.dimensions):
-                    stencil = stencil + '+ {} * ({} + {})'.format(
-                        str(self.coefficients[0]) + '[' + str(count) + ']',
+                stencil = stencil + '+ {} * (({} + {})'.format(
+                    str(self.coefficients[0]) + '[' + str(count) + ']',
+                    left(centerpoint, 0, self.loop_variables, i+1),
+                    right(centerpoint, 0, self.loop_variables, i+1)
+                    )
+                for j in range(1, self.dimensions):
+                    stencil = stencil + ' + ({} + {})'.format(
                         left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                        right(centerpoint, j, self.loop_variables, i+1)
+                        )
+                stencil = stencil + ')\n'
                 count = count + 1
 
         # asymmetric
@@ -455,7 +465,7 @@ class StarVariable(object):
             "In case of an asymmetric stencil with constant coefficient, "\
             "the number of the coefficient must be equal to "\
             "(2 * radius * dimensions + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
@@ -474,7 +484,7 @@ class StarVariable(object):
             "In case of anisotropic and symmetric stencil with constant "\
             "coefficient, the number of the coefficient must be equal to "\
             "(radius * dimensions + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
@@ -502,9 +512,7 @@ class StarVariable(object):
 
         righthand = '{};'.format(stencil)
 
-        closing = '}\n' * self.dimensions
-
-        computation = lefthand + ' = ' + righthand + '\n' + closing
+        computation = lefthand + ' = ' + righthand + '\n'
 
         loop_lines.append(computation)
 
