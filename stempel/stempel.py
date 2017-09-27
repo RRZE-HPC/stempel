@@ -212,7 +212,7 @@ def check_arguments(args, parser):
         parser.error('--coefficient can only be "float" or "double"')
 
 
-def run_gen(args, output_file=sys.stdout):
+def run_gen(args, parser, output_file=sys.stdout):
     """This method creates an object of type Stencil and calls the appropriate
     methods to generate the C code
     """
@@ -370,7 +370,7 @@ def main():
     args = parser.parse_args()
 
     # BUSINESS LOGIC
-    args.func(args)
+    args.func(args, parser)
 
 if __name__ == '__main__':
     main()
