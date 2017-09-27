@@ -298,8 +298,18 @@ def run_bench(args, output_file=sys.stdout):
     # TODO support in-cache
     # TODO broaden cases to n-dimensions
     # TODO make configurable (no hardcoded 512MB/1GB/min. 3 iteration ...)
-    # works only for up to 3 dimensions
-    required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
+    # # works only for up to 3 dimensions
+    array = []
+    required_consts = []
+    for v in kernel.variables.values():
+        array = []
+        if v[1] is not None:
+            for c in v[1]:
+                if type(c) is not sympy.Integer:
+                    array.append(c)
+        required_consts.append(array) 
+
+    # required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
     required_consts = set([i for l in required_consts for i in l])
     
 
