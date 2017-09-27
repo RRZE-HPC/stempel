@@ -13,6 +13,7 @@ import argparse
 import importlib
 import subprocess
 import shutil
+import os
 
 from pycparser import clean_code
 import sympy
@@ -191,8 +192,8 @@ def create_parser():
                              'match start-stop[:num[log[base]]]. If range is given, all '
                              'permutation s will be tested. Overwrites constants from testcase '
                              'file.')
-    parser_bench.add_argument('--store', type=argparse.FileType('w'),
-                        help='Addes results to a C file for later processing.')
+    parser_bench.add_argument('--store', action='store_true',
+        help='Addes results to a C file for later processing.')
 
     parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
@@ -338,7 +339,7 @@ def run_bench(args, output_file=sys.stdout):
     #get compilable C code
     c_code = kernel.as_code()
 
-    # #benchmark = kernel.build(compiler='gcc', compiler_args='-O3')
+    #benchmark = kernel.build(compiler='gcc', compiler_args=['-O3'])
     # benchmark = '2d-5pt.c.likwid_marked'
     # # Build arguments to pass to command:
     # kernel_args = [benchmark] + [six.text_type(s) for s in list(kernel.constants.values())]
@@ -346,14 +347,15 @@ def run_bench(args, output_file=sys.stdout):
     # results = kernel.perfctr(kernel_args)
 
     # print(results)
-    # Save storage to file or print to STDOUT
+ 
+   # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter
-        tempname = args.store.name + '.tmp'
+        tempname = args.code_file.name + '.tmp'
 
         with open(tempname, 'w') as out:
             out.write(c_code)
-        shutil.move(tempname, args.store.name)
+        shutil.move(tempname, args.code_file.name+"_compilable.c")
     else:
         print(c_code)
 

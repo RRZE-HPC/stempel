@@ -933,27 +933,28 @@ class KernelBench(Kernel):
         if not compiler_args:
             compiler_args = ['-O3']
 
-        if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
-                'LIKWID_LIB' in os.environ):
-            print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
-                  file=sys.stderr)
-            sys.exit(1)
+        # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
+        #         'LIKWID_LIB' in os.environ):
+        #     print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
+        #           file=sys.stderr)
+        #     sys.exit(1)
 
         compiler_args += [
             '-std=c99',
             '-I'+os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+'/headers/',
-            os.environ.get('LIKWID_INCLUDE', ''),
-            os.environ.get('LIKWID_INC', ''), '-llikwid']
+            '-DLIKWID', '-DLIKWID_PERFMON', '-llikwid']
+            # os.environ.get('LIKWID_INCLUDE', ''),
+            # os.environ.get('LIKWID_INC', '')]
 
         # This is a special case for unittesting
-        if os.environ.get('LIKWID_LIB') == '':
-            compiler_args = compiler_args[:-1]
+        # if os.environ.get('LIKWID_LIB') == '':
+        #     compiler_args = compiler_args[:-1]
 
         if lflags is None:
             lflags = []
-        lflags += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
-        compiler_args += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
-
+        # lflags += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
+        # compiler_args += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
+        compiler_args += ['-pthread']
 
         if not self._filename:
             source_file = tempfile.NamedTemporaryFile(
@@ -977,6 +978,7 @@ class KernelBench(Kernel):
         if verbose:
             print('Executing (build): ', ' '.join(cmd))
         try:
+            cmd = 'ls'
             subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
             print("Build failed:", e, file=sys.stderr)
