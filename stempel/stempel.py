@@ -164,6 +164,15 @@ def create_parser():
                         help='Define the datatype of the grids used in the '
                         'stencil. Value must be double or float')
 
+    parser_gen.add_argument('-d', '--dimofcoeffs', type=int,
+                        help='Variable coefficients are stored as an array. '
+                        'Each variable coefficient results in an array of the '
+                        'same size of the stencils\' grid. All variable '
+                        'coefficients are packed into an array. This parameter '
+                        'defines which dimension (first, second, third, ...) '
+                        'will be used for discerning the coefficients. '
+                        'Value must be an integer.')
+
     parser_gen.add_argument('--store', type=argparse.FileType('w'),
                         help='Addes results to a C file for later processing.')
 
@@ -211,6 +220,47 @@ def check_arguments(args, parser):
     if args.datatype not in ['float', 'double']:
         parser.error('--coefficient can only be "float" or "double"')
 
+def change_decl(decltoreplace, dimofcoeffs, stencil, code):
+    
+    size = str(stencil.num_coefficients)
+    newdecl = decltoreplace.replace('['+size+']', '')
+    letter_length = 0
+    for i in range(dimofcoeffs-1):
+        letter_length += len(stencil.dims[i])
+
+    pos = 1 + 2*(dimofcoeffs-1) + letter_length
+
+    newdecl = newdecl[:pos] + '['+size+']' + newdecl[pos:]
+
+    code = code.replace(decltoreplace, newdecl)
+    return code
+
+def change_loop(decltoreplace, dimofcoeffs, stencil, code):
+
+    assert isinstance(code, str) or isinstance(code, unicode), "The type of"\
+    "the code variable must be either unicode or string"
+
+    array_of_coeffs = [stencil.coefficients[0] + '[' + str(i) + ']' for i in range(stencil.num_coefficients)]
+    newarray = []
+    for i in array_of_coeffs:
+        #remove trailing dimension
+        newi = i.rsplit('[', 1)[0]
+
+        size = i.rsplit('[', 1)[1].rsplit(']', 1)[0]
+
+        letter_length = 0
+        for i in range(dimofcoeffs-1):
+            letter_length += len(stencil.loop_variables[i])
+        pos = 1 + 2*(dimofcoeffs-1) + letter_length
+
+
+        newi = newi[:pos] + '[' + size + ']' + newi[pos:]
+        newarray.append(newi)
+
+    for i in range(stencil.num_coefficients):
+        code = code.replace(array_of_coeffs[i], newarray[i])
+
+    return code
 
 def run_gen(args, parser, output_file=sys.stdout):
     """This method creates an object of type Stencil and calls the appropriate
@@ -256,6 +306,25 @@ def run_gen(args, parser, output_file=sys.stdout):
     # create the loop part of the final C code
     loop = stencil.loop()
     code = declaration + '\n'.join(loop)
+
+    if args.coefficient == 'variable':
+   
+        toreplace = stencil.coefficients[0]
+        
+        decltoreplace = toreplace
+        for i in range(args.dimensions):
+            decltoreplace = decltoreplace.replace(
+                stencil.loop_variables[i], stencil.dims[i])
+
+        decltoreplace = decltoreplace + '[' + str(stencil.num_coefficients) + ']'
+        
+        # assert args.dimofcoeffs < len(stencil.dims)+1, "The stencil provided"\
+        # "does not have enough dimensions to place the index of the coefficients"\
+        # "at position {}".format(args.dimofcoeffs)
+        if args.dimofcoeffs and args.dimofcoeffs < len(stencil.dims)+1:
+            code = change_decl(decltoreplace, args.dimofcoeffs, stencil, code)
+            code = change_loop(decltoreplace, args.dimofcoeffs, stencil, code)
+        
 
     print_header(args, output_file, stencil)
     
