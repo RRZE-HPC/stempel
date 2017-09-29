@@ -111,6 +111,7 @@ def call_kerncraft(code='', verbosity=''):
 def create_parser():
     """This method creates a parser
     """
+    example_gen = 'Example usage: stempel gen -D 2 -r 1 -s -k star -C variable -d 2'
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -119,7 +120,8 @@ def create_parser():
 
     parser_gen = subparsers.add_parser('gen', help='Generate a C-like code for '
                                        'the stencil computation descrivbed by '
-                                       'the command line parameters')
+                                       'the command line parameters',
+                                       epilog=example_gen)
     parser_gen.add_argument('-D', '--dimensions', metavar=('DIMENSIONS'),
                             type=int, default=2, required=True, help='Define '
                             'the number of dimensions to create in the final C '
@@ -168,10 +170,10 @@ def create_parser():
                         help='Variable coefficients are stored as an array. '
                         'Each variable coefficient results in an array of the '
                         'same size of the stencils\' grid. All variable '
-                        'coefficients are packed into an array. This parameter '
-                        'defines which dimension (first, second, third, ...) '
-                        'will be used for discerning the coefficients. '
-                        'Value must be an integer.')
+                        'coefficients are packed into an array (e.g. W[M][N][2]'
+                        '). This parameter defines which dimension (first, '
+                        ' second, third, ...) will be used for discerning the '
+                        'coefficients. Value must be an integer.')
 
     parser_gen.add_argument('--store', type=argparse.FileType('w'),
                         help='Addes results to a C file for later processing.')
