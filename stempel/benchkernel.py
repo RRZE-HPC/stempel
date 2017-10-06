@@ -676,11 +676,21 @@ class KernelBench(Kernel):
             variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
 
 
+            norm_loop = deepcopy(forloop)
             #generate the LUP expression according to the number of dimensions
             # it is necessary to do so since we do not know a priori how many nested for we have
+            # additionally builds the norm of the array
             if mydims == 1:
                 LUP_expression = c_ast.Cast(
                 c_ast.IdentifierType(['double']), forloop.cond.right)#c_ast.ExprList([forloop.cond.right])
+                #norm
+                point = norm_loop.stmt.lvalue
+                norm_loop.stmt.lvalue = c_ast.ID('total')
+                newop = c_ast.BinaryOp('+',
+                    c_ast.ID('total'),
+                    c_ast.BinaryOp('*', point, point))
+                norm_loop.stmt.rvalue = newop
+
             elif mydims == 2:
                 LUP_expression = c_ast.BinaryOp('*',
                     c_ast.Cast(
@@ -689,6 +699,14 @@ class KernelBench(Kernel):
                     c_ast.Cast(
                         c_ast.IdentifierType(['double']),
                         forloop.stmt.cond.right))
+                #norm
+                point = norm_loop.stmt.stmt.lvalue
+                norm_loop.stmt.stmt.lvalue = c_ast.ID('total')
+                newop = c_ast.BinaryOp('+',
+                    c_ast.ID('total'),
+                    c_ast.BinaryOp('*', point, point))
+                norm_loop.stmt.stmt.rvalue = newop
+
             elif mydims == 3:
                 LUP_expression = c_ast.BinaryOp('*',
                     c_ast.BinaryOp('*',
@@ -700,6 +718,13 @@ class KernelBench(Kernel):
                             forloop.stmt.cond.right)),
                     c_ast.Cast(c_ast.IdentifierType(['double']),
                         forloop.stmt.stmt.cond.right))
+                #norm
+                point = norm_loop.stmt.stmt.stmt.lvalue
+                norm_loop.stmt.stmt.stmt.lvalue = c_ast.ID('total')
+                newop = c_ast.BinaryOp('+',
+                    c_ast.ID('total'),
+                    c_ast.BinaryOp('*', point, point))
+                norm_loop.stmt.stmt.stmt.rvalue = newop
             
             #we build MLUP. should be like: (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
             LUP_expression = c_ast.BinaryOp('*',
@@ -716,6 +741,21 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
                 c_ast.ExprList([c_ast.Constant('string', '"size: %d    time: %lf    iter: %d    MLUP/s: %lf"'),
                     c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), MLUP])))
+
+            #insert the loop computing the total squared
+            decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
+                'total', [], c_ast.IdentifierType(['double'])
+            ), c_ast.Constant('double', '0.0'), None)
+            ast.block_items.insert(-6, decl)
+            ast.block_items.insert(-1, norm_loop)
+
+            #insert the printf of the norm
+            ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
+                c_ast.ExprList([
+                    c_ast.Constant('string', '"norm(a): %lf"',
+                    c_ast.FuncCall(c_ast.ID('sqrt'),
+                        c_ast.ExprList([c_ast.ID('total')])))])))
+
 
 
         else:
@@ -844,9 +884,11 @@ class KernelBench(Kernel):
         code = ifdefperf + '#include <likwid.h>\n' + endif + code
 
         # add "#include"s for dummy, var_false and stdlib (for malloc)
-        code = '#include <stdlib.h>\n\n' + code
         code = '#include "kerncraft.h"\n' + code
         code = '#include "timing.h"\n' + code
+
+        code = '#include <math.h>\n\n' + code
+        code = '#include <stdlib.h>\n' + code
 
         # substitute the string added with the macro, since there is no way to 
         # add MACROs with pycparser. It is a workaround
