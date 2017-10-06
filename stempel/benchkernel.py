@@ -719,8 +719,8 @@ class KernelBench(Kernel):
         for i in range(0, mydims):
                 myvariables.append(chr(ord('i')+i))
 
-        pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
-
+        #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
+        pragma_int = c_ast.Pragma('omp for schedule(runtime)')
         #declaring the function of the kernel with the parameters list built before
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList(pointers_list + variables_list),
