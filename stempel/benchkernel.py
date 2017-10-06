@@ -679,18 +679,38 @@ class KernelBench(Kernel):
             #generate the LUP expression according to the number of dimensions
             # it is necessary to do so since we do not know a priori how many nested for we have
             if mydims == 1:
-                LUP_expression = forloop.cond.right#c_ast.ExprList([forloop.cond.right])
+                LUP_expression = c_ast.Cast(
+                c_ast.IdentifierType(['double']), forloop.cond.right)#c_ast.ExprList([forloop.cond.right])
             elif mydims == 2:
-                LUP_expression = c_ast.BinaryOp('*', forloop.cond.right, forloop.stmt.cond.right)
+                LUP_expression = c_ast.BinaryOp('*',
+                    c_ast.Cast(
+                        c_ast.IdentifierType(['double']),
+                        forloop.cond.right),
+                    c_ast.Cast(
+                        c_ast.IdentifierType(['double']),
+                        forloop.stmt.cond.right))
             elif mydims == 3:
-                LUP_expression = c_ast.BinaryOp('*', c_ast.BinaryOp('*', forloop.cond.right, forloop.stmt.cond.right), forloop.stmt.stmt.cond.right)
+                LUP_expression = c_ast.BinaryOp('*',
+                    c_ast.BinaryOp('*',
+                        c_ast.Cast(
+                            c_ast.IdentifierType(['double']),
+                            forloop.cond.right),
+                        c_ast.Cast(
+                            c_ast.IdentifierType(['double']),
+                            forloop.stmt.cond.right)),
+                    c_ast.Cast(c_ast.IdentifierType(['double']),
+                        forloop.stmt.stmt.cond.right))
             
             #we build MLUP. should be like: (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
-            LUP_expression = c_ast.BinaryOp('*', c_ast.ID('repeat'), LUP_expression)
+            LUP_expression = c_ast.BinaryOp('*',
+                c_ast.Cast(
+                    c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
+                LUP_expression)
             #cast it to double since the first variables are ints
-            LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), LUP_expression)
+            #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), LUP_expression)
             #we put all together to get MLUP
-            MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+            #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+            MLUP = c_ast.BinaryOp('/', LUP_expression, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
             
             #insert the printf of the stats
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
