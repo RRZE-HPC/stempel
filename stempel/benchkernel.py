@@ -448,11 +448,12 @@ class KernelBench(Kernel):
 
         if type_ == 'likwid':
             # Call likwid_markerInit()
-            ast.block_items.insert(0, c_ast.FuncCall(c_ast.ID('likwid_markerInit'), None))
+            ast.block_items.insert(0, c_ast.Constant('string', 'INSERTMACROINIT'))
             # Call likwid_markerThreadInit()
-            ast.block_items.insert(1, c_ast.FuncCall(c_ast.ID('likwid_markerThreadInit'), None))
+            ast.block_items.insert(1, c_ast.Constant('string', 'INSERTMACROTHREADINIT'))
             # Call likwid_markerClose()
-            ast.block_items.append(c_ast.FuncCall(c_ast.ID('likwid_markerClose'), None))
+            #ast.block_items.append(c_ast.FuncCall(c_ast.ID('likwid_markerClose'), None))
+            ast.block_items.append(c_ast.Constant('string', 'INSERTMACROCLOSE'))
 
         # inject array initialization
         for d in declarations:
@@ -544,9 +545,10 @@ class KernelBench(Kernel):
 
         if type_ == 'likwid':
             # Instrument the outer for-loop with likwid
-            ast.block_items.insert(-2, c_ast.FuncCall(
-                c_ast.ID('likwid_markerStartRegion'),
-                c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
+            # ast.block_items.insert(-2, c_ast.FuncCall(
+            #     c_ast.ID('likwid_markerStartRegion'),
+            #     c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
+            ast.block_items.insert(-2, c_ast.Constant('string', 'INSERTMACROSTART'))
 
             #add declaration of the block
             if self.block_factor:
@@ -656,9 +658,7 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, c_ast.While(cond, stmt))
 
             #close the region "Sweep" of likwid
-            ast.block_items.insert(-1, c_ast.FuncCall(
-                c_ast.ID('likwid_markerStopRegion'),
-                c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
+            ast.block_items.insert(-1, c_ast.Constant('string', 'INSERTMACROSTOP'))
 
             #the variable repeat must be divided by 2 since in the last loop was doubled before exiting
             ast.block_items.insert(-1, c_ast.Assignment('/=', c_ast.ID('repeat'), c_ast.Constant('int', '2')))
@@ -696,6 +696,7 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
                 c_ast.ExprList([c_ast.Constant('string', '"size: %d    time: %lf    iter: %d    MLUP/s: %lf"'),
                     c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), MLUP])))
+
 
         else:
             ast.block_items += dummies
@@ -785,7 +786,6 @@ class KernelBench(Kernel):
             mycompound = c_ast.Compound([pragma_int, forloop]+dummies)
 
         #mycode = CGenerator().visit(mycompound)
-
         #logging.warning(type(forloop))
         ast1 = c_ast.FuncDef(decl, None, mycompound)
         ast = c_ast.FileAST([ast1, ast])
@@ -817,12 +817,44 @@ class KernelBench(Kernel):
             line = '#define {} {}L\n'.format(name, value)
             code = line + code
 
+        code = '\n' + code
+        ifdefperf = '#ifdef LIKWID_PERFMON\n'
+        endif = '#endif\n'
+        
+        code = ifdefperf + '#include <likwid.h>\n' + endif + code
+
         # add "#include"s for dummy, var_false and stdlib (for malloc)
         code = '#include <stdlib.h>\n\n' + code
         code = '#include "kerncraft.h"\n' + code
         code = '#include "timing.h"\n' + code
-        if type_ == 'likwid':
-            code = '#include <likwid.h>\n' + code
+
+        # substitute the string added with the macro, since there is no way to 
+        # add MACROs with pycparser. It is a workaround
+        # TODO change the code creation in a way to use MACROs
+        pragraomp = '  #pragma omp parallel\n  {}\n    ' + '{}' + '\n  {}'
+
+        likwid_init = 'LIKWID_MARKER_INIT;'
+        macroinit = '\n  ' + ifdefperf + '  ' + likwid_init + '\n  ' + endif
+        code = code.replace('INSERTMACROINIT;', macroinit)
+
+        likwid_thread_init = 'LIKWID_MARKER_THREADINIT;'
+        pragma_start_init = pragraomp.format('{', likwid_thread_init, '}')
+        macrothreadinit = '\n  ' + ifdefperf + pragma_start_init + '\n  ' + endif
+        code = code.replace('INSERTMACROTHREADINIT;', macrothreadinit)
+
+        start_sweep = 'LIKWID_MARKER_START("Sweep");'
+        pragma_start_sweep = pragraomp.format('{', start_sweep, '}')
+        macrostart = '\n  ' + ifdefperf + pragma_start_sweep + '\n  ' + endif
+        code = code.replace('INSERTMACROSTART;', macrostart)
+
+        stop_sweep = 'LIKWID_MARKER_STOP("Sweep");'
+        pragma_stop_sweep = pragraomp.format('{', stop_sweep, '}')
+        macrostop = '\n  ' + ifdefperf + pragma_stop_sweep + '\n  ' + endif
+        code = code.replace('INSERTMACROSTOP;', macrostop)
+
+        likwid_close = 'LIKWID_MARKER_CLOSE;'
+        macroclose = '\n  ' + ifdefperf + '  ' + likwid_close + '\n  ' + endif
+        code = code.replace('INSERTMACROCLOSE;', macroclose)
 
         # remove trailing ";": it must be fixed in the place where it is
         # accidentally added, i.e. when adding the function kernel_loop.
