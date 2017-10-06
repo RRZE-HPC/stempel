@@ -636,7 +636,7 @@ class KernelBench(Kernel):
             swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
                 c_ast.ID(pointers_list[1].type.type.declname))
             last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
-                c_ast.ID(pointers_list[0].type.type.declname))
+                c_ast.ID('tmp'))
             stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
             myfor = c_ast.For(init, cond, next_, stmt)
             
