@@ -685,6 +685,8 @@ class KernelBench(Kernel):
                 c_ast.IdentifierType(['double']), forloop.cond.right)#c_ast.ExprList([forloop.cond.right])
                 #norm
                 point = norm_loop.stmt.lvalue
+                #set the name of the grid to the first (the order changed after the swap)
+                point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                     c_ast.ID('total'),
@@ -701,6 +703,8 @@ class KernelBench(Kernel):
                         forloop.stmt.cond.right))
                 #norm
                 point = norm_loop.stmt.stmt.lvalue
+                #set the name of the grid to the first (the order changed after the swap)
+                point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                     c_ast.ID('total'),
@@ -720,6 +724,8 @@ class KernelBench(Kernel):
                         forloop.stmt.stmt.cond.right))
                 #norm
                 point = norm_loop.stmt.stmt.stmt.lvalue
+                #set the name of the grid to the first (the order changed after the swap)
+                point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.stmt.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                     c_ast.ID('total'),
@@ -738,8 +744,9 @@ class KernelBench(Kernel):
             MLUP = c_ast.BinaryOp('/', LUP_expression, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
             
             #insert the printf of the stats
+            mystring = str("size: %d    time: %lf    iter: %d    MLUP/s: %lf\n").encode('string_escape')
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
-                c_ast.ExprList([c_ast.Constant('string', '"size: %d    time: %lf    iter: %d    MLUP/s: %lf"'),
+                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                     c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), MLUP])))
 
             #insert the loop computing the total squared
@@ -750,11 +757,14 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, norm_loop)
 
             #insert the printf of the norm
+            mystring = str("norm(a): %lf\n")
+            mystring = mystring.encode('string_escape')
+
+            sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
+                        c_ast.ExprList([c_ast.ID('total')]))
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
                 c_ast.ExprList([
-                    c_ast.Constant('string', '"norm(a): %lf"',
-                    c_ast.FuncCall(c_ast.ID('sqrt'),
-                        c_ast.ExprList([c_ast.ID('total')])))])))
+                    c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
 
 
 
@@ -857,6 +867,18 @@ class KernelBench(Kernel):
             c_ast.ParamList([c_ast.Typename(None, [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl(None, [], c_ast.IdentifierType(['double']))))]),
             c_ast.TypeDecl('dummy', [], c_ast.IdentifierType(['void']))),
+            None, None)
+        ast.ext.insert(0, decl)
+
+        # add alloc function declaration
+        decl = c_ast.Decl('aligned_malloc', [], [], [], c_ast.FuncDecl(
+            c_ast.ParamList([
+                c_ast.Typename(None, [], c_ast.TypeDecl(
+                    None, [], c_ast.IdentifierType(['size_t']))),
+                c_ast.Typename(None, [], c_ast.TypeDecl(
+                    None, [], c_ast.IdentifierType(['size_t'])))
+            ]),
+            c_ast.TypeDecl('aligned_malloc', [], c_ast.IdentifierType(['void*']))),
             None, None)
         ast.ext.insert(0, decl)
 
