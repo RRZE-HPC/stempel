@@ -790,7 +790,7 @@ class KernelBench(Kernel):
                 myvariables.append(chr(ord('i')+i))
 
         #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
-        pragma_int = c_ast.Pragma('omp for schedule(runtime)')
+        pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
         #declaring the function of the kernel with the parameters list built before
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList(pointers_list + variables_list),
@@ -801,7 +801,7 @@ class KernelBench(Kernel):
             if mydims == 2: #blocking on the inner-most loop
                 beginning = myvariables[0]+'b'
                 end = myvariables[0]+'end'
-                pragma = c_ast.Pragma('omp parallel for private({}, {})'.format(beginning, end))
+                pragma = c_ast.Pragma('omp for private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
                         c_ast.Decl(
@@ -830,7 +830,7 @@ class KernelBench(Kernel):
             elif mydims == 3: #blocking on the middle loop
                 beginning = myvariables[1]+'b'
                 end = myvariables[1]+'end'
-                pragma = c_ast.Pragma('omp parallel for private({}, {})'.format(beginning, end))
+                pragma = c_ast.Pragma('omp for private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
                         c_ast.Decl(
