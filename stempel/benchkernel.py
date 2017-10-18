@@ -147,9 +147,8 @@ class KernelBench(Kernel):
     This version allows compilation and generation of code for benchmarking
     """
     def __init__(self, kernel_code, machine, block_factor=None, filename=None):
-        super(KernelBench, self).__init__()
+        super(KernelBench, self).__init__(machine=machine)
 
-        self._machine = machine
         # Initialize state
         self.asm_block = None
 
@@ -180,7 +179,8 @@ class KernelBench(Kernel):
             filename = ''
         else:
             filename ='"{}"'.format(filename)
-        return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(func_name, filename, self.kernel_code)
+        return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(
+            func_name, filename, self.kernel_code)
 
     def clear_state(self):
         """Clears mutable internal states"""
@@ -795,7 +795,7 @@ class KernelBench(Kernel):
 
             #insert the printf of the norm
             mystring = str("norm(a): %lf\n")
-            mystring = mystring.encode('string_escape')
+            mystring = mystring.encode('unicode_escape')
 
             sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
                         c_ast.ExprList([c_ast.ID('total')]))
