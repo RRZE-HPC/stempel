@@ -117,7 +117,7 @@ def create_parser():
 
     subparsers = parser.add_subparsers(dest='subparser_name',
                                        help='sub-command help')
-
+    subparsers.required = True
     parser_gen = subparsers.add_parser('gen', help='Generate a C-like code for '
                                        'the stencil computation descrivbed by '
                                        'the command line parameters',
