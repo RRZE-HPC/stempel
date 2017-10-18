@@ -490,7 +490,7 @@ class KernelBench(Kernel):
                     #get the number of dimensions by fetching the size of W
                     #w_dims can be 2 (1D array + 1 for constants), 3, or 4
                     w_dims = len(array_dimensions.get(d.name))
-                    assert w_dims < 5 and w_dims > 1, "STEMPEL can treat stencils up to 3D"
+                    assert (w_dims < 5 and w_dims > 1), "STEMPEL can treat stencils up to 3D"
                     if w_dims == 2:
                         factor = float(d.init.args.exprs[0].right.value)
                     elif w_dims == 3:
@@ -781,7 +781,7 @@ class KernelBench(Kernel):
             MLUP = c_ast.BinaryOp('/', LUP_expression, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
             
             #insert the printf of the stats
-            mystring = str("size: %d    time: %lf    iter: %d    MLUP/s: %lf\n").encode('string_escape')
+            mystring = str("size: %d    time: %lf    iter: %d    MLUP/s: %lf\n").encode('unicode_escape')
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
                 c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                     c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), MLUP])))
