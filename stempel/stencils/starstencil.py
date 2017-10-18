@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import string
-from utilities import signum, value, left, right
+from stempel.utilities import signum, value, left, right
 
 
 class StarConstant(object):
@@ -517,4 +517,3 @@ class StarVariable(object):
         loop_lines.append(computation)
 
         return loop_lines
-

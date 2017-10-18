@@ -15,17 +15,17 @@ import subprocess
 import shutil
 import os
 
-from pycparser import clean_code
+from kerncraft.pycparser import clean_code
 import sympy
 import six
 from six.moves import range
 from ruamel import yaml
 import itertools
 
-from benchkernel import KernelBench
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
 
+from stempel.benchkernel import KernelBench
 
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
@@ -190,7 +190,7 @@ def create_parser():
     parser_bench.add_argument('code_file', metavar='FILE',
                               type=argparse.FileType(),
                               help='File with declarations and C loop kernel')
-    
+
     parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
                               required=True, help='Path to machine description '
                               'yaml file.')
@@ -223,7 +223,7 @@ def check_arguments(args, parser):
         parser.error('--coefficient can only be "float" or "double"')
 
 def change_decl(decltoreplace, dimofcoeffs, stencil, code):
-    
+
     size = str(stencil.num_coefficients)
     newdecl = decltoreplace.replace('['+size+']', '')
     letter_length = 0
@@ -280,9 +280,9 @@ def run_gen(args, parser, output_file=sys.stdout):
         mykind = mykind + 'Variable'
 
     # with tox
-    #stencil_class = class_for_name('stempel.stencils', mykind)
+    stencil_class = class_for_name('stempel.stencils', mykind)
     # without tox
-    stencil_class = class_for_name('stencils', mykind)
+    #stencil_class = class_for_name('stencils', mykind)
 
     #our default value if not differently specified
     symmetricity = 'symmetric'
@@ -310,26 +310,26 @@ def run_gen(args, parser, output_file=sys.stdout):
     code = declaration + '\n'.join(loop)
 
     if args.coefficient == 'variable':
-   
+
         toreplace = stencil.coefficients[0]
-        
+
         decltoreplace = toreplace
         for i in range(args.dimensions):
             decltoreplace = decltoreplace.replace(
                 stencil.loop_variables[i], stencil.dims[i])
 
         decltoreplace = decltoreplace + '[' + str(stencil.num_coefficients) + ']'
-        
+
         # assert args.dimofcoeffs < len(stencil.dims)+1, "The stencil provided"\
         # "does not have enough dimensions to place the index of the coefficients"\
         # "at position {}".format(args.dimofcoeffs)
         if args.dimofcoeffs and args.dimofcoeffs < len(stencil.dims)+1:
             code = change_decl(decltoreplace, args.dimofcoeffs, stencil, code)
             code = change_loop(decltoreplace, args.dimofcoeffs, stencil, code)
-        
+
 
     print_header(args, output_file, stencil)
-    
+
     # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter
@@ -378,11 +378,11 @@ def run_bench(args, output_file=sys.stdout):
             for c in v[1]:
                 if type(c) is not sympy.Integer:
                     array.append(c)
-        required_consts.append(array) 
+        required_consts.append(array)
 
     # required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
     required_consts = set([i for l in required_consts for i in l])
-    
+
 
     if len(required_consts) > 0:
         define_dict = {}
@@ -428,7 +428,7 @@ def run_bench(args, output_file=sys.stdout):
     # results = kernel.perfctr(kernel_args)
 
     # print(results)
- 
+
    # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and diameter

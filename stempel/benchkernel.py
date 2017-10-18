@@ -31,8 +31,8 @@ from six.moves import zip_longest
 import six
 from pylru import lrudecorator
 
-from pycparser import CParser, c_ast, plyparser
-from pycparser.c_generator import CGenerator
+from kerncraft.pycparser import CParser, c_ast, plyparser
+from kerncraft.pycparser.c_generator import CGenerator
 
 import kerncraft
 from kerncraft.kernel import Kernel
@@ -485,7 +485,6 @@ class KernelBench(Kernel):
                 # Next: i++
                 next_ = c_ast.UnaryOp('++', c_ast.ID(counter_name))
 
-                # Statement
                 if d.name == 'W':
                     #get the number of dimensions by fetching the size of W
                     #w_dims can be 2 (1D array + 1 for constants), 3, or 4
@@ -618,7 +617,7 @@ class KernelBench(Kernel):
                 'runtime', ['const'], [], [],
                 type_decl, c_ast.Constant('double', '0.0'), None))
 
-            
+
             decl = c_ast.Decl('wct_start', [], [], [], c_ast.TypeDecl(
                 'wct_start', [], c_ast.IdentifierType(['double'])
             ), None, None)
@@ -676,7 +675,7 @@ class KernelBench(Kernel):
                 c_ast.ID('tmp'))
             stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
             myfor = c_ast.For(init, cond, next_, stmt)
-            
+
             #call the timing function at the beginning
             end_timing = c_ast.FuncCall(c_ast.ID('timing'),
                     c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_end')),
@@ -768,7 +767,7 @@ class KernelBench(Kernel):
                     c_ast.ID('total'),
                     c_ast.BinaryOp('*', point, point))
                 norm_loop.stmt.stmt.stmt.rvalue = newop
-            
+
             #we build MLUP. should be like: (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
             LUP_expression = c_ast.BinaryOp('*',
                 c_ast.Cast(
@@ -779,7 +778,7 @@ class KernelBench(Kernel):
             #we put all together to get MLUP
             #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
             MLUP = c_ast.BinaryOp('/', LUP_expression, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
-            
+
             #insert the printf of the stats
             mystring = str("size: %d    time: %lf    iter: %d    MLUP/s: %lf\n").encode('unicode_escape')
             ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
@@ -851,19 +850,19 @@ class KernelBench(Kernel):
                 cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
                 next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
-                
+
                 assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
                         c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
-                
+
                 forloop.stmt.init.decls[0].init = c_ast.ID(beginning)
                 forloop.stmt.cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
-                
+
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
                 mycompound = c_ast.Compound([pragma, newfor])
-                                    
+
             elif mydims == 3: #blocking on the middle loop
                 beginning = myvariables[1]+'b'
                 end = myvariables[1]+'end'
@@ -880,11 +879,11 @@ class KernelBench(Kernel):
                 cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
                 next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
-                
+
                 assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
                         c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
                 mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
-                
+
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
                 mycompound = c_ast.Compound([pragma, newfor])
@@ -939,7 +938,7 @@ class KernelBench(Kernel):
         code = '\n' + code
         ifdefperf = '#ifdef LIKWID_PERFMON\n'
         endif = '#endif\n'
-        
+
         code = ifdefperf + '#include <likwid.h>\n' + endif + code
 
         # add "#include"s for dummy, var_false and stdlib (for malloc)
@@ -949,7 +948,7 @@ class KernelBench(Kernel):
         code = '#include <math.h>\n\n' + code
         code = '#include <stdlib.h>\n' + code
 
-        # substitute the string added with the macro, since there is no way to 
+        # substitute the string added with the macro, since there is no way to
         # add MACROs with pycparser. It is a workaround
         # TODO change the code creation in a way to use MACROs
         pragraomp = '  #pragma omp parallel\n  {}\n    ' + '{}' + '\n  {}'
