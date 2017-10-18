@@ -38,17 +38,28 @@ import kerncraft
 from kerncraft.kernel import Kernel
 from kerncraft.machinemodel import MachineModel
 
+def symbol_pos_int(*args, **kwargs):
+    """Create a sympy.Symbol with positive and integer assumptions."""
+    kwargs.update({'positive': True,
+                   'integer': True})
+    return sympy.Symbol(*args, **kwargs)
+
 def prefix_indent(prefix, textblock, later_prefix=' '):
+    """
+    Prefix and indent all lines in *textblock*.
+    *prefix* is a prefix string
+    *later_prefix* is used on all but the first line, if it is a single character
+                   it will be repeated to match length of *prefix*
+    """
     textblock = textblock.split('\n')
-    s = prefix + textblock[0] + '\n'
+    line = prefix + textblock[0] + '\n'
     if len(later_prefix) == 1:
         later_prefix = ' '*len(prefix)
-    s = s+'\n'.join([later_prefix+x for x in textblock[1:]])
-    if s[-1] != '\n':
-        return s + '\n'
+    line = line + '\n'.join([later_prefix + x for x in textblock[1:]])
+    if line[-1] != '\n':
+        return line + '\n'
     else:
-        return s
-
+        return line
 
 def transform_multidim_to_1d_decl(decl):
     """
@@ -72,7 +83,7 @@ def transform_multidim_to_1d_decl(decl):
 
 def transform_multidim_to_1d_ref(aref, dimension_dict):
     """
-    Transforms ast of multidimensional reference to a single dimension reference.
+    Transform ast of multidimensional reference to a single dimension reference.
     In-place operation!
     """
     dims = []
@@ -96,8 +107,7 @@ def transform_multidim_to_1d_ref(aref, dimension_dict):
 
 
 def transform_array_decl_to_malloc(decl):
-    """Transforms ast of "type var_name[N]" to "type* var_name = __mm_malloc(N, 32)"
-    (in-place)"""
+    """Transform ast of "type var_name[N]" to "type* var_name = __mm_malloc(N, 32)" (in-place)."""
     if type(decl.type) is not c_ast.ArrayDecl:
         # Not an array declaration, can be ignored
         return
@@ -118,7 +128,7 @@ def transform_array_decl_to_malloc(decl):
 
 
 def find_array_references(ast):
-    """returns list of array references in AST"""
+    """Return list of array references in AST."""
     if type(ast) is c_ast.ArrayRef:
         return [ast]
     elif type(ast) is list:
@@ -126,12 +136,10 @@ def find_array_references(ast):
     elif ast is None:
         return []
     else:
-        return reduce(operator.add,
-                      [find_array_references(o[1]) for o in ast.children()], [])
+        return reduce(operator.add, [find_array_references(o[1]) for o in ast.children()], [])
 
-
-# Make sure that functions will return iterable objects:
 def force_iterable(f):
+    """Will make any functions return an iterable objects by wrapping its result in a string."""
     def wrapper(*args, **kwargs):
         r = f(*args, **kwargs)
         if hasattr(r, '__iter__'):
@@ -147,9 +155,8 @@ class KernelBench(Kernel):
     This version allows compilation and generation of code for benchmarking
     """
     def __init__(self, kernel_code, machine, block_factor=None, filename=None):
-        super(KernelBench, self).__init__()
+        super(KernelBench, self).__init__(machine=machine)
 
-        self._machine = machine
         # Initialize state
         self.asm_block = None
 
@@ -173,6 +180,7 @@ class KernelBench(Kernel):
         self.check()
 
     def print_kernel_code(self, output_file=sys.stdout):
+        """Print source code of kernel."""
         print(self.kernel_code, file=output_file)
 
     def _as_function(self, func_name='test', filename=None):
@@ -180,7 +188,8 @@ class KernelBench(Kernel):
             filename = ''
         else:
             filename ='"{}"'.format(filename)
-        return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(func_name, filename, self.kernel_code)
+        return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(
+            func_name, filename, self.kernel_code)
 
     def clear_state(self):
         """Clears mutable internal states"""
@@ -188,8 +197,7 @@ class KernelBench(Kernel):
         self.asm_block = None
 
     def _process_code(self):
-        assert type(self.kernel_ast) is c_ast.Compound, "Kernel has to be a "\
-        "compound statement"
+        assert type(self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
         assert all([type(s) in [c_ast.Decl, c_ast.Pragma]
                     for s in self.kernel_ast.block_items[:-1]]), \
             'all statements before the for loop need to be declarations or pragmas'
@@ -197,7 +205,8 @@ class KernelBench(Kernel):
             'last statement in kernel code must be a loop'
 
         for item in self.kernel_ast.block_items[:-1]:
-            if type(item) is c_ast.Pragma: continue
+            if type(item) is c_ast.Pragma:
+                continue
             array = type(item.type) is c_ast.ArrayDecl
 
             if array:
@@ -211,8 +220,7 @@ class KernelBench(Kernel):
                 self.set_variable(item.name, t.type.names[0], list(dims))
 
             else:
-                assert len(item.type.type.names) == 1, \
-                		"only single types are supported"
+                assert len(item.type.type.names) == 1, "only single types are supported"
                 self.set_variable(item.name, item.type.type.names[0], None)
 
         floop = self.kernel_ast.block_items[-1]
@@ -220,11 +228,11 @@ class KernelBench(Kernel):
 
     def conv_ast_to_sym(self, math_ast):
         """
-        converts mathematical expressions containing paranthesis, addition, subtraction and
-        multiplication from AST to a sympy representation.
+        Convert mathematical expressions to a sympy representation.
+        May only contain paranthesis, addition, subtraction and multiplication from AST.
         """
         if type(math_ast) is c_ast.ID:
-            return sympy.Symbol(math_ast.name, positive=True)
+            return symbol_pos_int(math_ast.name)
         elif type(math_ast) is c_ast.Constant:
             return sympy.Integer(math_ast.value)
         else:  # elif type(dim) is c_ast.BinaryOp:
@@ -240,10 +248,10 @@ class KernelBench(Kernel):
 
     def _get_offsets(self, aref, dim=0):
         """
-        Returns a list of offsets of an ArrayRef object in all dimensions
-        the index order is right to left (c-code order).
+        Return a list of offsets of an ArrayRef object in all dimensions.
+        The index order is right to left (c-code order).
         e.g. c[i+1][j-2] -> [-2, +1]
-        if aref is actually an ID, None will be returned
+        If aref is actually a c_ast.ID, None will be returned.
         """
         if isinstance(aref, c_ast.ID):
             return None
@@ -303,7 +311,7 @@ class KernelBench(Kernel):
 
         if type(floop.cond.right) is c_ast.ID:
             const_name = floop.cond.right.name
-            iter_max = sympy.Symbol(const_name, positive=True)
+            iter_max = symbol_pos_int(const_name)
         elif type(floop.cond.right) is c_ast.Constant:
             iter_max = sympy.Integer(floop.cond.right.value)
         else:  # type(floop.cond.right) is c_ast.BinaryOp
@@ -370,21 +378,21 @@ class KernelBench(Kernel):
             self._flops[op] = self._flops.get(op, 0)+1
 
         # Document data destination
-        # self._destinations[dest name] = [dest offset, ...])
-        self._destinations.setdefault(self._get_basename(stmt.lvalue), [])
-        self._destinations[self._get_basename(stmt.lvalue)].append(
+        # self.destinations[dest name] = [dest offset, ...])
+        self.destinations.setdefault(self._get_basename(stmt.lvalue), [])
+        self.destinations[self._get_basename(stmt.lvalue)].append(
             self._get_offsets(stmt.lvalue))
 
         if write_and_read:
             # this means that +=, -= or something of that sort was used
-            self._sources.setdefault(self._get_basename(stmt.lvalue), [])
-            self._sources[self._get_basename(stmt.lvalue)].append(
+            self.sources.setdefault(self._get_basename(stmt.lvalue), [])
+            self.sources[self._get_basename(stmt.lvalue)].append(
                 self._get_offsets(stmt.lvalue))
 
         # Traverse tree
-        self._p_sources(stmt.rvalue)
+        self._psources(stmt.rvalue)
 
-    def _p_sources(self, stmt):
+    def _psources(self, stmt):
         sources = []
         assert type(stmt) in \
             [c_ast.ArrayRef, c_ast.Constant, c_ast.ID, c_ast.BinaryOp, c_ast.UnaryOp], \
@@ -396,16 +404,16 @@ class KernelBench(Kernel):
         if type(stmt) in [c_ast.ArrayRef, c_ast.ID]:
             # Document data source
             bname = self._get_basename(stmt)
-            self._sources.setdefault(bname, [])
-            self._sources[bname].append(self._get_offsets(stmt))
+            self.sources.setdefault(bname, [])
+            self.sources[bname].append(self._get_offsets(stmt))
         elif type(stmt) is c_ast.BinaryOp:
             # Traverse tree
-            self._p_sources(stmt.left)
-            self._p_sources(stmt.right)
+            self._psources(stmt.left)
+            self._psources(stmt.right)
 
             self._flops[stmt.op] = self._flops.get(stmt.op, 0)+1
         elif type(stmt) is c_ast.UnaryOp:
-            self._p_sources(stmt.expr)
+            self._psources(stmt.expr)
             self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0)+1
 
         return sources
@@ -478,8 +486,10 @@ class KernelBench(Kernel):
                     None)
 
                 # Cond: i < ... (... is length of array)
-                grid_size = reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name])
-                cond = c_ast.BinaryOp('<', c_ast.ID(counter_name), grid_size)
+                cond = c_ast.BinaryOp(
+                    '<',
+                    c_ast.ID(counter_name),
+                    reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
 
 
                 # Next: i++
@@ -794,7 +804,7 @@ class KernelBench(Kernel):
 
             #insert the printf of the norm
             mystring = str("norm(a): %lf\n")
-            mystring = mystring.encode('string_escape')
+            mystring = mystring.encode('unicode_escape')
 
             sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
                         c_ast.ExprList([c_ast.ID('total')]))
@@ -986,17 +996,13 @@ class KernelBench(Kernel):
         return code
 
 
-    def build(self, compiler=None, compiler_args=None, lflags=None, verbose=False):
+    def build(self, lflags=None, verbose=False):
         """
         compiles source to executable with likwid capabilities
         returns the executable name
         """
 
-        #compiler, compiler_args = self._machine.get_compiler()
-        if not compiler:
-            compiler = 'gcc'
-        if not compiler_args:
-            compiler_args = ['-O3']
+        compiler, compiler_args = self._machine.get_compiler()
 
         # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
         #         'LIKWID_LIB' in os.environ):
@@ -1007,7 +1013,7 @@ class KernelBench(Kernel):
         compiler_args += [
             '-std=c99',
             '-I'+os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+'/headers/',
-            '-DLIKWID', '-DLIKWID_PERFMON', '-llikwid']
+            '-DLIKWID_PERFMON', '-llikwid']
             # os.environ.get('LIKWID_INCLUDE', ''),
             # os.environ.get('LIKWID_INC', '')]
 
@@ -1043,7 +1049,6 @@ class KernelBench(Kernel):
         if verbose:
             print('Executing (build): ', ' '.join(cmd))
         try:
-            cmd = 'ls'
             subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
             print("Build failed:", e, file=sys.stderr)
