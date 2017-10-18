@@ -997,19 +997,14 @@ class KernelBench(Kernel):
         return code
 
 
-    def build(self, compiler=None, compiler_args=None, lflags=None, verbose=False):
+    def build(self, lflags=None, verbose=False):
         """
         compiles source to executable with likwid capabilities
         returns the executable name
         """
 
-        #compiler, compiler_args = self._machine.get_compiler()
-        if not compiler:
-            compiler = 'gcc'
-        if not compiler_args:
-            compiler_args = ['-O3']
+        compiler, compiler_args = self._machine.get_compiler()
 
-        #print(compiler_args)
         # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
         #         'LIKWID_LIB' in os.environ):
         #     print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
@@ -1019,7 +1014,7 @@ class KernelBench(Kernel):
         compiler_args += [
             '-std=c99',
             '-I'+os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+'/headers/',
-            '-DLIKWID', '-DLIKWID_PERFMON', '-llikwid']
+            '-DLIKWID_PERFMON', '-llikwid']
             # os.environ.get('LIKWID_INCLUDE', ''),
             # os.environ.get('LIKWID_INC', '')]
 
@@ -1055,7 +1050,6 @@ class KernelBench(Kernel):
         if verbose:
             print('Executing (build): ', ' '.join(cmd))
         try:
-            cmd = 'ls'
             subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
             print("Build failed:", e, file=sys.stderr)
