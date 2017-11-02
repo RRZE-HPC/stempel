@@ -1,2 +1,5 @@
+include README.rst
+include LICENSE
 include tox.ini
 recursive-include tests *.py
+recursive-include tests/testfiles/ *
