@@ -254,7 +254,7 @@ def run_gen(args, parser, output_file=sys.stdout):
         mykind = mykind + 'Variable'
 
     # with tox
-    stencil_class = class_for_name('stencils', mykind)
+    stencil_class = class_for_name('stempel.stencils', mykind)
     # without tox
     #stencil_class = class_for_name('stencils', mykind)
 
