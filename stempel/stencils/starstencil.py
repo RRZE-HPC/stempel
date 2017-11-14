@@ -27,18 +27,17 @@ class StarConstant(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, radius=1, symmetricity='symmetric',
-                 isotropy=True, datatype='double', inputgrids=1, args=None,
+    def __init__(self, dimensions=2, radius=1, classification='isotropic',
+                 datatype='double', inputgrids=1, args=None,
                  parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to
             2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on each side of each
             dimension
-        *symmetricity* represents the symmetricity of the stencil with respect
-            to the coefficients: it can be symmetric, asymmetric or homogeneous.
-        *isotropy* is a boolean representing the isotropy of the stencil (no
-            dependency on the direction)
+        *classification* represents the classification of the stencil with respect
+            to the coefficients: it can be homogeneous, point-symmetric,
+            heterogeneous or isotropic.
         *coeff* represents the coefficients of the stencil: can be either
             constant or variable.
         *datatype* represents the type of the data to be store in the grids. By
@@ -56,8 +55,7 @@ class StarConstant(object):
             self.dims.append(myascii[12+i])
 
         self.radius = radius
-        self.symmetricity = symmetricity
-        self.isotropy = isotropy
+        self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
@@ -73,13 +71,13 @@ class StarConstant(object):
         # #else we name it with a constant w
         # else:
         #     self.coefficient = string.ascii_lowercase[inputgrids+1]
-        if self.isotropy and self.symmetricity == 'symmetric':#iso-sym
+        if self.classification == 'isotropic':
             self.num_coefficients = radius + 1
-        elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
+        elif self.classification == 'point-symmetric':
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#not symmetricity and not isotropy)
+        else:#asymmetric)
             self.num_coefficients = (2 * radius * self.dimensions) + 1
 
         #creae all the coefficients, like c0, c1, ...
@@ -164,8 +162,7 @@ class StarConstant(object):
                 self.radius,
                 self.loop_variables[i],
                 self.dims[i], self.radius,
-                self.loop_variables[i]
-                )
+                self.loop_variables[i]) + '{'
             loop_lines.insert(i, line)
 
         centerpoint = self.inputs[0]
@@ -180,9 +177,9 @@ class StarConstant(object):
         # declare an empty stencil line (string)
         stencil = ''
 
-        # isotropic and symmetric
-        if self.symmetricity == 'symmetric' and self.isotropy:
-            print("symmetric and isotropic")
+        #isotropic
+        if self.classification == 'isotropic':
+            print("isotropic")
             assert (len(self.coefficients) == (self.radius + 1)), "In case of"\
                 " an isotropic and symmetric stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to (radius + 1)"
@@ -203,9 +200,9 @@ class StarConstant(object):
                 stencil = stencil + ')\n'
                 count = count + 1
 
-        # asymmetric
-        elif self.symmetricity == 'asymmetric':
-            print("asymmetric")
+        #heterogeneous
+        elif self.classification == 'heterogeneous':
+            print("heterogeneous")
             mymax = 2 * self.radius * self.dimensions + 1
             assert (len(self.coefficients) == (mymax)), \
                     "In case of an asymmetric stencil with constant " \
@@ -223,9 +220,9 @@ class StarConstant(object):
                         right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 2
 
-        # anisotropic and symmetric
-        elif not self.isotropy and self.symmetricity == 'symmetric':
-            print("symmetric and anisotropic")
+        #point-symmetric
+        elif self.classification == 'point-symmetric':
+            print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
             assert (len(self.coefficients) == mymax), \
                 "In case of anisotropic and symmetric stencil with constant "\
@@ -242,7 +239,8 @@ class StarConstant(object):
                         right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 1
 
-        elif self.symmetricity == 'homogeneous':
+        #homogeneous
+        else:#self.classification == 'homogeneous':
             print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
@@ -258,7 +256,9 @@ class StarConstant(object):
 
         righthand = '{};'.format(stencil)
 
-        computation = lefthand + ' = ' + righthand + '\n'
+        closing = '}\n' * self.dimensions
+
+        computation = lefthand + ' = ' + righthand + '\n' + closing
 
         loop_lines.append(computation)
 
@@ -279,17 +279,16 @@ class StarVariable(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, radius=1, symmetricity='symmetric',
-                 isotropy=True, datatype='double', inputgrids=1, args=None,
+    def __init__(self, dimensions=2, radius=1, classification='isotropic',
+                 datatype='double', inputgrids=1, args=None,
                  parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to
             2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on the max dimension
-        *symmetricity* is a boolean representing the symmetricity of the
-            stencil with respect to the coefficients
-        *isotropy* is a boolean representing the isotropy of the stencil
-            (no dependency on the direction)
+        *classification* represents the classification of the stencil with respect
+            to the coefficients: it can be homogeneous, point-symmetric,
+            heterogeneous or isotropic.
         *coeff* represents the coefficients of the stencil: can be either
             constant or variable.
         *datatype* represents the type of the data to be store in the grids.
@@ -306,8 +305,7 @@ class StarVariable(object):
             self.dims.append(myascii[12+i])
 
         self.radius = radius
-        self.symmetricity = symmetricity
-        self.isotropy = isotropy
+        self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
@@ -315,13 +313,13 @@ class StarVariable(object):
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
 
-        if self.isotropy and self.symmetricity == 'symmetric':#iso-sym
+        if self.classification == 'isotropic':
             self.num_coefficients = radius+1
-        elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
+        elif self.classification == 'point-symmetric':
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#not symmetricity and not isotropy
+        else:#heterogeneous
             self.num_coefficients = (2 * radius * self.dimensions) + 1
 
 
@@ -414,7 +412,7 @@ class StarVariable(object):
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
-                self.dims[i], self.radius, self.loop_variables[i])
+                self.dims[i], self.radius, self.loop_variables[i]) + '{'
             loop_lines.insert(i, line)
 
         centerpoint = self.inputs[0]
@@ -433,9 +431,9 @@ class StarVariable(object):
         # declare an empty stencil line (string)
         stencil = ''
 
-        # isotropic and symmetric
-        if self.symmetricity == 'symmetric' and self.isotropy:
-            print("symmetric and isotropic")
+        # isotropic
+        if self.classification == 'isotropic':
+            print("isotropic")
             mymax = (self.radius + 1)
             assert (self.num_coefficients == mymax), \
             "In case of an isotropic and symmetric stencil with constant "\
@@ -457,9 +455,9 @@ class StarVariable(object):
                 stencil = stencil + ')\n'
                 count = count + 1
 
-        # asymmetric
-        elif self.symmetricity == 'asymmetric':
-            print("asymmetric")
+        # heterogeneous
+        elif self.classification == 'heterogeneous':
+            print("heterogeneous")
             mymax = (2 * self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
             "In case of an asymmetric stencil with constant coefficient, "\
@@ -476,9 +474,9 @@ class StarVariable(object):
                         right(centerpoint, j, self.loop_variables, i+1)) + '\n'
                     count = count + 2
 
-        # anisotropic and symmetric
-        elif not self.isotropy and self.symmetricity == 'symmetric':
-            print("symmetric and anisotropic")
+        #point-symmetric
+        elif self.classification == 'point-symmetric':
+            print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
             "In case of anisotropic and symmetric stencil with constant "\
@@ -495,7 +493,7 @@ class StarVariable(object):
                         ) + '\n'
                     count = count + 1
 
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
@@ -512,7 +510,9 @@ class StarVariable(object):
 
         righthand = '{};'.format(stencil)
 
-        computation = lefthand + ' = ' + righthand + '\n'
+        closing = '}\n' * self.dimensions
+
+        computation = lefthand + ' = ' + righthand + '\n' + closing
 
         loop_lines.append(computation)
 

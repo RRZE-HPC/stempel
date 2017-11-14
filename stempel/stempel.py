@@ -46,40 +46,17 @@ def class_for_name(module_name, class_name):
 
 def print_header(args, output_file, stencil):
 
-    symmetricity = ''
-    isotropic = ''
-    if args.anisotropic:
-        isotropic = 'anisotropic'
-    else:
-        isotropic = 'isotropic'
-
-    if args.asymmetric:
-        symmetricity = 'asymmetric'
-    elif args.symmetric:
-        symmetricity = 'symmetric'
-    elif args.homogeneous:
-        symmetricity = 'homogeneous'
 
     # print header (taken from kerncraft)
     print('{:=^80}'.format(' stempel '), file=output_file)
     print('{:<40}{:>40}'.format('-D ', args.dimensions), file=output_file)
     print('{:<40}{:>40}'.format('-r ', args.radius), file=output_file)
-    if args.asymmetric:
-        print('{}'.format('--asymmetric'), file=output_file)
-    elif args.symmetric:
-        print('{}'.format('--symmetric'), file=output_file)
-    elif args.homogeneous:
-        print('{}'.format('--homogeneous'), file=output_file)
-
-    if args.isotropic:
-        print('{}'.format('--isotropic'), file=output_file)
-    elif args.anisotropic:
-        print('{}'.format('--anisotropic'), file=output_file)
+    print('--{}'.format(args.classification), file=output_file)
     print('{:<40}{:>40}'.format('-k ', args.kind), file=output_file)
     print('{:<40}{:>40}'.format('-t ', args.datatype), file=output_file)
     print('{:<40}{:>40}'.format('-C ', args.coefficient), file=output_file)
-    print('{:-^80}'.format(' ' + stencil.name + ' ' + symmetricity + ' ' +
-          isotropic + ' stencil '), file=output_file)
+    print('{:-^80}'.format(' ' + stencil.name + ' ' + args.classification
+        + ' stencil '), file=output_file)
 
 
 def call_kerncraft(code='', verbosity=''):
@@ -131,24 +108,21 @@ def create_parser():
                         default=2, required=True, help='Define the radius of '
                         'the stencil in each dimension. Value must be integer.')
 
-    symmetry_group = parser_gen.add_mutually_exclusive_group()
-    symmetry_group.add_argument('-s', '--symmetric', action='store_true',
-                                help='Define if the coefficient is symmetric '
-                                'along the two sides of an axis.')
-    symmetry_group.add_argument('-a', '--asymmetric', action='store_true',
-                                help='Define if the coefficient is symmetric '
-                                'along the two sides of an axis.')
-    symmetry_group.add_argument('-o', '--homogeneous', action='store_true',
-                                help='Define if the coefficient is symmetric '
-                                'along the two sides of an axis.')
-
-    isotropy_group = parser_gen.add_mutually_exclusive_group()
-    isotropy_group.add_argument('-i', '--isotropic', action='store_true',
-                                help='Define if the coefficients are isotropic '
-                                '(does not depend on the direction).')
-    isotropy_group.add_argument('-A', '--anisotropic', action='store_true',
-                                help='Define if the coefficients are isotropic '
-                                '(does not depend on the direction).')
+    classification_group = parser_gen.add_mutually_exclusive_group(required=True)
+    classification_group.add_argument('-i', '--isotropic', action='store_const',
+        dest='classification', const='isotropic', help='Define if the coefficients are '
+        'isotropic (does not depend on the direction).')
+    classification_group.add_argument('-e', '--heterogeneous', action='store_const',
+        dest='classification', const='heterogeneous' ,help='Define if the '
+        'weighting factors expose no symmetry, i.e. s a different coefficient '
+        'for each direction')
+    classification_group.add_argument('-o', '--homogeneous', action='store_const',
+        dest='classification', const='homogeneous', help='Define if the stencil'
+        ' has a homogenuous coefficient (i.e. only a sincgle scalar)')
+    classification_group.add_argument('-p', '--point-symmetric',
+        action='store_const', dest='classification', const='point-symmetric',
+        help='Define if the weighting factors are symmetric with respect to the'
+            ' origin, in which case, they have the same value.')
 
     parser_gen.add_argument('-k', '--kind', choices=['star', 'box'],
                         type=str, default='star',
@@ -280,27 +254,13 @@ def run_gen(args, parser, output_file=sys.stdout):
         mykind = mykind + 'Variable'
 
     # with tox
-    stencil_class = class_for_name('stempel.stencils', mykind)
+    stencil_class = class_for_name('stencils', mykind)
     # without tox
     #stencil_class = class_for_name('stencils', mykind)
 
-    #our default value if not differently specified
-    symmetricity = 'symmetric'
-    if args.asymmetric:
-        symmetricity = 'asymmetric'
-
-    if args.homogeneous:
-        symmetricity = 'homogeneous'
-
-
-    if args.anisotropic:
-        isotropy = False
-    else:
-        isotropy = True
-
 
     stencil = stencil_class(dimensions=args.dimensions, radius=args.radius,
-                            symmetricity=symmetricity, isotropy=isotropy,
+                            classification=args.classification,
                             datatype=args.datatype)
 
     # create the declaration part of the final C code

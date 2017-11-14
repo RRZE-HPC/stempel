@@ -143,18 +143,17 @@ class BoxConstant(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, radius=1, symmetricity='symmetryx',
-                 isotropy=True, datatype='double', inputgrids=1, args=None,
+    def __init__(self, dimensions=2, radius=1, classification='isotropic',
+                 datatype='double', inputgrids=1, args=None,
                  parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to
             2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on each side of each
             dimension
-        *symmetricity* is a boolean representing the symmetricity of the stencil
-            with respect to the coefficients
-        *isotropy* is a boolean representing the isotropy of the stencil (no
-            dependency on the direction)
+        *classification* represents the classification of the stencil with respect
+            to the coefficients: it can be homogeneous, point-symmetric,
+            heterogeneous or isotropic.
         *coeff* represents the coefficients of the stencil: can be either
             constant or variable.
         *datatype* represents the type of the data to be store in the grids. By
@@ -172,8 +171,7 @@ class BoxConstant(object):
             self.dims.append(myascii[12+i])
 
         self.radius = radius
-        self.symmetricity = symmetricity
-        self.isotropy = isotropy
+        self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
@@ -182,13 +180,13 @@ class BoxConstant(object):
         self.output = string.ascii_lowercase[inputgrids]
 
 
-        if self.isotropy and self.symmetricity == 'symmetric':#iso-sym
+        if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
+        elif self.classification == 'point-symmetric':
             self.num_coefficients = (2 * radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#not symmetricity and not isotropy)
+        else:#heterogeneous
             self.num_coefficients = (self.radius * 2 + 1)**self.dimensions
 
         # myformat = '{}' * num_coefficients
@@ -304,10 +302,10 @@ class BoxConstant(object):
             ordered_points.insert(i, points_at_distance(points,
                                                         self.loop_variables, i))
 
-        if self.symmetricity == 'symmetric' and self.isotropy:
-            print("symmetric and isotropic")
+        if self.classification == 'isotropic':
+            print("isotropic")
 
-            stencil = self.coefficients[0] + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
 
             for i in range(max_distance):
@@ -317,8 +315,8 @@ class BoxConstant(object):
 
                 count += 1
 
-        elif self.symmetricity == 'asymmetric':
-            print("asymmetric")
+        elif self.classification == 'heterogeneous':
+            print("heterogeneous")
 
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
@@ -330,11 +328,11 @@ class BoxConstant(object):
 
 
         # anisotropic and symmetric
-        elif not self.isotropy and self.symmetricity == 'symmetric':
-            print("symmetric and anisotropic")
+        elif self.classification == 'point-symmetric':
+            print("point-symmetric")
             print(ordered_points)
 
-            stencil = self.coefficients[0] + ' *' + centerpoint + '\n'
+            stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
 
             for i in range(max_distance):
@@ -344,7 +342,7 @@ class BoxConstant(object):
 
                 count += 1
 
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             print("homogeneous")
 
             stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
@@ -380,16 +378,16 @@ class BoxVariable(object):
     def configure_arggroup(cls, parser):
         pass
 
-    def __init__(self, dimensions=2, radius=1, symmetricity=True, isotropy=True,
-                 datatype='double', inputgrids=1, args=None, parser=None):
+    def __init__(self, dimensions=2, radius=1, classification='isotropic',
+                 datatype='double', inputgrids=1, args=None,
+                 parser=None):
         """
         *dimensions* is the number of dimensions of the stencil. It defaults to
             2 (2 dimensional stencil)
         *radius* represents the radius of the stencil on the max dimension
-        *symmetricity* is a boolean representing the symmetricity of the
-            stencil with respect to the coefficients
-        *isotropy* is a boolean representing the isotropy of the stencil
-            (no dependency on the direction)
+        *classificaiton* represents the classification of the stencil with respect
+            to the coefficients: it can be homogeneous, point-symmetric,
+            heterogeneous or isotropic.
         *coeff* represents the coefficients of the stencil: can be either
             constant or variable.
         *datatype* represents the type of the data to be store in the grids.
@@ -406,8 +404,7 @@ class BoxVariable(object):
             self.dims.append(string.ascii_uppercase[12+i])
 
         self.radius = radius
-        self.symmetricity = symmetricity
-        self.isotropy = isotropy
+        self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
@@ -416,13 +413,13 @@ class BoxVariable(object):
         self.output = string.ascii_lowercase[inputgrids]
 
 
-        if self.isotropy and self.symmetricity == 'symmetric':#iso-sym
+        if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
-        elif self.symmetricity == 'symmetric' and not self.isotropy:#aniso-sym
+        elif self.classification == 'point-symmetric':
             self.num_coefficients = (2 * radius * self.dimensions) + 1
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#not symmetricity and not isotropy)
+        else:#heterogeneous
             self.num_coefficients = (self.radius * 2 + 1)**self.dimensions
 
         self.coefficients = ['W']
@@ -547,8 +544,8 @@ class BoxVariable(object):
                                                         self.loop_variables, i))
 
         # isotropic and symmetric
-        if self.symmetricity and self.isotropy:
-            print("symmetric and isotropic")
+        if self.classification == 'isotropic':
+            print("isotropic")
 
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
@@ -561,9 +558,9 @@ class BoxVariable(object):
 
                 count += 1
 
-        # asymmetric
-        elif not self.symmetricity:
-            print("asymmetric")
+        # heterogeneous
+        elif self.classification == 'heterogeneous':
+            print("heterogeneous")
 
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
@@ -573,9 +570,9 @@ class BoxVariable(object):
                     str(self.coefficients[0]) + '[' + str(count) + ']', point)
                 count += 1
 
-        # anisotropic and symmetric
-        elif not self.isotropy and self.symmetricity:
-            print("symmetric and anisotropic")
+        # point-symmetric
+        elif self.classification == 'point-symmetric':
+            print("point-symmetric")
 
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
@@ -588,10 +585,10 @@ class BoxVariable(object):
 
                 count += 1
 
-        elif self.symmetricity == 'homogeneous':
+        elif self.classification == 'homogeneous':
             print("homogeneous")
 
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0] + '[0]' + ' * (' + centerpoint + '\n'
 
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'
@@ -599,7 +596,7 @@ class BoxVariable(object):
             stencil = stencil + ')'
 
 
-        righthand = '({});'.format(stencil)
+        righthand = '{};'.format(stencil)
 
         closing = '}\n' * self.dimensions
 
