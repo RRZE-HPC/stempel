@@ -30,7 +30,9 @@ Usage
 
 1. Run stempel C code generator
 
-``stempel gen -D 2 -r 1 -s -i``
+``stempel gen -D 2 -r 1 -i``
+or
+``stempel gen -D 2 -r 2 -p``
 
 2. Run stempel benchmark generator
 
