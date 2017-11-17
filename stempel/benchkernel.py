@@ -14,7 +14,7 @@ import os
 import os.path
 import sys
 import collections
-
+from functools import reduce
 #import logging
 from distutils.spawn import find_executable
 
