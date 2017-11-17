@@ -752,63 +752,90 @@ class KernelBench(Kernel):
             # it is necessary to do so since we do not know a priori how many nested for we have
             # additionally builds the norm of the array
             if mydims == 1:
+
+                if isinstance(forloop.stmt, c_ast.Compound):
+                    norm_cond_lvalue = norm_loop.stmt.block_items[0].lvalue
+                    norm_cond_rvalue = norm_loop.stmt.block_items[0].rvalue
+                else:
+                    norm_cond_lvalue = norm_loop.stmt.lvalue
+                    norm_cond_rvalue = norm_loop.stmt.rvalue
+
                 lup_expression = c_ast.Cast(
                     c_ast.IdentifierType(['double']), forloop.cond.right)  # c_ast.ExprList([forloop.cond.right])
                 # norm
-                point = norm_loop.stmt.lvalue
+                point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_loop.stmt.lvalue = c_ast.ID('total')
+                norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
                                        c_ast.BinaryOp('*', point, point))
-                norm_loop.stmt.rvalue = newop
+                norm_cond_rvalue = newop
 
             elif mydims == 2:
-                lup_expression = c_ast.BinaryOp('*',
-                                                c_ast.Cast(
-                                                    c_ast.IdentifierType(
-                                                        ['double']),
-                                                    forloop.cond.right),
-                                                c_ast.Cast(
-                                                    c_ast.IdentifierType(
-                                                        ['double']),
-                                                    forloop.stmt.cond.right))
+                
+                # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
+                # print(mycode)
+
+                if isinstance(forloop.stmt, c_ast.Compound):
+                    right_cond = forloop.stmt.block_items[0].cond.right
+                    norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue
+                    norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue
+                else: #no compound
+                    right_cond = forloop.stmt.cond.right
+                    norm_cond_lvalue = norm_loop.stmt.stmt.lvalue
+                    norm_cond_rvalue = norm_loop.stmt.stmt.lvalue
+
+                lup_expression = c_ast.BinaryOp(
+                    '*', c_ast.Cast(
+                        c_ast.IdentifierType(
+                            ['double']), forloop.cond.right),
+                    c_ast.Cast(c_ast.IdentifierType(
+                        ['double']),
+                    right_cond))
                 # norm
-                point = norm_loop.stmt.stmt.lvalue
+                point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_loop.stmt.stmt.lvalue = c_ast.ID('total')
+                norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
                                        c_ast.BinaryOp('*', point, point))
-                norm_loop.stmt.stmt.rvalue = newop
+                norm_cond_rvalue = newop
 
             elif mydims == 3:
-                lup_expression = c_ast.BinaryOp('*',
-                                                c_ast.BinaryOp('*',
-                                                               c_ast.Cast(
-                                                                   c_ast.IdentifierType(
-                                                                       ['double']),
-                                                                   forloop.cond.right),
-                                                               c_ast.Cast(
-                                                                   c_ast.IdentifierType(
-                                                                       ['double']),
-                                                                   forloop.stmt.cond.right)),
-                                                c_ast.Cast(c_ast.IdentifierType(['double']),
-                                                           forloop.stmt.stmt.cond.right))
+
+                if isinstance(forloop.stmt, c_ast.Compound):
+                    right_cond = forloop.stmt.block_items[0].cond.right
+                    norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue
+                    norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue
+                    stmt_rcond = forloop.stmt.block_items[0].stmt.block_items[0].cond.right
+                else: #no compound
+                    right_cond = forloop.stmt.cond.right
+                    norm_cond_lvalue = norm_loop.stmt.stmt.stmt.lvalue
+                    norm_cond_rvalue = norm_loop.stmt.stmt.stmt.lvalue
+                    stmt_rcond = forloop.stmt.stmt.cond.right
+
+                lup_expression = c_ast.BinaryOp(
+                    '*', c_ast.BinaryOp(
+                        '*', c_ast.Cast(c_ast.IdentifierType(
+                            ['double']), forloop.cond.right),
+                        c_ast.Cast(c_ast.IdentifierType(
+                            ['double']), right_cond)),
+                    c_ast.Cast(c_ast.IdentifierType(
+                        ['double']), stmt_rcond))
                 # norm
-                point = norm_loop.stmt.stmt.stmt.lvalue
+                point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_loop.stmt.stmt.stmt.lvalue = c_ast.ID('total')
+                norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
                                        c_ast.BinaryOp('*', point, point))
-                norm_loop.stmt.stmt.stmt.rvalue = newop
+                norm_cond_rvalue = newop
 
             # we build mlup. should be like:
             # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
@@ -881,32 +908,38 @@ class KernelBench(Kernel):
             c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['void']))),
                           None, None)
 
-        if self.block_factor:
+        mycompound = None
+        if self.block_factor and mydims > 1:
             if mydims == 2:  # blocking on the inner-most loop
                 beginning = myvariables[0] + 'b'
                 end = myvariables[0] + 'end'
                 pragma = c_ast.Pragma(
                     'omp for private({}, {})'.format(beginning, end))
 
+                #mycode = CGenerator().visit(forloop.stmt.block_items[0].init.decls[0])
                 init = c_ast.DeclList([
                     c_ast.Decl(
                         beginning, [], [], [], c_ast.TypeDecl(
                             beginning, [], c_ast.IdentifierType(['int'])),
-                        forloop.stmt.init.decls[0].init,
+                        forloop.stmt.block_items[0].init.decls[0].init,
                         None)], None)
                 # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
                 # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
                 cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), forloop.stmt.cond.right)
+                    beginning), forloop.stmt.block_items[0].cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-                assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
-                                                                             c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
+                assign = c_ast.Assignment(
+                    '=', c_ast.ID(end), c_ast.FuncCall(
+                        c_ast.ID('min'), c_ast.ExprList([
+                            c_ast.BinaryOp(
+                                '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                            forloop.stmt.block_items[0].cond.right])))
 
-                forloop.stmt.init.decls[0].init = c_ast.ID(beginning)
-                forloop.stmt.cond.right = c_ast.ID(end)
+                forloop.stmt.block_items[0].init.decls[0].init = c_ast.ID(beginning)
+                forloop.stmt.block_items[0].cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound(
                     [assign, pragma_int, forloop] + dummies)
@@ -925,12 +958,12 @@ class KernelBench(Kernel):
                     c_ast.Decl(
                         beginning, [], [], [], c_ast.TypeDecl(
                             beginning, [], c_ast.IdentifierType(['int'])),
-                        forloop.stmt.init.decls[0].init,
+                        forloop.stmt.block_items[0].init.decls[0].init,
                         None)], None)
                 # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
                 # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
                 cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), forloop.stmt.cond.right)
+                    beginning), forloop.stmt.block_items[0].cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
@@ -940,7 +973,7 @@ class KernelBench(Kernel):
                         c_ast.ID('min'), c_ast.ExprList([
                             c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                            forloop.stmt.cond.right])))
+                            forloop.stmt.block_items[0].cond.right])))
                 mycompound = c_ast.Compound(
                     [assign, pragma_int, forloop] + dummies)
 
