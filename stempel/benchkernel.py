@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+"""This module focuses on the generation of C code manipulating the AST
+"""
 from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import absolute_import
@@ -16,7 +17,6 @@ import collections
 
 #import logging
 from distutils.spawn import find_executable
-import re
 
 import sympy
 import six
@@ -28,11 +28,19 @@ import kerncraft
 from kerncraft.kernel import Kernel
 from kerncraft.machinemodel import MachineModel
 
+if sys.version_info[0] == 2 and sys.version_info >= (2, 7):
+    def fullmatch(regex, string, flags=0):
+        """Emulate python-3.4 re.fullmatch()."""
+        return re.match("(?:" + regex + r")\Z", string, flags=flags)
+elif sys.version_info[0] == 3 and sys.version_info >= (3, 4):
+    from re import fullmatch
+
 def symbol_pos_int(*args, **kwargs):
     """Create a sympy.Symbol with positive and integer assumptions."""
     kwargs.update({'positive': True,
                    'integer': True})
     return sympy.Symbol(*args, **kwargs)
+
 
 def prefix_indent(prefix, textblock, later_prefix=' '):
     """
@@ -44,12 +52,13 @@ def prefix_indent(prefix, textblock, later_prefix=' '):
     textblock = textblock.split('\n')
     line = prefix + textblock[0] + '\n'
     if len(later_prefix) == 1:
-        later_prefix = ' '*len(prefix)
+        later_prefix = ' ' * len(prefix)
     line = line + '\n'.join([later_prefix + x for x in textblock[1:]])
     if line[-1] != '\n':
         return line + '\n'
     else:
         return line
+
 
 def transform_multidim_to_1d_decl(decl):
     """
@@ -89,7 +98,7 @@ def transform_multidim_to_1d_ref(aref, dimension_dict):
         else:
             subscript_list.append(c_ast.BinaryOp('*', d, reduce(
                 lambda l, r: c_ast.BinaryOp('*', l, r),
-                dimension_dict[name.name][-1:-i-1:-1])))
+                dimension_dict[name.name][-1:-i - 1:-1])))
 
     aref.subscript = reduce(
         lambda l, r: c_ast.BinaryOp('+', l, r), subscript_list)
@@ -128,6 +137,7 @@ def find_array_references(ast):
     else:
         return reduce(operator.add, [find_array_references(o[1]) for o in ast.children()], [])
 
+
 def force_iterable(f):
     """Will make any functions return an iterable objects by wrapping its result in a string."""
     def wrapper(*args, **kwargs):
@@ -144,6 +154,7 @@ class KernelBench(Kernel):
     Kernel information gathered from code using pycparser
     This version allows compilation and generation of code for benchmarking
     """
+
     def __init__(self, kernel_code, machine, block_factor=None, filename=None):
         super(KernelBench, self).__init__(machine=machine)
 
@@ -159,8 +170,8 @@ class KernelBench(Kernel):
                          yacctab='kerncraft.pycparser.yacctab')
         try:
             self.kernel_ast = parser.parse(
-            							   self._as_function(),
-            							   filename=filename).ext[0].body
+                self._as_function(),
+                filename=filename).ext[0].body
         except plyparser.ParseError as e:
             print('Error parsing kernel code:', e)
             sys.exit(1)
@@ -177,7 +188,7 @@ class KernelBench(Kernel):
         if filename is None:
             filename = ''
         else:
-            filename ='"{}"'.format(filename)
+            filename = '"{}"'.format(filename)
         return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(
             func_name, filename, self.kernel_code)
 
@@ -187,7 +198,8 @@ class KernelBench(Kernel):
         self.asm_block = None
 
     def _process_code(self):
-        assert type(self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
+        assert type(
+            self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
         assert all([type(s) in [c_ast.Decl, c_ast.Pragma]
                     for s in self.kernel_ast.block_items[:-1]]), \
             'all statements before the for loop need to be declarations or pragmas'
@@ -206,11 +218,13 @@ class KernelBench(Kernel):
                     dims.append(self.conv_ast_to_sym(t.dim))
                     t = t.type
 
-                assert len(t.type.names) == 1, "only single types are supported"
+                assert len(
+                    t.type.names) == 1, "only single types are supported"
                 self.set_variable(item.name, t.type.names[0], list(dims))
 
             else:
-                assert len(item.type.type.names) == 1, "only single types are supported"
+                assert len(
+                    item.type.type.names) == 1, "only single types are supported"
                 self.set_variable(item.name, item.type.type.names[0], None)
 
         floop = self.kernel_ast.block_items[-1]
@@ -259,9 +273,10 @@ class KernelBench(Kernel):
 
         # Check for more indices (multi-dimensional access)
         if type(aref.name) is c_ast.ArrayRef:
-            idxs += self._get_offsets(aref.name, dim=dim+1)
+            idxs += self._get_offsets(aref.name, dim=dim + 1)
 
-        # Reverse to preserver order (the subscripts in the AST are traversed backwards)
+        # Reverse to preserver order (the subscripts in the AST are traversed
+        # backwards)
         if dim == 0:
             idxs.reverse()
 
@@ -288,14 +303,17 @@ class KernelBench(Kernel):
             "Loop must have initial, condition and next statements."
         assert type(floop.init) is c_ast.DeclList, \
             "Initialization of loops need to be declarations."
-        assert len(floop.init.decls) == 1, "Only single declaration is allowed in init. of loop."
+        assert len(
+            floop.init.decls) == 1, "Only single declaration is allowed in init. of loop."
         assert floop.cond.op in '<', "only lt (<) is allowed as loop condition"
-        assert type(floop.cond.left) is c_ast.ID, 'left of cond. operand has to be a variable'
+        assert type(
+            floop.cond.left) is c_ast.ID, 'left of cond. operand has to be a variable'
         assert type(floop.cond.right) in [c_ast.Constant, c_ast.ID, c_ast.BinaryOp], \
             'right of cond. operand has to be a constant, a variable or a binary operation'
         assert type(floop.next) in [c_ast.UnaryOp, c_ast.Assignment], \
             'next statement has to be a unary or assignment operation'
-        assert floop.next.op in ['++', 'p++', '+='], 'only ++ and += next operations are allowed'
+        assert floop.next.op in [
+            '++', 'p++', '+='], 'only ++ and += next operations are allowed'
         assert type(floop.stmt) in [c_ast.Compound, c_ast.Assignment, c_ast.For], \
             'the inner loop may contain only assignments or compounds of assignments'
 
@@ -315,13 +333,15 @@ class KernelBench(Kernel):
         if type(floop.next) is c_ast.Assignment:
             assert type(floop.next.lvalue) is c_ast.ID, \
                 'next operation may only act on loop counter'
-            assert type(floop.next.rvalue) is c_ast.Constant, 'only constant increments are allowed'
+            assert type(
+                floop.next.rvalue) is c_ast.Constant, 'only constant increments are allowed'
             assert floop.next.lvalue.name == floop.cond.left.name == floop.init.decls[0].name, \
                 'initial, condition and next statement of for loop must act on same loop ' \
                 'counter variable'
             step_size = int(floop.next.rvalue.value)
         else:
-            assert type(floop.next.expr) is c_ast.ID, 'next operation may only act on loop counter'
+            assert type(
+                floop.next.expr) is c_ast.ID, 'next operation may only act on loop counter'
             assert floop.next.expr.name == floop.cond.left.name == floop.init.decls[0].name, \
                 'initial, condition and next statement of for loop must act on same loop ' \
                 'counter variable'
@@ -365,7 +385,7 @@ class KernelBench(Kernel):
         if stmt.op != '=':
             write_and_read = True
             op = stmt.op.strip('=')
-            self._flops[op] = self._flops.get(op, 0)+1
+            self._flops[op] = self._flops.get(op, 0) + 1
 
         # Document data destination
         # self.destinations[dest name] = [dest offset, ...])
@@ -401,10 +421,10 @@ class KernelBench(Kernel):
             self._psources(stmt.left)
             self._psources(stmt.right)
 
-            self._flops[stmt.op] = self._flops.get(stmt.op, 0)+1
+            self._flops[stmt.op] = self._flops.get(stmt.op, 0) + 1
         elif type(stmt) is c_ast.UnaryOp:
             self._psources(stmt.expr)
-            self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0)+1
+            self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0) + 1
 
         return sources
 
@@ -419,8 +439,10 @@ class KernelBench(Kernel):
         ast = deepcopy(self.kernel_ast)
         declarations = [d for d in ast.block_items if type(d) is c_ast.Decl]
 
-        # transform multi-dimensional declarations to one dimensional references
-        array_dimensions = dict(list(map(transform_multidim_to_1d_decl, declarations)))
+        # transform multi-dimensional declarations to one dimensional
+        # references
+        array_dimensions = dict(
+            list(map(transform_multidim_to_1d_decl, declarations)))
         # transform to pointer and malloc notation (stack can be too small)
         list(map(transform_array_decl_to_malloc, declarations))
 
@@ -446,12 +468,15 @@ class KernelBench(Kernel):
 
         if type_ == 'likwid':
             # Call likwid_markerInit()
-            ast.block_items.insert(0, c_ast.Constant('string', 'INSERTMACROINIT'))
+            ast.block_items.insert(
+                0, c_ast.Constant('string', 'INSERTMACROINIT'))
             # Call likwid_markerThreadInit()
-            ast.block_items.insert(1, c_ast.Constant('string', 'INSERTMACROTHREADINIT'))
+            ast.block_items.insert(1, c_ast.Constant(
+                'string', 'INSERTMACROTHREADINIT'))
             # Call likwid_markerClose()
             #ast.block_items.append(c_ast.FuncCall(c_ast.ID('likwid_markerClose'), None))
-            ast.block_items.append(c_ast.Constant('string', 'INSERTMACROCLOSE'))
+            ast.block_items.append(c_ast.Constant(
+                'string', 'INSERTMACROCLOSE'))
 
         # inject array initialization
         for d in declarations:
@@ -465,15 +490,13 @@ class KernelBench(Kernel):
                 # Init: int i = 0;
                 counter_name = 'i'
                 while counter_name in array_dimensions:
-                    counter_name = chr(ord(counter_name)+1)
+                    counter_name = chr(ord(counter_name) + 1)
 
                 init = c_ast.DeclList([
                     c_ast.Decl(
                         counter_name, [], [], [], c_ast.TypeDecl(
                             counter_name, [], c_ast.IdentifierType(['int'])),
-                        c_ast.Constant('int', '0'),
-                        None)],
-                    None)
+                        c_ast.Constant('int', '0'), None)], None)
 
                 # Cond: i < ... (... is length of array)
                 cond = c_ast.BinaryOp(
@@ -481,56 +504,57 @@ class KernelBench(Kernel):
                     c_ast.ID(counter_name),
                     reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
 
-
                 # Next: i++
                 next_ = c_ast.UnaryOp('++', c_ast.ID(counter_name))
 
                 if d.name == 'W':
-                    #get the number of dimensions by fetching the size of W
-                    #w_dims can be 2 (1D array + 1 for constants), 3, or 4
+                    # get the number of dimensions by fetching the size of W
+                    # w_dims can be 2 (1D array + 1 for constants), 3, or 4
                     w_dims = len(array_dimensions.get(d.name))
-                    assert (w_dims < 5 and w_dims > 1), "STEMPEL can treat stencils up to 3D"
+                    assert (w_dims < 5 and w_dims >
+                            1), "STEMPEL can treat stencils up to 3D"
                     if w_dims == 2:
                         factor = float(d.init.args.exprs[0].right.value)
                     elif w_dims == 3:
                         factor = float(d.init.args.exprs[0].right.right.value)
-                    else:# w_dims == 4
-                        factor = float(d.init.args.exprs[0].right.right.right.value)
+                    else:  # w_dims == 4
+                        factor = float(
+                            d.init.args.exprs[0].right.right.right.value)
 
-                    #we add 2 in order to get a factor that stabilizes the results
-                    #empirical value
+                    # we add 2 in order to get a factor that stabilizes the results
+                    # empirical value
                     factor = factor + 2.0
-                    rand_max =  c_ast.BinaryOp('/',
-                        c_ast.BinaryOp('/',
-                            c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                            c_ast.Cast(
-                                c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX'))),
+                    rand_max = c_ast.BinaryOp(
+                        '/', c_ast.BinaryOp('/', c_ast.FuncCall(
+                            c_ast.ID('rand'), c_ast.ExprList([])),
+                                            c_ast.Cast(
+                                                c_ast.IdentifierType(['double']),
+                                                c_ast.ID('RAND_MAX'))),
                         c_ast.Constant('float', factor))
-                        #, rand_max))
-                        #,
-                        #c_ast.Constant('float', factor))
+                    #, rand_max))
+                    #,
+                    # c_ast.Constant('float', factor))
                 else:
                     rand_max = c_ast.BinaryOp('/',
-                        c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                        c_ast.Cast(
-                            c_ast.IdentifierType(['double']),
-                            c_ast.ID('RAND_MAX')))
+                                              c_ast.FuncCall(
+                                                  c_ast.ID('rand'),
+                                                  c_ast.ExprList([])),
+                                              c_ast.Cast(
+                                                  c_ast.IdentifierType(
+                                                      ['double']),
+                                                  c_ast.ID('RAND_MAX')))
 
                 stmt = c_ast.Assignment(
                     '=',
                     c_ast.ArrayRef(c_ast.ID(d.name), c_ast.ID(counter_name)),
                     rand_max)
-                ast.block_items.insert(i+1, c_ast.For(init, cond, next_, stmt))
+                ast.block_items.insert(
+                    i + 1, c_ast.For(init, cond, next_, stmt))
 
                 # inject dummy access to arrays, so compiler does not over-optimize code
                 # with if around it, so code will actually run
                 ast.block_items.insert(
-                    i+2, c_ast.If(
+                    i + 2, c_ast.If(
                         cond=c_ast.ID('var_false'),
                         iftrue=c_ast.Compound([
                             c_ast.FuncCall(
@@ -540,14 +564,15 @@ class KernelBench(Kernel):
             else:
                 # this is a scalar, so a simple Assignment is enough
                 ast.block_items.insert(
-                    i+1, c_ast.Assignment('=', c_ast.ID(d.name), c_ast.BinaryOp('/', c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])), c_ast.ID('RAND_MAX'))))
+                    i + 1, c_ast.Assignment('=', c_ast.ID(d.name), c_ast.BinaryOp('/',
+                                                                                  c_ast.FuncCall(
+                                                                                      c_ast.ID('rand'), c_ast.ExprList([])),
+                                                                                  c_ast.ID('RAND_MAX'))))
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
                 ast.block_items.insert(
-                    i+2, c_ast.If(
+                    i + 2, c_ast.If(
                         cond=c_ast.ID('var_false'),
                         iftrue=c_ast.Compound([
                             c_ast.FuncCall(
@@ -555,7 +580,8 @@ class KernelBench(Kernel):
                                 c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
                         iffalse=None))
 
-        # transform multi-dimensional array references to one dimensional references
+        # transform multi-dimensional array references to one dimensional
+        # references
         list(map(lambda aref: transform_multidim_to_1d_ref(aref, array_dimensions),
                  find_array_references(ast)))
 
@@ -584,22 +610,26 @@ class KernelBench(Kernel):
             # ast.block_items.insert(-2, c_ast.FuncCall(
             #     c_ast.ID('likwid_markerStartRegion'),
             #     c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
-            ast.block_items.insert(-2, c_ast.Constant('string', 'INSERTMACROSTART'))
+            ast.block_items.insert(-2,
+                                   c_ast.Constant('string', 'INSERTMACROSTART'))
 
-            #add declaration of the block
+            # add declaration of the block
             if self.block_factor:
-                type_decl = c_ast.TypeDecl('block_factor', [], c_ast.IdentifierType(['int']))
+                type_decl = c_ast.TypeDecl(
+                    'block_factor', [], c_ast.IdentifierType(['int']))
                 decl = c_ast.Decl(
                     'block_factor', ['const'], [], [],
                     type_decl, c_ast.Constant('int', str(self.block_factor)), None)
                 ast.block_items.insert(-3, decl)
 
-                #add it to the list of declarations, so it gets passed to the kernel_loop
+                # add it to the list of declarations, so it gets passed to the
+                # kernel_loop
                 declarations.append(decl)
 
             # Wrap everything in a loop
             # int repeat = atoi(argv[2])
-            type_decl = c_ast.TypeDecl('repeat', [], c_ast.IdentifierType(['int']))
+            type_decl = c_ast.TypeDecl(
+                'repeat', [], c_ast.IdentifierType(['int']))
             # init = c_ast.FuncCall(
             #     c_ast.ID('atoi'),
             #     c_ast.ExprList([c_ast.ArrayRef(
@@ -611,12 +641,12 @@ class KernelBench(Kernel):
                 'repeat', ['const'], [], [],
                 type_decl, c_ast.Constant('int', '1'), None))
 
-            #timing variables declaration and initialisation
-            type_decl = c_ast.TypeDecl('runtime', [], c_ast.IdentifierType(['double']))
+            # timing variables declaration and initialisation
+            type_decl = c_ast.TypeDecl(
+                'runtime', [], c_ast.IdentifierType(['double']))
             ast.block_items.insert(-3, c_ast.Decl(
                 'runtime', ['const'], [], [],
                 type_decl, c_ast.Constant('double', '0.0'), None))
-
 
             decl = c_ast.Decl('wct_start', [], [], [], c_ast.TypeDecl(
                 'wct_start', [], c_ast.IdentifierType(['double'])
@@ -635,184 +665,203 @@ class KernelBench(Kernel):
             ), None, None)
             ast.block_items.insert(-3, decl)
 
-
-            #call the timing function at the beginning
+            # call the timing function at the beginning
             start_timing = c_ast.FuncCall(c_ast.ID('timing'),
-                    c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_start')),
-                        c_ast.UnaryOp('&', c_ast.ID('cput_start'))]))
+                                          c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_start')),
+                                                          c_ast.UnaryOp('&', c_ast.ID('cput_start'))]))
 
             # take out the for loop that will be written in a function on top
             forloop = ast.block_items.pop(-2)
 
-            #creating a list of pointer to all the variables of type pointer
+            # creating a list of pointer to all the variables of type pointer
             pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
             first_array_name = pointers_list[0].type.type.declname
-            #get the number of dimensions by fetching the size of the first array
+            # get the number of dimensions by fetching the size of the first
+            # array
             mydims = len(array_dimensions.get(first_array_name))
 
             # for(n = 0; n < repeat; n++) {...}
             index_name = 'n'
             init = c_ast.DeclList([
-                    c_ast.Decl(
-                        index_name, [], [], [], c_ast.TypeDecl(
-                            index_name, [], c_ast.IdentifierType(['int'])),
-                        c_ast.Constant('int', '0'),
-                        None)],
-                    None)
-            cond = c_ast.BinaryOp( '<', c_ast.ID(index_name), c_ast.ID('repeat'))
+                c_ast.Decl(
+                    index_name, [], [], [], c_ast.TypeDecl(
+                        index_name, [], c_ast.IdentifierType(['int'])),
+                    c_ast.Constant('int', '0'),
+                    None)], None)
+            cond = c_ast.BinaryOp('<', c_ast.ID(
+                index_name), c_ast.ID('repeat'))
             next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
             #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
             stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-            		c_ast.ExprList([c_ast.ID(d.name) for d in declarations]))
+                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations]))
             swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
-                c_ast.ID(pointers_list[0].type.type.declname))
+                                        c_ast.ID(pointers_list[0].type.type.declname))
             swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
-                c_ast.ID(pointers_list[1].type.type.declname))
+                                         c_ast.ID(pointers_list[1].type.type.declname))
             last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
-                c_ast.ID('tmp'))
+                                         c_ast.ID('tmp'))
             stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
             myfor = c_ast.For(init, cond, next_, stmt)
 
-            #call the timing function at the beginning
+            # call the timing function at the beginning
             end_timing = c_ast.FuncCall(c_ast.ID('timing'),
-                    c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_end')),
-                        c_ast.UnaryOp('&', c_ast.ID('cput_end'))]))
+                                        c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_end')),
+                                                        c_ast.UnaryOp('&', c_ast.ID('cput_end'))]))
 
             update_runtime = c_ast.Assignment('=', c_ast.ID('runtime'),
-                c_ast.BinaryOp( '-', c_ast.ID('wct_end'), c_ast.ID('wct_start')))
+                                              c_ast.BinaryOp('-', c_ast.ID('wct_end'), c_ast.ID('wct_start')))
 
             update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
-                c_ast.Constant('int', '2'))
+                                           c_ast.Constant('int', '2'))
 
-            #while(runtime<.5) {...}
-            cond = c_ast.BinaryOp( '<', c_ast.ID('runtime'), c_ast.Constant('double', '0.5'))
-            stmt = c_ast.Compound([start_timing, myfor, end_timing, update_runtime, update_iter])
+            # while(runtime<.5) {...}
+            cond = c_ast.BinaryOp('<', c_ast.ID(
+                'runtime'), c_ast.Constant('double', '0.5'))
+            stmt = c_ast.Compound(
+                [start_timing, myfor, end_timing, update_runtime, update_iter])
 
             ast.block_items.insert(-1, c_ast.While(cond, stmt))
 
-            #close the region "Sweep" of likwid
-            ast.block_items.insert(-1, c_ast.Constant('string', 'INSERTMACROSTOP'))
+            # close the region "Sweep" of likwid
+            ast.block_items.insert(-1,
+                                   c_ast.Constant('string', 'INSERTMACROSTOP'))
 
-            #the variable repeat must be divided by 2 since in the last loop was doubled before exiting
-            ast.block_items.insert(-1, c_ast.Assignment('/=', c_ast.ID('repeat'), c_ast.Constant('int', '2')))
+            # the variable repeat must be divided by 2 since in the last loop
+            # was doubled before exiting
+            ast.block_items.insert(-1, c_ast.Assignment('/=',
+                                                        c_ast.ID('repeat'), c_ast.Constant('int', '2')))
 
-            #calculate the size of the grid, taking the letters representing its dimensions from the array of constants
+            # calculate the size of the grid, taking the letters representing
+            # its dimensions from the array of constants
             size = '(' + ' * '.join(k.name for k in self.constants) + ')'
 
             decl = c_ast.Decl('tmp', [], [], [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl('tmp', [],
-                    pointers_list[0].type.type.type.type)),
-                None, None)
+                                   pointers_list[0].type.type.type.type)),
+                              None, None)
             ast.block_items.insert(-5, decl)
 
-            #creating a list of standard types for all the non-pointer variables
-            variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
-
+            # creating a list of standard types for all the non-pointer
+            # variables
+            variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
+                d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
 
             norm_loop = deepcopy(forloop)
-            #generate the LUP expression according to the number of dimensions
+            # generate the LUP expression according to the number of dimensions
             # it is necessary to do so since we do not know a priori how many nested for we have
             # additionally builds the norm of the array
             if mydims == 1:
-                LUP_expression = c_ast.Cast(
-                c_ast.IdentifierType(['double']), forloop.cond.right)#c_ast.ExprList([forloop.cond.right])
-                #norm
+                lup_expression = c_ast.Cast(
+                    c_ast.IdentifierType(['double']), forloop.cond.right)  # c_ast.ExprList([forloop.cond.right])
+                # norm
                 point = norm_loop.stmt.lvalue
-                #set the name of the grid to the first (the order changed after the swap)
+                # set the name of the grid to the first (the order changed
+                # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
-                    c_ast.ID('total'),
-                    c_ast.BinaryOp('*', point, point))
+                                       c_ast.ID('total'),
+                                       c_ast.BinaryOp('*', point, point))
                 norm_loop.stmt.rvalue = newop
 
             elif mydims == 2:
-                LUP_expression = c_ast.BinaryOp('*',
-                    c_ast.Cast(
-                        c_ast.IdentifierType(['double']),
-                        forloop.cond.right),
-                    c_ast.Cast(
-                        c_ast.IdentifierType(['double']),
-                        forloop.stmt.cond.right))
-                #norm
+                lup_expression = c_ast.BinaryOp('*',
+                                                c_ast.Cast(
+                                                    c_ast.IdentifierType(
+                                                        ['double']),
+                                                    forloop.cond.right),
+                                                c_ast.Cast(
+                                                    c_ast.IdentifierType(
+                                                        ['double']),
+                                                    forloop.stmt.cond.right))
+                # norm
                 point = norm_loop.stmt.stmt.lvalue
-                #set the name of the grid to the first (the order changed after the swap)
+                # set the name of the grid to the first (the order changed
+                # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
-                    c_ast.ID('total'),
-                    c_ast.BinaryOp('*', point, point))
+                                       c_ast.ID('total'),
+                                       c_ast.BinaryOp('*', point, point))
                 norm_loop.stmt.stmt.rvalue = newop
 
             elif mydims == 3:
-                LUP_expression = c_ast.BinaryOp('*',
-                    c_ast.BinaryOp('*',
-                        c_ast.Cast(
-                            c_ast.IdentifierType(['double']),
-                            forloop.cond.right),
-                        c_ast.Cast(
-                            c_ast.IdentifierType(['double']),
-                            forloop.stmt.cond.right)),
-                    c_ast.Cast(c_ast.IdentifierType(['double']),
-                        forloop.stmt.stmt.cond.right))
-                #norm
+                lup_expression = c_ast.BinaryOp('*',
+                                                c_ast.BinaryOp('*',
+                                                               c_ast.Cast(
+                                                                   c_ast.IdentifierType(
+                                                                       ['double']),
+                                                                   forloop.cond.right),
+                                                               c_ast.Cast(
+                                                                   c_ast.IdentifierType(
+                                                                       ['double']),
+                                                                   forloop.stmt.cond.right)),
+                                                c_ast.Cast(c_ast.IdentifierType(['double']),
+                                                           forloop.stmt.stmt.cond.right))
+                # norm
                 point = norm_loop.stmt.stmt.stmt.lvalue
-                #set the name of the grid to the first (the order changed after the swap)
+                # set the name of the grid to the first (the order changed
+                # after the swap)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_loop.stmt.stmt.stmt.lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
-                    c_ast.ID('total'),
-                    c_ast.BinaryOp('*', point, point))
+                                       c_ast.ID('total'),
+                                       c_ast.BinaryOp('*', point, point))
                 norm_loop.stmt.stmt.stmt.rvalue = newop
 
-            #we build MLUP. should be like: (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
-            LUP_expression = c_ast.BinaryOp('*',
-                c_ast.Cast(
-                    c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
-                LUP_expression)
-            #cast it to double since the first variables are ints
-            #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), LUP_expression)
-            #we put all together to get MLUP
+            # we build mlup. should be like:
+            # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
+            lup_expression = c_ast.BinaryOp('*',
+                                            c_ast.Cast(
+                                                c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
+                                            lup_expression)
+            # cast it to double since the first variables are ints
+            #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), lup_expression)
+            # we put all together to get mlup
             #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
-            MLUP = c_ast.BinaryOp('/', LUP_expression, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+            mlup = c_ast.BinaryOp('/', lup_expression, c_ast.BinaryOp('*',
+                                                                      c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
 
-            #insert the printf of the stats
-            mystring = str("size: %d    time: %lf    iter: %d    MLUP/s: %lf\n").encode('unicode_escape')
-            ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
-                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                    c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), MLUP])))
+            # insert the printf of the stats
+            mystring = str(
+                "size: %d    time: %lf    iter: %d    mlup/s: %lf\n").encode('unicode_escape')
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                      c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
 
-            #insert the loop computing the total squared
+            # insert the loop computing the total squared
             decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
                 'total', [], c_ast.IdentifierType(['double'])
             ), c_ast.Constant('double', '0.0'), None)
             ast.block_items.insert(-6, decl)
             ast.block_items.insert(-1, norm_loop)
 
-            #insert the printf of the norm
+            # insert the printf of the norm
             mystring = str("norm(a): %lf\n")
             mystring = mystring.encode('unicode_escape')
 
             sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
-                        c_ast.ExprList([c_ast.ID('total')]))
-            ast.block_items.insert(-1, c_ast.FuncCall( c_ast.ID('printf'),
-                c_ast.ExprList([
-                    c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
-
-
+                                        c_ast.ExprList([c_ast.ID('total')]))
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                      c_ast.ExprList([
+                                                          c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
 
         else:
             ast.block_items += dummies
 
-
         # embed compound into main FuncDecl
-        decl = c_ast.Decl('main', [], [], [], c_ast.FuncDecl(c_ast.ParamList([
-            c_ast.Typename(None, [], c_ast.TypeDecl('argc', [], c_ast.IdentifierType(['int']))),
-            c_ast.Typename(None, [], c_ast.PtrDecl([], c_ast.PtrDecl(
-                [], c_ast.TypeDecl('argv', [], c_ast.IdentifierType(['char'])))))]),
+        decl = c_ast.Decl('main', [], [], [], c_ast.FuncDecl(
+            c_ast.ParamList([
+                c_ast.Typename(
+                    None, [], c_ast.TypeDecl(
+                        'argc', [], c_ast.IdentifierType(['int']))),
+                c_ast.Typename(None, [], c_ast.PtrDecl(
+                    [], c_ast.PtrDecl([], c_ast.TypeDecl(
+                        'argv', [], c_ast.IdentifierType(
+                            ['char'])))))]),
             c_ast.TypeDecl('main', [], c_ast.IdentifierType(['int']))),
-            None, None)
+                          None, None)
 
         ast = c_ast.FuncDef(decl, None, ast)
 
@@ -821,76 +870,89 @@ class KernelBench(Kernel):
 
         myvariables = []
         for i in range(0, mydims):
-            myvariables.append(chr(ord('i')+i))
+            myvariables.append(chr(ord('i') + i))
 
         #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
         pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
-        #declaring the function of the kernel with the parameters list built before
+        # declaring the function of the kernel with the parameters list built
+        # before
         decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList(pointers_list + variables_list),
             c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['void']))),
-            None, None)
+                          None, None)
 
         if self.block_factor:
-            if mydims == 2: #blocking on the inner-most loop
-                beginning = myvariables[0]+'b'
-                end = myvariables[0]+'end'
-                pragma = c_ast.Pragma('omp for private({}, {})'.format(beginning, end))
+            if mydims == 2:  # blocking on the inner-most loop
+                beginning = myvariables[0] + 'b'
+                end = myvariables[0] + 'end'
+                pragma = c_ast.Pragma(
+                    'omp for private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
-                        c_ast.Decl(
-                            beginning, [], [], [], c_ast.TypeDecl(
-                                beginning, [], c_ast.IdentifierType(['int'])),
-                            forloop.stmt.init.decls[0].init,
-                            None)],
-                        None)
-                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
-                cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
-                next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                    c_ast.Decl(
+                        beginning, [], [], [], c_ast.TypeDecl(
+                            beginning, [], c_ast.IdentifierType(['int'])),
+                        forloop.stmt.init.decls[0].init,
+                        None)], None)
+                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                cond = c_ast.BinaryOp('<', c_ast.ID(
+                    beginning), forloop.stmt.cond.right)
+                next_ = c_ast.BinaryOp(
+                    '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
                 assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
-                        c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
+                                                                             c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
 
                 forloop.stmt.init.decls[0].init = c_ast.ID(beginning)
                 forloop.stmt.cond.right = c_ast.ID(end)
 
-                mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
+                mycompound = c_ast.Compound(
+                    [assign, pragma_int, forloop] + dummies)
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
                 mycompound = c_ast.Compound([pragma, newfor])
 
-            elif mydims == 3: #blocking on the middle loop
-                beginning = myvariables[1]+'b'
-                end = myvariables[1]+'end'
-                pragma = c_ast.Pragma('omp for private({}, {})'.format(beginning, end))
+            elif mydims == 3:  # blocking on the middle loop
+                beginning = myvariables[1] + 'b'
+                end = myvariables[1] + 'end'
+                pragma = c_ast.Pragma(
+                    'omp for private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
-                        c_ast.Decl(
-                            beginning, [], [], [], c_ast.TypeDecl(
-                                beginning, [], c_ast.IdentifierType(['int'])),
-                            forloop.stmt.init.decls[0].init,
-                            None)],
-                        None)
-                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l, r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
-                cond = c_ast.BinaryOp( '<', c_ast.ID(beginning), forloop.stmt.cond.right)
-                next_ = c_ast.BinaryOp('+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                    c_ast.Decl(
+                        beginning, [], [], [], c_ast.TypeDecl(
+                            beginning, [], c_ast.IdentifierType(['int'])),
+                        forloop.stmt.init.decls[0].init,
+                        None)], None)
+                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                cond = c_ast.BinaryOp('<', c_ast.ID(
+                    beginning), forloop.stmt.cond.right)
+                next_ = c_ast.BinaryOp(
+                    '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-                assign = c_ast.Assignment('=', c_ast.ID(end), c_ast.FuncCall(c_ast.ID('min'),
-                        c_ast.ExprList([c_ast.BinaryOp('+', c_ast.ID(beginning), c_ast.ID('block_factor')), forloop.stmt.cond.right])))
-                mycompound = c_ast.Compound([assign, pragma_int, forloop]+dummies)
+                assign = c_ast.Assignment(
+                    '=', c_ast.ID(end), c_ast.FuncCall(
+                        c_ast.ID('min'), c_ast.ExprList([
+                            c_ast.BinaryOp(
+                                '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                            forloop.stmt.cond.right])))
+                mycompound = c_ast.Compound(
+                    [assign, pragma_int, forloop] + dummies)
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
                 mycompound = c_ast.Compound([pragma, newfor])
 
         else:
-            mycompound = c_ast.Compound([pragma_int, forloop]+dummies)
+            mycompound = c_ast.Compound([pragma_int, forloop] + dummies)
 
         #mycode = CGenerator().visit(mycompound)
-        #logging.warning(type(forloop))
+        # logging.warning(type(forloop))
         ast1 = c_ast.FuncDef(decl, None, mycompound)
         ast = c_ast.FileAST([ast1, ast])
         #ast.ext.insert(0, decl)
@@ -901,7 +963,7 @@ class KernelBench(Kernel):
             c_ast.ParamList([c_ast.Typename(None, [], c_ast.PtrDecl(
                 [], c_ast.TypeDecl(None, [], c_ast.IdentifierType(['double']))))]),
             c_ast.TypeDecl('dummy', [], c_ast.IdentifierType(['void']))),
-            None, None)
+                          None, None)
         ast.ext.insert(0, decl)
 
         # add alloc function declaration
@@ -913,22 +975,21 @@ class KernelBench(Kernel):
                     None, [], c_ast.IdentifierType(['size_t'])))
             ]),
             c_ast.TypeDecl('aligned_malloc', [], c_ast.IdentifierType(['void*']))),
-            None, None)
+                          None, None)
         ast.ext.insert(0, decl)
 
         # add external var_false declaration
         decl = c_ast.Decl('var_false', [], ['extern'], [], c_ast.TypeDecl(
-                'var_false', [], c_ast.IdentifierType(['int'])
-            ), None, None)
+            'var_false', [], c_ast.IdentifierType(['int'])
+        ), None, None)
         ast.ext.insert(1, decl)
-
 
         # convert to code string
         code = CGenerator().visit(ast)
 
-        #add empty line on top
+        # add empty line on top
         code = '\n' + code
-        #add defines of the variables storing the size of the dimensions
+        # add defines of the variables storing the size of the dimensions
         for name, value in list(self.constants.items()):
             line = '#define {} {}L\n'.format(name, value)
             code = line + code
@@ -978,11 +1039,10 @@ class KernelBench(Kernel):
         # accidentally added, i.e. when adding the function kernel_loop.
         # just a workaround
         code = code.rstrip()
-       	if code.endswith(';'):
-       		code = code = code[0:-1]
-       	#return mycode
+        if code.endswith(';'):
+            code = code = code[0:-1]
+        # return mycode
         return code
-
 
     def build(self, lflags=None, verbose=False):
         """
@@ -1000,10 +1060,12 @@ class KernelBench(Kernel):
 
         compiler_args += [
             '-std=c99',
-            '-I'+os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+'/headers/',
+            '-I' +
+            os.path.abspath(os.path.dirname(
+                os.path.realpath(__file__))) + '/headers/',
             '-DLIKWID_PERFMON', '-llikwid']
-            # os.environ.get('LIKWID_INCLUDE', ''),
-            # os.environ.get('LIKWID_INC', '')]
+        # os.environ.get('LIKWID_INCLUDE', ''),
+        # os.environ.get('LIKWID_INC', '')]
 
         # This is a special case for unittesting
         # if os.environ.get('LIKWID_LIB') == '':
@@ -1020,15 +1082,16 @@ class KernelBench(Kernel):
                 suffix='_compilable.c', mode='w', encoding='ascii'
             )
         else:
-            source_file = open(self._filename+"_compilable.c", 'w')
+            source_file = open(self._filename + "_compilable.c", 'w')
 
         source_file.write(self.as_code(type_='likwid'))
         source_file.flush()
 
-        infiles = [os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+'/headers/dummy.c',
+        infiles = [os.path.abspath(os.path.dirname(os.path.realpath(__file__))) + '/headers/dummy.c',
                    source_file.name]
         if self._filename:
-            outfile = os.path.abspath(os.path.splitext(self._filename)[0]+'.likwid_marked')
+            outfile = os.path.abspath(os.path.splitext(
+                self._filename)[0] + '.likwid_marked')
         else:
             outfile = tempfile.mkstemp(suffix='.likwid_marked')
         cmd = [compiler] + infiles + compiler_args + ['-o', outfile]
@@ -1045,7 +1108,6 @@ class KernelBench(Kernel):
             source_file.close()
 
         return outfile
-
 
     def perfctr(self, cmd, group='MEM', cpu='S0:0', code_markers=True, pin=True):
         '''
@@ -1075,9 +1137,11 @@ class KernelBench(Kernel):
         if self._args.verbose > 1:
             print(' '.join(perf_cmd))
         try:
-            output = subprocess.check_output(perf_cmd).decode('utf-8').split('\n')
+            output = subprocess.check_output(
+                perf_cmd).decode('utf-8').split('\n')
         except subprocess.CalledProcessError as e:
-            print("Executing benchmark failed: {!s}".format(e), file=sys.stderr)
+            print("Executing benchmark failed: {!s}".format(
+                e), file=sys.stderr)
             sys.exit(1)
 
         results = {}
@@ -1092,7 +1156,7 @@ class KernelBench(Kernel):
             try:
                 # Event counters
                 counter_value = int(l[2])
-                if re.fullmatch(r'[A-Z0-9_]+', l[0]) and re.fullmatch(r'[A-Z0-9]+', l[1]):
+                if fullmatch(r'[A-Z0-9_]+', l[0]) and fullmatch(r'[A-Z0-9]+', l[1]):
                     results.setdefault(l[0], {})
                     results[l[0]][l[1]] = counter_value
             except (IndexError, ValueError):

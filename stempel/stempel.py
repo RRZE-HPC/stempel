@@ -14,14 +14,14 @@ import importlib
 import subprocess
 import shutil
 import os
+import itertools
 
-from kerncraft.pycparser import clean_code
 import sympy
 import six
 from six.moves import range
 from ruamel import yaml
-import itertools
 
+from kerncraft.pycparser import clean_code
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
 from kerncraft.kernel import Kernel
@@ -37,7 +37,7 @@ if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
 
 def class_for_name(module_name, class_name):
     """
-    this method returns a class given its name and the module it belongs to
+    This method returns a class given its name and the module it belongs to
     """
     # load the module, will raise ImportError if module cannot be loaded
     mod = importlib.import_module(module_name)
@@ -45,9 +45,11 @@ def class_for_name(module_name, class_name):
     myclass = getattr(mod, class_name)
     return myclass
 
+
 def print_header(args, output_file, stencil):
-
-
+    """
+    This method prints all the infos regarding how the tool has been called
+    """
     # print header (taken from kerncraft)
     print('{:=^80}'.format(' stempel '), file=output_file)
     print('{:<40}{:>40}'.format('-D ', args.dimensions), file=output_file)
@@ -57,7 +59,7 @@ def print_header(args, output_file, stencil):
     print('{:<40}{:>40}'.format('-t ', args.datatype), file=output_file)
     print('{:<40}{:>40}'.format('-C ', args.coefficient), file=output_file)
     print('{:-^80}'.format(' ' + stencil.name + ' ' + args.classification
-        + ' stencil '), file=output_file)
+                           + ' stencil '), file=output_file)
 
 
 def call_kerncraft(code='', verbosity=''):
@@ -75,9 +77,9 @@ def call_kerncraft(code='', verbosity=''):
         verb += 'v'
     try:
         model = subprocess.Popen(
-            ['kerncraft -p ECMData -m phinally.yaml {} -D N 10000 -D M '\
-            '10000{}'.format(code, verb)], stdout=subprocess.PIPE
-            ).communicate()[0].decode("utf-8")
+            ['kerncraft -p ECMData -m phinally.yaml {} -D N 10000 -D M '
+             '10000{}'.format(code, verb)], stdout=subprocess.PIPE
+        ).communicate()[0].decode("utf-8")
     except OSError:
         print('likwid-topology execution failed, is it installed and loaded?',
               file=sys.stderr)
@@ -106,55 +108,61 @@ def create_parser():
                             'code. Value must be integer.')
 
     parser_gen.add_argument('-r', '--radius', metavar=('RADIUS'), type=int,
-                        default=2, required=True, help='Define the radius of '
-                        'the stencil in each dimension. Value must be integer.')
+                            default=2, required=True, help='Define the radius of '
+                            'the stencil in each dimension. Value must be integer.')
 
-    classification_group = parser_gen.add_mutually_exclusive_group(required=True)
+    classification_group = parser_gen.add_mutually_exclusive_group(
+        required=True)
     classification_group.add_argument('-i', '--isotropic', action='store_const',
-        dest='classification', const='isotropic', help='Define if the coefficients are '
-        'isotropic (does not depend on the direction).')
+                                      dest='classification', const='isotropic',
+                                      help='Define if the coefficients are '\
+                                      'isotropic (does not depend on the direction).')
     classification_group.add_argument('-e', '--heterogeneous', action='store_const',
-        dest='classification', const='heterogeneous' ,help='Define if the '
-        'weighting factors expose no symmetry, i.e. s a different coefficient '
-        'for each direction')
+                                      dest='classification', const='heterogeneous',
+                                      help='Define if the weighting factors expose'\
+                                      ' no symmetry, i.e. s a different coefficient '\
+                                      'for each direction')
     classification_group.add_argument('-o', '--homogeneous', action='store_const',
-        dest='classification', const='homogeneous', help='Define if the stencil'
-        ' has a homogenuous coefficient (i.e. only a sincgle scalar)')
+                                      dest='classification', const='homogeneous',
+                                      help='Define if the stencil has a homogenuous'\
+                                      ' coefficient (i.e. only a sincgle scalar)')
     classification_group.add_argument('-p', '--point-symmetric',
-        action='store_const', dest='classification', const='point-symmetric',
-        help='Define if the weighting factors are symmetric with respect to the'
-            ' origin, in which case, they have the same value.')
+                                      action='store_const', dest='classification',
+                                      const='point-symmetric', help='Define if the'\
+                                      ' weighting factors are symmetric with respect'\
+                                      ' to the origin, in which case, they have '\
+                                      'the same value.')
 
     parser_gen.add_argument('-k', '--kind', choices=['star', 'box'],
-                        type=str, default='star',
-                        help='Kind of stencil to generate. Value must be star '
-                        'or box')
+                            type=str, default='star',
+                            help='Kind of stencil to generate. Value must be star '
+                            'or box')
 
     parser_gen.add_argument('-C', '--coefficient', type=str,
-                        default='constant', choices=['constant', 'variable'],
-                        help='Define if the stencil has a fixed coeffient or a'
-                        ' matrix of coefficients. Value must be scalar or '
-                        'matrix')
+                            default='constant', choices=['constant', 'variable'],
+                            help='Define if the stencil has a fixed coeffient or a'
+                            ' matrix of coefficients. Value must be scalar or '
+                            'matrix')
 
     parser_gen.add_argument('-t', '--datatype', type=str,
-                        choices=['float', 'double'], default='double',
-                        help='Define the datatype of the grids used in the '
-                        'stencil. Value must be double or float')
+                            choices=['float', 'double'], default='double',
+                            help='Define the datatype of the grids used in the '
+                            'stencil. Value must be double or float')
 
     parser_gen.add_argument('-d', '--dimofcoeffs', type=int,
-                        help='Variable coefficients are stored as an array. '
-                        'Each variable coefficient results in an array of the '
-                        'same size of the stencils\' grid. All variable '
-                        'coefficients are packed into an array (e.g. W[M][N][2]'
-                        '). This parameter defines which dimension (first, '
-                        ' second, third, ...) will be used for discerning the '
-                        'coefficients. Value must be an integer.')
+                            help='Variable coefficients are stored as an array. '
+                            'Each variable coefficient results in an array of the '
+                            'same size of the stencils\' grid. All variable '
+                            'coefficients are packed into an array (e.g. W[M][N][2]'
+                            '). This parameter defines which dimension (first, '
+                            ' second, third, ...) will be used for discerning the '
+                            'coefficients. Value must be an integer.')
 
     parser_gen.add_argument('--store', type=argparse.FileType('w'),
-                        help='Addes results to a C file for later processing.')
+                            help='Addes results to a C file for later processing.')
 
     parser_gen.add_argument('--verbose', '-v', action='count', default=0,
-                        help='Increases verbosity level.')
+                            help='Increases verbosity level.')
 
     parser_gen.set_defaults(func=run_gen)
 
@@ -173,13 +181,13 @@ def create_parser():
                               help='Path to machine description '
                               'yaml file.')
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
-                        action=AppendStringRange,
-                        help='Define constant to be used in C code. Values must be integer or '
-                             'match start-stop[:num[log[base]]]. If range is given, all '
-                             'permutation s will be tested. Overwrites constants from testcase '
-                             'file.')
+                              action=AppendStringRange,
+                              help='Define constant to be used in C code. Values '\
+                              'must be integer or match start-stop[:num[log[base]]].'\
+                              ' If range is given, all permutation s will be tested.'\
+                              ' Overwrites constants from testcase file.')
     parser_bench.add_argument('--store', action='store_true',
-        help='Addes results to a C file for later processing.')
+                              help='Addes results to a C file for later processing.')
 
     parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
@@ -199,45 +207,57 @@ def check_arguments(args, parser):
 
     if args.kind == 'box':
         if args.dimensions == 2 and args.radius > 6:
-            parser.error('Please choose a different combination of values for '\
-                'dimensions and radius, because this generates too many coefficients.')
+            parser.error('Please choose a different combination of values for '
+                         'dimensions and radius, because this generates too many coefficients.')
         elif args.dimensions == 3 and args.radius > 5:
-            parser.error('Please choose a different combination of values for '\
-                'dimensions and radius, because this generates too many coefficients.')
+            parser.error('Please choose a different combination of values for '
+                         'dimensions and radius, because this generates too many coefficients.')
+
 
 def change_decl(decltoreplace, dimofcoeffs, stencil, code):
-
+    """
+    This method accept a declaration as a string, the stencil, a new position
+    and the code. It returns the code after having rearranged the declaration:
+    it shifts the dimension holding the coefficients.
+    Example: W[i][j][3] --> W[i][3][j]
+    """
     size = str(stencil.num_coefficients)
-    newdecl = decltoreplace.replace('['+size+']', '')
+    newdecl = decltoreplace.replace('[' + size + ']', '')
     letter_length = 0
-    for i in range(dimofcoeffs-1):
+    for i in range(dimofcoeffs - 1):
         letter_length += len(stencil.dims[i])
 
-    pos = 1 + 2*(dimofcoeffs-1) + letter_length
+    pos = 1 + 2 * (dimofcoeffs - 1) + letter_length
 
-    newdecl = newdecl[:pos] + '['+size+']' + newdecl[pos:]
+    newdecl = newdecl[:pos] + '[' + size + ']' + newdecl[pos:]
 
     code = code.replace(decltoreplace, newdecl)
     return code
 
+
 def change_loop(decltoreplace, dimofcoeffs, stencil, code):
-
+    """
+    This method accept a declaration as a string, the stencil, a new position
+    and the code. It returns the code after having rearranged the loop:
+    it shifts the dimension holding the coefficients.
+    Example: W[i][j][3] --> W[i][3][j]
+    """
     assert isinstance(code, str) or isinstance(code, unicode), "The type of"\
-    "the code variable must be either unicode or string"
+        "the code variable must be either unicode or string"
 
-    array_of_coeffs = [stencil.coefficients[0] + '[' + str(i) + ']' for i in range(stencil.num_coefficients)]
+    array_of_coeffs = [stencil.coefficients[0] + '[' +
+                       str(i) + ']' for i in range(stencil.num_coefficients)]
     newarray = []
     for i in array_of_coeffs:
-        #remove trailing dimension
+        # remove trailing dimension
         newi = i.rsplit('[', 1)[0]
 
         size = i.rsplit('[', 1)[1].rsplit(']', 1)[0]
 
         letter_length = 0
-        for i in range(dimofcoeffs-1):
+        for i in range(dimofcoeffs - 1):
             letter_length += len(stencil.loop_variables[i])
-        pos = 1 + 2*(dimofcoeffs-1) + letter_length
-
+        pos = 1 + 2 * (dimofcoeffs - 1) + letter_length
 
         newi = newi[:pos] + '[' + size + ']' + newi[pos:]
         newarray.append(newi)
@@ -246,6 +266,7 @@ def change_loop(decltoreplace, dimofcoeffs, stencil, code):
         code = code.replace(array_of_coeffs[i], newarray[i])
 
     return code
+
 
 def run_gen(args, parser, output_file=sys.stdout):
     """This method creates an object of type Stencil and calls the appropriate
@@ -267,7 +288,6 @@ def run_gen(args, parser, output_file=sys.stdout):
     # without tox
     #stencil_class = class_for_name('stencils', mykind)
 
-
     stencil = stencil_class(dimensions=args.dimensions, radius=args.radius,
                             classification=args.classification,
                             datatype=args.datatype)
@@ -287,21 +307,22 @@ def run_gen(args, parser, output_file=sys.stdout):
             decltoreplace = decltoreplace.replace(
                 stencil.loop_variables[i], stencil.dims[i])
 
-        decltoreplace = decltoreplace + '[' + str(stencil.num_coefficients) + ']'
+        decltoreplace = decltoreplace + \
+            '[' + str(stencil.num_coefficients) + ']'
 
         # assert args.dimofcoeffs < len(stencil.dims)+1, "The stencil provided"\
         # "does not have enough dimensions to place the index of the coefficients"\
         # "at position {}".format(args.dimofcoeffs)
-        if args.dimofcoeffs and args.dimofcoeffs < len(stencil.dims)+1:
+        if args.dimofcoeffs and args.dimofcoeffs < len(stencil.dims) + 1:
             code = change_decl(decltoreplace, args.dimofcoeffs, stencil, code)
             code = change_loop(decltoreplace, args.dimofcoeffs, stencil, code)
-
 
     print_header(args, output_file, stencil)
 
     # Save storage to file or print to STDOUT
     if args.store:
-        # build the name of the output file according to dimensions and diameter
+        # build the name of the output file according to dimensions and
+        # diameter
         tempname = args.store.name + '.tmp'
 
         with open(tempname, 'w') as out:
@@ -325,20 +346,16 @@ def run_bench(args, output_file=sys.stdout):
 
     # machine information
     # Read machine description
-    machine = MachineModel(args.machine.name)#, args=args)
+    machine = MachineModel(args.machine.name)  # , args=args)
     #compiler, compiler_args = machine.get_compiler()
 
     code = six.text_type(args.code_file.read())
     code = clean_code(code)
 
-    kernel = KernelBench(code, filename=args.code_file.name, machine=machine, block_factor=args.block)
+    kernel = KernelBench(code, filename=args.code_file.name,
+                         machine=machine, block_factor=args.block)
 
-
-    #taken from kerncraft
-    # if no defines were given, guess suitable defines in-mem
-    # TODO support in-cache
-    # TODO broaden cases to n-dimensions
-    # TODO make configurable (no hardcoded 512MB/1GB/min. 3 iteration ...)
+    # taken from kerncraft
     # # works only for up to 3 dimensions
     array = []
     required_consts = []
@@ -352,7 +369,6 @@ def run_bench(args, output_file=sys.stdout):
 
     # required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
     required_consts = set([i for l in required_consts for i in l])
-
 
     if len(required_consts) > 0:
         define_dict = {}
@@ -387,7 +403,7 @@ def run_bench(args, output_file=sys.stdout):
         for k, v in define:
             kernel.set_constant(k, v)
 
-    #get compilable C code
+    # get compilable C code
     c_code = kernel.as_code()
 
     #benchmark = kernel.build()
@@ -401,14 +417,16 @@ def run_bench(args, output_file=sys.stdout):
 
    # Save storage to file or print to STDOUT
     if args.store:
-        # build the name of the output file according to dimensions and diameter
+        # build the name of the output file according to dimensions and
+        # diameter
         tempname = args.code_file.name + '.tmp'
 
         with open(tempname, 'w') as out:
             out.write(c_code)
-        shutil.move(tempname, args.code_file.name+"_compilable.c")
+        shutil.move(tempname, args.code_file.name + "_compilable.c")
     else:
         print(c_code)
+
 
 def main():
     """This method is the main, it creates a paerser, uses it and runs the

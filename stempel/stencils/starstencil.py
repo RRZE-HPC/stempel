@@ -48,24 +48,23 @@ class StarConstant(object):
         self.dimensions = dimensions
 
         self.dims = []
-        #save the letter of the dimensions in a variable (if 2 dimensions they
-        #are "M" and "N")
+        # save the letter of the dimensions in a variable (if 2 dimensions they
+        # are "M" and "N")
         myascii = string.ascii_uppercase.replace("O", "")
         for i in range(0, self.dimensions):
-            self.dims.append(myascii[12+i])
+            self.dims.append(myascii[12 + i])
 
         self.radius = radius
         self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
-        #to be changed in future to allow stencil on more than 2 grids
+        # to be changed in future to allow stencil on more than 2 grids
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
 
-
-        #if there is a matrix of coefficients we name it after the next
-        #available letter of the alphabet
+        # if there is a matrix of coefficients we name it after the next
+        # available letter of the alphabet
         # if self.coeff=='variable':
         #     self.coefficient =  string.ascii_uppercase[inputgrids+1]
         # #else we name it with a constant w
@@ -77,21 +76,20 @@ class StarConstant(object):
             self.num_coefficients = (radius * self.dimensions) + 1
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#asymmetric)
+        else:  # asymmetric)
             self.num_coefficients = (2 * radius * self.dimensions) + 1
 
-        #creae all the coefficients, like c0, c1, ...
-        myletter = string.ascii_lowercase[inputgrids+1]
+        # creae all the coefficients, like c0, c1, ...
+        myletter = string.ascii_lowercase[inputgrids + 1]
         self.coefficients = [
-        myletter+str(i) for i in range(self.num_coefficients)
+            myletter + str(i) for i in range(self.num_coefficients)
         ]
 
-
-        #get the indices saved in a variable
+        # get the indices saved in a variable
         #(if 2 dimension they are "j" and "i")
         self.loop_variables = []
         for i in reversed(range(0, self.dimensions)):
-            self.loop_variables.append(string.ascii_lowercase[8+i])
+            self.loop_variables.append(string.ascii_lowercase[8 + i])
 
         self._args = args
         self._parser = parser
@@ -105,16 +103,16 @@ class StarConstant(object):
         builds the declaration of thevariables for the C code and returns
         declaration as unicode
         """
-        #initialization of the input matrices (array of input matrices)
+        # initialization of the input matrices (array of input matrices)
         init_inputs = []
         for i in self.inputs:
             init_inputs.append(self.datatype + ' ' + i)
             #init_inputs = [u'double a']
 
-        #initialization of the output matrix
+        # initialization of the output matrix
         init_output = self.datatype + ' ' + self.output
 
-        #add the dimensions to the matrices
+        # add the dimensions to the matrices
         for lineno in range(len(init_inputs)):
             for i in range(0, self.dimensions):
                 line = init_inputs[lineno] + '[' + self.dims[i] + ']'
@@ -122,32 +120,29 @@ class StarConstant(object):
                 init_inputs.insert(lineno, line)
                 init_output = init_output + '[' + self.dims[i] + ']'
 
-
         for lineno in range(len(init_inputs)):
             line = init_inputs[lineno] + ';'
             init_inputs.pop(lineno)
             init_inputs.insert(lineno, line)
         init_output = init_output + ';'
 
-        #declare a variable for the initialization of the coefficients.
-        #it is a string
+        # declare a variable for the initialization of the coefficients.
+        # it is a string
         init_coefficients = ''
-        #we declare all the coefficients line by line (can be modified to make
-        #only a 1 line)
+        # we declare all the coefficients line by line (can be modified to make
+        # only a 1 line)
         for i in self.coefficients:
             init_coefficients = init_coefficients + self.datatype + ' ' + i \
-            + ';\n'
+                + ';\n'
 
         declaration = ''
         for i in init_inputs:
             declaration = declaration + i + '\n'
 
         declaration = declaration + init_output + '\n' + init_coefficients \
-                    + '\n'
+            + '\n'
 
         return declaration
-
-
 
     def loop(self):
         '''
@@ -155,7 +150,7 @@ class StarConstant(object):
         '''
         loop_lines = []
 
-        #build the lines of the foor loop, according to the dimensions we have
+        # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i],
@@ -177,7 +172,7 @@ class StarConstant(object):
         # declare an empty stencil line (string)
         stencil = ''
 
-        #isotropic
+        # isotropic
         if self.classification == 'isotropic':
             print("isotropic")
             assert (len(self.coefficients) == (self.radius + 1)), "In case of"\
@@ -188,26 +183,26 @@ class StarConstant(object):
             for i in range(self.radius):
                 stencil = stencil + '+ {} * (({} + {})'.format(
                     self.coefficients[count],
-                    left(centerpoint, 0, self.loop_variables, i+1),
-                    right(centerpoint, 0, self.loop_variables, i+1)
-                    )
+                    left(centerpoint, 0, self.loop_variables, i + 1),
+                    right(centerpoint, 0, self.loop_variables, i + 1)
+                )
                 for j in range(1, self.dimensions):
                     stencil = stencil + ' + ({} + {})'.format(
-                        left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)
-                        )
+                        left(centerpoint, j, self.loop_variables, i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)
+                    )
 
                 stencil = stencil + ')\n'
                 count = count + 1
 
-        #heterogeneous
+        # heterogeneous
         elif self.classification == 'heterogeneous':
             print("heterogeneous")
             mymax = 2 * self.radius * self.dimensions + 1
             assert (len(self.coefficients) == (mymax)), \
-                    "In case of an asymmetric stencil with constant " \
-                    "coefficient, the number of the coefficient must " \
-                    "be equal to (2 * radius * dimensions + 1)"
+                "In case of an asymmetric stencil with constant " \
+                "coefficient, the number of the coefficient must " \
+                "be equal to (2 * radius * dimensions + 1)"
 
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
@@ -215,12 +210,12 @@ class StarConstant(object):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(
                         coefficients[count],
-                        left(centerpoint, j, self.loop_variables, i+1),
+                        left(centerpoint, j, self.loop_variables, i + 1),
                         coefficients[count + 1],
-                        right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                        right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 2
 
-        #point-symmetric
+        # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
@@ -235,12 +230,12 @@ class StarConstant(object):
                     stencil = stencil + '+ {} * ({} + {})'.format(
                         self.coefficients[count], left(centerpoint, j,
                                                        self.loop_variables,
-                                                       i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                                                       i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 1
 
-        #homogeneous
-        else:#self.classification == 'homogeneous':
+        # homogeneous
+        else:  # self.classification == 'homogeneous':
             print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
@@ -249,9 +244,9 @@ class StarConstant(object):
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} + {}'.format(
-                        left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)
-                        ) + '\n'
+                        left(centerpoint, j, self.loop_variables, i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)
+                    ) + '\n'
             stencil = stencil + ')'
 
         righthand = '{};'.format(stencil)
@@ -263,7 +258,6 @@ class StarConstant(object):
         loop_lines.append(computation)
 
         return loop_lines
-
 
 
 class StarVariable(object):
@@ -298,30 +292,29 @@ class StarVariable(object):
         self.dimensions = dimensions
 
         self.dims = []
-        #save the letter of the dimensions in a variable (if 2 dimensions they
-        #are "M" and "N")
+        # save the letter of the dimensions in a variable (if 2 dimensions they
+        # are "M" and "N")
         myascii = string.ascii_uppercase.replace("O", "")
         for i in range(0, self.dimensions):
-            self.dims.append(myascii[12+i])
+            self.dims.append(myascii[12 + i])
 
         self.radius = radius
         self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
-        #in future to allow stencil on more than 2 grids
+        # in future to allow stencil on more than 2 grids
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
 
         if self.classification == 'isotropic':
-            self.num_coefficients = radius+1
+            self.num_coefficients = radius + 1
         elif self.classification == 'point-symmetric':
             self.num_coefficients = (radius * self.dimensions) + 1
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#heterogeneous
+        else:  # heterogeneous
             self.num_coefficients = (2 * radius * self.dimensions) + 1
-
 
         #self.coefficients = [string.ascii_uppercase[inputgrids+1]]
         self.coefficients = ['W']
@@ -330,7 +323,7 @@ class StarVariable(object):
         # (if 2 dimension they are "j" and "i")
         self.loop_variables = []
         for i in reversed(range(0, self.dimensions)):
-            self.loop_variables.append(string.ascii_lowercase[8+i])
+            self.loop_variables.append(string.ascii_lowercase[8 + i])
 
         self._args = args
         self._parser = parser
@@ -344,21 +337,21 @@ class StarVariable(object):
         builds the declaration of thevariables for the C code and returns
         declaration as unicode
         '''
-        #initialization of the input matrices (array of input matrices)
+        # initialization of the input matrices (array of input matrices)
         init_inputs = []
         for i in self.inputs:
             init_inputs.append(self.datatype + ' ' + i)
             #init_inputs = [u'double a']
 
-        #initialization of the output matrix
+        # initialization of the output matrix
         init_output = self.datatype + ' ' + self.output
 
         init_coefficients = []
         for i in self.coefficients:
             init_coefficients.append(self.datatype + ' ' + i)
 
-        #add the dimensions to the matrices
-        #input/output matrices
+        # add the dimensions to the matrices
+        # input/output matrices
         for lineno in range(len(init_inputs)):
             for i in range(0, self.dimensions):
                 line = init_inputs[lineno] + '[' + self.dims[i] + ']'
@@ -366,18 +359,17 @@ class StarVariable(object):
                 init_inputs.insert(lineno, line)
                 init_output = init_output + '[' + self.dims[i] + ']'
 
-        #coefficients matrix
+        # coefficients matrix
         for lineno in range(len(init_coefficients)):
             for i in range(0, self.dimensions):
                 line = init_coefficients[lineno] + '[' + self.dims[i] + ']'
                 init_coefficients.pop(lineno)
                 init_coefficients.insert(lineno, line)
-            #add extra dimension for the weighting factor
+            # add extra dimension for the weighting factor
             line = init_coefficients[lineno] + '[' + str(self.num_coefficients)\
-            + ']'
+                + ']'
             init_coefficients.pop(lineno)
             init_coefficients.insert(lineno, line)
-
 
         # add ";" to close the line
         for lineno in range(len(init_inputs)):
@@ -400,15 +392,13 @@ class StarVariable(object):
 
         return declaration
 
-
-
     def loop(self):
         '''
         builds the loop for the C code and returns loop_lines as list
         '''
         loop_lines = []
 
-        #build the lines of the foor loop, according to the dimensions we have
+        # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
@@ -436,22 +426,22 @@ class StarVariable(object):
             print("isotropic")
             mymax = (self.radius + 1)
             assert (self.num_coefficients == mymax), \
-            "In case of an isotropic and symmetric stencil with constant "\
-            "coefficient, the number of the coefficient must be equal to "\
-            "(radius + 1)"
+                "In case of an isotropic and symmetric stencil with constant "\
+                "coefficient, the number of the coefficient must be equal to "\
+                "(radius + 1)"
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 stencil = stencil + '+ {} * (({} + {})'.format(
                     str(self.coefficients[0]) + '[' + str(count) + ']',
-                    left(centerpoint, 0, self.loop_variables, i+1),
-                    right(centerpoint, 0, self.loop_variables, i+1)
-                    )
+                    left(centerpoint, 0, self.loop_variables, i + 1),
+                    right(centerpoint, 0, self.loop_variables, i + 1)
+                )
                 for j in range(1, self.dimensions):
                     stencil = stencil + ' + ({} + {})'.format(
-                        left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)
-                        )
+                        left(centerpoint, j, self.loop_variables, i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)
+                    )
                 stencil = stencil + ')\n'
                 count = count + 1
 
@@ -460,37 +450,37 @@ class StarVariable(object):
             print("heterogeneous")
             mymax = (2 * self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
-            "In case of an asymmetric stencil with constant coefficient, "\
-            "the number of the coefficient must be equal to "\
-            "(2 * radius * dimensions + 1)"
+                "In case of an asymmetric stencil with constant coefficient, "\
+                "the number of the coefficient must be equal to "\
+                "(2 * radius * dimensions + 1)"
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(
                         str(self.coefficients[0]) + '[' + str(count) + ']',
-                        left(centerpoint, j, self.loop_variables, i+1),
+                        left(centerpoint, j, self.loop_variables, i + 1),
                         str(self.coefficients[0]) + '[' + str(count + 1) + ']',
-                        right(centerpoint, j, self.loop_variables, i+1)) + '\n'
+                        right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 2
 
-        #point-symmetric
+        # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
-            "In case of anisotropic and symmetric stencil with constant "\
-            "coefficient, the number of the coefficient must be equal to "\
-            "(radius * dimensions + 1)"
+                "In case of anisotropic and symmetric stencil with constant "\
+                "coefficient, the number of the coefficient must be equal to "\
+                "(radius * dimensions + 1)"
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * ({} + {})'.format(
                         str(self.coefficients[0]) + '[' + str(count) + ']',
-                        left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)
-                        ) + '\n'
+                        left(centerpoint, j, self.loop_variables, i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)
+                    ) + '\n'
                     count = count + 1
 
         elif self.classification == 'homogeneous':
@@ -502,11 +492,10 @@ class StarVariable(object):
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} + {}'.format(
-                        left(centerpoint, j, self.loop_variables, i+1),
-                        right(centerpoint, j, self.loop_variables, i+1)
-                        ) + '\n'
+                        left(centerpoint, j, self.loop_variables, i + 1),
+                        right(centerpoint, j, self.loop_variables, i + 1)
+                    ) + '\n'
             stencil = stencil + ')'
-
 
         righthand = '{};'.format(stencil)
 

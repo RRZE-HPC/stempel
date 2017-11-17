@@ -11,6 +11,7 @@ from __future__ import absolute_import
 import string
 from stempel.utilities import signum, value, left, right
 
+
 def distance_from_center(point='a[j][i]', loop_variables=None):
     """This function takes in input a point and the loop variables.
     It returns the distance of the point from the centerpoint
@@ -27,6 +28,7 @@ def distance_from_center(point='a[j][i]', loop_variables=None):
 
     return distance
 
+
 def points_at_distance(points=None, loop_variables=None, distance=1):
     """This function takes in input a list of points, the loop variables and a
     distance. It returns a list containing all the points at the given distance
@@ -37,7 +39,7 @@ def points_at_distance(points=None, loop_variables=None, distance=1):
             good_points.append(point)
         else:
             pass
-    #print(good_points)
+    # print(good_points)
     return [x for x in good_points if x]
 
 
@@ -50,20 +52,20 @@ def origin_symmetric(point1='a[j-1][i+1]'):
     newpoint = ''
     tail = point1
 
-    while(tail):
+    while tail:
         head, index, tail = tail.partition('[')
         newpoint += head + index
 
         head, index, tail = tail.partition(']')
         if '-' in head:
-            head = head.replace('-','+')
+            head = head.replace('-', '+')
         elif '+' in head:
-            head = head.replace('+','-')
-            
+            head = head.replace('+', '-')
+
         newpoint += head + index
 
-
     return newpoint
+
 
 def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
              loop_variables=None):
@@ -95,7 +97,6 @@ def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
         else:
             strnumber = str(number)
 
-
         newpoint = newpoint.replace(loop_variables[i], loop_variables[i]
                                     + '{}{}'.format(sig, strnumber))
     # print(str(point) + ' ' + newpoint)
@@ -103,54 +104,6 @@ def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
         return None
     else:
         return newpoint
-    #     point
-    # if dimensions == 3:
-    #     #to find out in which plan the point is:
-    #     elements_per_plane = (radius * 2 + 1)**2
-    #     z = point // elements_per_plane
-    #     if z < radius:
-    #         signum = '-'
-    #     elif z > radius:
-    #         signum = '+'
-    #     else:
-    #         signum = ''
-
-    # x = point % (radius * 2 + 1)
-
-    # y = (point // (radius * 2 + 1)) % (radius * 2 + 1)
-
-    # if x < radius:
-    #     signum = '-'
-    # elif x > radius:
-    #     signum = '+'
-    # else:
-    #     signum = ''
-
-    # if y < radius:
-    #     signum = '-'
-    # elif y > radius:
-    #     signum = '+'
-    # else:
-    #     signum = ''
-
-    # xnumber = abs(int(point - radius))
-    # if xnumber == 0:
-    #     xvalue = ''
-    # else:
-    #     xvalue = str(xnumber)
-
-    # ynumber = abs(int(point - radius))
-    # if ynumber == 0:
-    #     yvalue = ''
-    # else:
-    #     yvalue = str(ynumber)
-
-    # newpoint = centerpoint
-    # for letter in loop_variables:
-    #     newpoint.replace(letter, letter+'{}{}'.format(signum, value))
-
-
-
 
 class BoxConstant(object):
     """class for the stencil with constant coefficients
@@ -187,21 +140,20 @@ class BoxConstant(object):
         self.dimensions = dimensions
 
         self.dims = []
-        #save the letter of the dimensions in a variable (if 2 dimensions they
-        #are "M" and "N")
+        # save the letter of the dimensions in a variable (if 2 dimensions they
+        # are "M" and "N")
         myascii = string.ascii_uppercase.replace("O", "")
         for i in range(0, self.dimensions):
-            self.dims.append(myascii[12+i])
+            self.dims.append(myascii[12 + i])
 
         self.radius = radius
         self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
-        #to be changed in future to allow stencil on more than 2 grids
+        # to be changed in future to allow stencil on more than 2 grids
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
-
 
         if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
@@ -220,7 +172,8 @@ class BoxConstant(object):
                 elif self.radius == 6:
                     self.num_coefficients = 85
                 else:
-                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+                    raise ValueError(
+                        'Radius is too big for this dimension. Too many neighbours')
             if self.dimensions == 3:
                 if self.radius == 1:
                     self.num_coefficients = 14
@@ -233,10 +186,11 @@ class BoxConstant(object):
                 elif self.radius == 5:
                     self.num_coefficients = 666
                 else:
-                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+                    raise ValueError(
+                        'Radius is too big for this dimension. Too many neighbours')
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#heterogeneous
+        else:  # heterogeneous
             self.num_coefficients = (self.radius * 2 + 1)**self.dimensions
 
         # myformat = '{}' * num_coefficients
@@ -244,17 +198,16 @@ class BoxConstant(object):
         # self.coefficients = [
         # myletter+str(i) for i in range(self.num_coefficients)
         # ]
-        myletter = string.ascii_lowercase[inputgrids+1]
+        myletter = string.ascii_lowercase[inputgrids + 1]
         self.coefficients = [
-            myletter+str(i) for i in range(self.num_coefficients)
+            myletter + str(i) for i in range(self.num_coefficients)
         ]
 
-
-        #get the indices saved in a variable
+        # get the indices saved in a variable
         #(if 2 dimension they are "j" and "i")
         self.loop_variables = []
         for i in reversed(range(0, self.dimensions)):
-            self.loop_variables.append(string.ascii_lowercase[8+i])
+            self.loop_variables.append(string.ascii_lowercase[8 + i])
 
         self._args = args
         self._parser = parser
@@ -268,16 +221,16 @@ class BoxConstant(object):
         builds the declaration of thevariables for the C code and returns
         declaration as unicode
         """
-        #initialization of the input matrices (array of input matrices)
+        # initialization of the input matrices (array of input matrices)
         init_inputs = []
         for i in self.inputs:
             init_inputs.append(self.datatype + ' ' + i)
             #init_inputs = [u'double a']
 
-        #initialization of the output matrix
+        # initialization of the output matrix
         init_output = self.datatype + ' ' + self.output
 
-        #add the dimensions to the matrices
+        # add the dimensions to the matrices
         for lineno in range(len(init_inputs)):
             for i in range(0, self.dimensions):
                 line = init_inputs[lineno] + '[' + self.dims[i] + ']'
@@ -291,26 +244,24 @@ class BoxConstant(object):
             init_inputs.insert(lineno, line)
         init_output = init_output + ';'
 
-        #declare a variable for the initialization of the coefficients.
-        #it is a string
+        # declare a variable for the initialization of the coefficients.
+        # it is a string
         init_coefficients = ''
-        #we declare all the coefficients line by line (can be modified to make
-        #only a 1 line)
+        # we declare all the coefficients line by line (can be modified to make
+        # only a 1 line)
         for i in self.coefficients:
             init_coefficients = init_coefficients + self.datatype + ' ' + i \
-            + ';\n'
+                + ';\n'
 
         declaration = ''
         for i in init_inputs:
             declaration = declaration + i + '\n'
 
         declaration = declaration + init_output + '\n' + init_coefficients \
-                    + '\n'
+            + '\n'
 
         print(declaration)
         return declaration
-
-
 
     def loop(self):
         '''
@@ -318,7 +269,7 @@ class BoxConstant(object):
         '''
         loop_lines = []
 
-        #build the lines of the foor loop, according to the dimensions we have
+        # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i],
@@ -326,7 +277,7 @@ class BoxConstant(object):
                 self.loop_variables[i],
                 self.dims[i], self.radius,
                 self.loop_variables[i]
-                ) + '{'
+            ) + '{'
             loop_lines.insert(i, line)
 
         centerpoint = self.inputs[0]
@@ -349,7 +300,7 @@ class BoxConstant(object):
                 points.append(mypoint)
 
         ordered_points = []
-        for i in range(1, max_distance+1):
+        for i in range(1, max_distance + 1):
             ordered_points.insert(i, points_at_distance(points,
                                                         self.loop_variables, i))
 
@@ -377,17 +328,16 @@ class BoxConstant(object):
                     self.coefficients[count], point)
                 count += 1
 
-
         # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
-            #print(ordered_points)
+            # print(ordered_points)
 
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
 
             for i in range(max_distance):
-                #WORK HERE
+                # WORK HERE
                 symmetricpoints = []
 
                 for p in ordered_points[i]:
@@ -401,9 +351,10 @@ class BoxConstant(object):
                 # print(ordered_points[i])
                 # print(len(ordered_points[i]))
                 for i in range(len(ordered_points[i])):
-                    newline +=  '+ {} * ({})\n'.format(self.coefficients[count], ' + '.join(symmetricpoints[i]))
-                    count +=1
-                
+                    newline += '+ {} * ({})\n'.format(
+                        self.coefficients[count], ' + '.join(symmetricpoints[i]))
+                    count += 1
+
                 stencil = stencil + newline
 
         elif self.classification == 'homogeneous':
@@ -416,7 +367,6 @@ class BoxConstant(object):
 
             stencil = stencil + ')'
 
-
         righthand = '{};'.format(stencil)
 
         closing = '}\n' * self.dimensions
@@ -426,7 +376,6 @@ class BoxConstant(object):
         loop_lines.append(computation)
 
         return loop_lines
-
 
 
 class BoxVariable(object):
@@ -462,21 +411,20 @@ class BoxVariable(object):
         self.dimensions = dimensions
 
         self.dims = []
-        #save the letter of the dimensions in a variable
+        # save the letter of the dimensions in a variable
         #(if 2 dimensions they are "M" and "N")
         myascii = string.ascii_uppercase.replace("O", "")
         for i in range(0, self.dimensions):
-            self.dims.append(myascii[12+i])
+            self.dims.append(myascii[12 + i])
 
         self.radius = radius
         self.classification = classification
         self.datatype = datatype
 
         self.inputgrids = inputgrids
-        #to be changed in future to allow stencil on more than 2 grids
+        # to be changed in future to allow stencil on more than 2 grids
         self.inputs = [string.ascii_lowercase[i] for i in range(inputgrids)]
         self.output = string.ascii_lowercase[inputgrids]
-
 
         if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
@@ -495,7 +443,8 @@ class BoxVariable(object):
                 elif self.radius == 6:
                     self.num_coefficients = 85
                 else:
-                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+                    raise ValueError(
+                        'Radius is too big for this dimension. Too many neighbours')
             if self.dimensions == 3:
                 if self.radius == 1:
                     self.num_coefficients = 14
@@ -508,19 +457,20 @@ class BoxVariable(object):
                 elif self.radius == 5:
                     self.num_coefficients = 666
                 else:
-                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+                    raise ValueError(
+                        'Radius is too big for this dimension. Too many neighbours')
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
-        else:#heterogeneous
+        else:  # heterogeneous
             self.num_coefficients = (self.radius * 2 + 1)**self.dimensions
 
         self.coefficients = ['W']
 
-        #get the indices saved in a variable
+        # get the indices saved in a variable
         #(if 2 dimension they are "j" and "i")
         self.loop_variables = []
         for i in reversed(range(0, self.dimensions)):
-            self.loop_variables.append(string.ascii_lowercase[8+i])
+            self.loop_variables.append(string.ascii_lowercase[8 + i])
 
         self._args = args
         self._parser = parser
@@ -534,21 +484,21 @@ class BoxVariable(object):
         builds the declaration of thevariables for the C code and returns
         declaration as unicode
         '''
-        #initialization of the input matrices (array of input matrices)
+        # initialization of the input matrices (array of input matrices)
         init_inputs = []
         for i in self.inputs:
             init_inputs.append(self.datatype + ' ' + i)
             #init_inputs = [u'double a']
 
-        #initialization of the output matrix
+        # initialization of the output matrix
         init_output = self.datatype + ' ' + self.output
 
         init_coefficients = []
         for i in self.coefficients:
             init_coefficients.append(self.datatype + ' ' + i)
 
-        #add the dimensions to the matrices
-        #input/output matrices
+        # add the dimensions to the matrices
+        # input/output matrices
         for lineno in range(len(init_inputs)):
             for i in range(0, self.dimensions):
                 line = init_inputs[lineno] + '[' + self.dims[i] + ']'
@@ -556,18 +506,17 @@ class BoxVariable(object):
                 init_inputs.insert(lineno, line)
                 init_output = init_output + '[' + self.dims[i] + ']'
 
-        #coefficients matrix
+        # coefficients matrix
         for lineno in range(len(init_coefficients)):
             for i in range(0, self.dimensions):
                 line = init_coefficients[lineno] + '[' + self.dims[i] + ']'
                 init_coefficients.pop(lineno)
                 init_coefficients.insert(lineno, line)
-            #add extra dimension for the weighting factor
+            # add extra dimension for the weighting factor
             line = init_coefficients[lineno] + '[' + str(self.num_coefficients)\
-            + ']'
+                + ']'
             init_coefficients.pop(lineno)
             init_coefficients.insert(lineno, line)
-
 
         # add ";" to close the line
         for lineno in range(len(init_inputs)):
@@ -590,15 +539,13 @@ class BoxVariable(object):
 
         return declaration
 
-
-
     def loop(self):
         '''
         builds the loop for the C code and returns loop_lines as list
         '''
         loop_lines = []
 
-        #build the lines of the foor loop, according to the dimensions we have
+        # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
             line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
@@ -631,7 +578,7 @@ class BoxVariable(object):
                 points.append(mypoint)
 
         ordered_points = []
-        for i in range(1, max_distance+1):
+        for i in range(1, max_distance + 1):
             ordered_points.insert(i, points_at_distance(points,
                                                         self.loop_variables, i))
 
@@ -677,7 +624,6 @@ class BoxVariable(object):
 
             #     count += 1
 
-
             for i in range(max_distance):
                 symmetricpoints = []
 
@@ -690,26 +636,23 @@ class BoxVariable(object):
 
                 newline = ''
                 for i in range(len(ordered_points[i])):
-                    newline +=  '+ {} * ({})\n'.format(
+                    newline += '+ {} * ({})\n'.format(
                         str(self.coefficients[0]) + '[' + str(count) + ']',
                         ' + '.join(symmetricpoints[i]))
-                    count +=1
-                
+                    count += 1
+
                 stencil = stencil + newline
-
-
-
 
         elif self.classification == 'homogeneous':
             print("homogeneous")
 
-            stencil = self.coefficients[0] + '[0]' + ' * (' + centerpoint + '\n'
+            stencil = self.coefficients[0] + \
+                '[0]' + ' * (' + centerpoint + '\n'
 
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'
 
             stencil = stencil + ')'
-
 
         righthand = '{};'.format(stencil)
 
