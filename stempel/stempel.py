@@ -24,7 +24,8 @@ import itertools
 
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
-
+from kerncraft.kernel import Kernel
+from kerncraft.kernel import KernelCode
 from stempel.benchkernel import KernelBench
 
 # Version check
@@ -196,6 +197,14 @@ def check_arguments(args, parser):
     if args.datatype not in ['float', 'double']:
         parser.error('--coefficient can only be "float" or "double"')
 
+    if args.kind == 'box':
+        if args.dimensions == 2 and args.radius > 6:
+            parser.error('Please choose a different combination of values for '\
+                'dimensions and radius, because this generates too many coefficients.')
+        elif args.dimensions == 3 and args.radius > 5:
+            parser.error('Please choose a different combination of values for '\
+                'dimensions and radius, because this generates too many coefficients.')
+
 def change_decl(decltoreplace, dimofcoeffs, stencil, code):
 
     size = str(stencil.num_coefficients)
@@ -321,6 +330,7 @@ def run_bench(args, output_file=sys.stdout):
 
     code = six.text_type(args.code_file.read())
     code = clean_code(code)
+
     kernel = KernelBench(code, filename=args.code_file.name, machine=machine, block_factor=args.block)
 
 

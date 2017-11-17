@@ -12,24 +12,14 @@ import subprocess
 import os
 import os.path
 import sys
-import numbers
 import collections
-from functools import reduce
-from string import ascii_letters
-from itertools import chain
-from collections import defaultdict
-import logging
+
+#import logging
 from distutils.spawn import find_executable
+import re
 
 import sympy
-from sympy.utilities.lambdify import implemented_function
-from sympy.parsing.sympy_parser import parse_expr
-import numpy
-from six.moves import filter
-from six.moves import map
-from six.moves import zip_longest
 import six
-from pylru import lrudecorator
 
 from kerncraft.pycparser import CParser, c_ast, plyparser
 from kerncraft.pycparser.c_generator import CGenerator
@@ -660,8 +650,6 @@ class KernelBench(Kernel):
             first_array_name = pointers_list[0].type.type.declname
             #get the number of dimensions by fetching the size of the first array
             mydims = len(array_dimensions.get(first_array_name))
-            #get the type of the first array
-            first_array_type = pointers_list[0].type.type.type.type.names[0]
 
             # for(n = 0; n < repeat; n++) {...}
             index_name = 'n'
@@ -833,7 +821,7 @@ class KernelBench(Kernel):
 
         myvariables = []
         for i in range(0, mydims):
-                myvariables.append(chr(ord('i')+i))
+            myvariables.append(chr(ord('i')+i))
 
         #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
         pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
@@ -1093,7 +1081,7 @@ class KernelBench(Kernel):
             sys.exit(1)
 
         results = {}
-        ignore = True
+
         for l in output:
             l = l.split(',')
             try:

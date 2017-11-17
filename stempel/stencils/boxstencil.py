@@ -41,6 +41,29 @@ def points_at_distance(points=None, loop_variables=None, distance=1):
     return [x for x in good_points if x]
 
 
+def origin_symmetric(point1='a[j-1][i+1]'):
+    """This function takes in input a point. It returns its symmetric with
+    respect to the stencil origin [j][i].
+    A point symmetry with respect to the stencil origin can be calculated
+    changing the sign to the x and y displacement. a[i-1][j] --> a[i+1][j]
+    """
+    newpoint = ''
+    tail = point1
+
+    while(tail):
+        head, index, tail = tail.partition('[')
+        newpoint += head + index
+
+        head, index, tail = tail.partition(']')
+        if '-' in head:
+            head = head.replace('-','+')
+        elif '+' in head:
+            head = head.replace('+','-')
+            
+        newpoint += head + index
+
+
+    return newpoint
 
 def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
              loop_variables=None):
@@ -183,7 +206,34 @@ class BoxConstant(object):
         if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
         elif self.classification == 'point-symmetric':
-            self.num_coefficients = (2 * radius * self.dimensions) + 1
+            if self.dimensions == 2:
+                if self.radius == 1:
+                    self.num_coefficients = 5
+                elif self.radius == 2:
+                    self.num_coefficients = 13
+                elif self.radius == 3:
+                    self.num_coefficients = 25
+                elif self.radius == 4:
+                    self.num_coefficients = 41
+                elif self.radius == 5:
+                    self.num_coefficients = 61
+                elif self.radius == 6:
+                    self.num_coefficients = 85
+                else:
+                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+            if self.dimensions == 3:
+                if self.radius == 1:
+                    self.num_coefficients = 14
+                elif self.radius == 2:
+                    self.num_coefficients = 63
+                elif self.radius == 3:
+                    self.num_coefficients = 172
+                elif self.radius == 4:
+                    self.num_coefficients = 365
+                elif self.radius == 5:
+                    self.num_coefficients = 666
+                else:
+                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
         else:#heterogeneous
@@ -257,6 +307,7 @@ class BoxConstant(object):
         declaration = declaration + init_output + '\n' + init_coefficients \
                     + '\n'
 
+        print(declaration)
         return declaration
 
 
@@ -327,20 +378,33 @@ class BoxConstant(object):
                 count += 1
 
 
-        # anisotropic and symmetric
+        # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
-            print(ordered_points)
+            #print(ordered_points)
 
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
 
             for i in range(max_distance):
+                #WORK HERE
+                symmetricpoints = []
 
-                stencil = stencil + '+ {} * ({})\n'.format(
-                    self.coefficients[count], ' + '.join(ordered_points[i]))
+                for p in ordered_points[i]:
+                    points = [p]
+                    sp = origin_symmetric(p)
+                    points.append(sp)
+                    ordered_points[i].remove(sp)
+                    symmetricpoints.append(points)
 
-                count += 1
+                newline = ''
+                # print(ordered_points[i])
+                # print(len(ordered_points[i]))
+                for i in range(len(ordered_points[i])):
+                    newline +=  '+ {} * ({})\n'.format(self.coefficients[count], ' + '.join(symmetricpoints[i]))
+                    count +=1
+                
+                stencil = stencil + newline
 
         elif self.classification == 'homogeneous':
             print("homogeneous")
@@ -400,8 +464,9 @@ class BoxVariable(object):
         self.dims = []
         #save the letter of the dimensions in a variable
         #(if 2 dimensions they are "M" and "N")
+        myascii = string.ascii_uppercase.replace("O", "")
         for i in range(0, self.dimensions):
-            self.dims.append(string.ascii_uppercase[12+i])
+            self.dims.append(myascii[12+i])
 
         self.radius = radius
         self.classification = classification
@@ -416,7 +481,34 @@ class BoxVariable(object):
         if self.classification == 'isotropic':
             self.num_coefficients = (radius * self.dimensions) + 1
         elif self.classification == 'point-symmetric':
-            self.num_coefficients = (2 * radius * self.dimensions) + 1
+            if self.dimensions == 2:
+                if self.radius == 1:
+                    self.num_coefficients = 5
+                elif self.radius == 2:
+                    self.num_coefficients = 13
+                elif self.radius == 3:
+                    self.num_coefficients = 25
+                elif self.radius == 4:
+                    self.num_coefficients = 41
+                elif self.radius == 5:
+                    self.num_coefficients = 61
+                elif self.radius == 6:
+                    self.num_coefficients = 85
+                else:
+                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
+            if self.dimensions == 3:
+                if self.radius == 1:
+                    self.num_coefficients = 14
+                elif self.radius == 2:
+                    self.num_coefficients = 63
+                elif self.radius == 3:
+                    self.num_coefficients = 172
+                elif self.radius == 4:
+                    self.num_coefficients = 365
+                elif self.radius == 5:
+                    self.num_coefficients = 666
+                else:
+                    raise ValueError('Radius is too big for this dimension. Too many neighbours')
         elif self.classification == 'homogeneous':
             self.num_coefficients = 1
         else:#heterogeneous
@@ -543,7 +635,7 @@ class BoxVariable(object):
             ordered_points.insert(i, points_at_distance(points,
                                                         self.loop_variables, i))
 
-        # isotropic and symmetric
+        # isotropic
         if self.classification == 'isotropic':
             print("isotropic")
 
@@ -577,13 +669,36 @@ class BoxVariable(object):
             stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
             count = 1
 
+            # for i in range(max_distance):
+
+            #     stencil = stencil + '+ {} * ({})\n'.format(
+            #         str(self.coefficients[0]) + '[' + str(count) + ']',
+            #         ' + '.join(ordered_points[i]))
+
+            #     count += 1
+
+
             for i in range(max_distance):
+                symmetricpoints = []
 
-                stencil = stencil + '+ {} * ({})\n'.format(
-                    str(self.coefficients[0]) + '[' + str(count) + ']',
-                    ' + '.join(ordered_points[i]))
+                for p in ordered_points[i]:
+                    points = [p]
+                    sp = origin_symmetric(p)
+                    points.append(sp)
+                    ordered_points[i].remove(sp)
+                    symmetricpoints.append(points)
 
-                count += 1
+                newline = ''
+                for i in range(len(ordered_points[i])):
+                    newline +=  '+ {} * ({})\n'.format(
+                        str(self.coefficients[0]) + '[' + str(count) + ']',
+                        ' + '.join(symmetricpoints[i]))
+                    count +=1
+                
+                stencil = stencil + newline
+
+
+
 
         elif self.classification == 'homogeneous':
             print("homogeneous")
