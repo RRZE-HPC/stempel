@@ -423,7 +423,7 @@ def run_bench(args, output_file=sys.stdout):
 
         with open(tempname, 'w') as out:
             out.write(c_code)
-        shutil.move(tempname, args.code_file.name + "_compilable.c")
+        shutil.move(tempname, args.code_file.name.split('.')[0] + "_compilable.c")
     else:
         print(c_code)
 
