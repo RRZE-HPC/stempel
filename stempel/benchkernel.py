@@ -958,6 +958,12 @@ class KernelBench(Kernel):
 
         mycompound = None
         if self.block_factor and mydims > 1:
+
+            if isinstance(forloop.stmt, c_ast.Compound):
+                    myblockstmt = forloop.stmt.block_items[0]
+            else:
+                myblockstmt = forloop.stmt
+
             if mydims == 2:  # blocking on the inner-most loop
                 beginning = myvariables[0] + 'b'
                 end = myvariables[0] + 'end'
@@ -965,16 +971,16 @@ class KernelBench(Kernel):
                     'omp for private({}, {})'.format(beginning, end))
 
                 #mycode = CGenerator().visit(forloop.stmt.block_items[0].init.decls[0])
+
                 init = c_ast.DeclList([
                     c_ast.Decl(
                         beginning, [], [], [], c_ast.TypeDecl(
                             beginning, [], c_ast.IdentifierType(['int'])),
-                        forloop.stmt.block_items[0].init.decls[0].init,
-                        None)], None)
+                        myblockstmt.init.decls[0].init, None)], None)
                 # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
                 # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
                 cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), forloop.stmt.block_items[0].cond.right)
+                    beginning), myblockstmt.cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
@@ -984,10 +990,10 @@ class KernelBench(Kernel):
                         c_ast.ID('min'), c_ast.ExprList([
                             c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                            forloop.stmt.block_items[0].cond.right])))
+                            myblockstmt.cond.right])))
 
-                forloop.stmt.block_items[0].init.decls[0].init = c_ast.ID(beginning)
-                forloop.stmt.block_items[0].cond.right = c_ast.ID(end)
+                myblockstmt.init.decls[0].init = c_ast.ID(beginning)
+                myblockstmt.cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound(
                     [assign, pragma_int, forloop] + dummies)
@@ -1006,12 +1012,12 @@ class KernelBench(Kernel):
                     c_ast.Decl(
                         beginning, [], [], [], c_ast.TypeDecl(
                             beginning, [], c_ast.IdentifierType(['int'])),
-                        forloop.stmt.block_items[0].init.decls[0].init,
+                        myblockstmt.init.decls[0].init,
                         None)], None)
                 # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
                 # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
                 cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), forloop.stmt.block_items[0].cond.right)
+                    beginning), myblockstmt.cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
@@ -1021,7 +1027,7 @@ class KernelBench(Kernel):
                         c_ast.ID('min'), c_ast.ExprList([
                             c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                            forloop.stmt.block_items[0].cond.right])))
+                            myblockstmt.cond.right])))
                 mycompound = c_ast.Compound(
                     [assign, pragma_int, forloop] + dummies)
 
