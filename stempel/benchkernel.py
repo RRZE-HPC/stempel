@@ -760,8 +760,15 @@ class KernelBench(Kernel):
                     norm_cond_lvalue = norm_loop.stmt.lvalue
                     norm_cond_rvalue = norm_loop.stmt.rvalue
 
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv1 = forloop.cond.right.left
+                myright_lv1 = int(forloop.cond.right.right.value)
+                myinit_lv1 = int(forloop.init.decls[0].init.value)
+                myright_lv1 += myinit_lv1
+                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+
                 lup_expression = c_ast.Cast(
-                    c_ast.IdentifierType(['double']), forloop.cond.right)  # c_ast.ExprList([forloop.cond.right])
+                    c_ast.IdentifierType(['double']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
                 # norm
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
@@ -777,23 +784,41 @@ class KernelBench(Kernel):
                 
                 # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
                 # print(mycode)
+                # exit(1)
 
                 if isinstance(forloop.stmt, c_ast.Compound):
                     right_cond = forloop.stmt.block_items[0].cond.right
+                    lv2_init = forloop.stmt.block_items[0].init
                     norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue
                     norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue
+
                 else: #no compound
                     right_cond = forloop.stmt.cond.right
+                    lv2_init = forloop.stmt.init
                     norm_cond_lvalue = norm_loop.stmt.stmt.lvalue
                     norm_cond_rvalue = norm_loop.stmt.stmt.lvalue
+
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv1 = forloop.cond.right.left
+                myright_lv1 = int(forloop.cond.right.right.value)
+                myinit_lv1 = int(forloop.init.decls[0].init.value)
+                myright_lv1 += myinit_lv1
+                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv2 = right_cond.left
+                myright_lv2 = int(right_cond.right.value)
+                myinit_lv2 = int(lv2_init.decls[0].init.value)
+                myright_lv2 += myinit_lv2
+                mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
 
                 lup_expression = c_ast.BinaryOp(
                     '*', c_ast.Cast(
                         c_ast.IdentifierType(
-                            ['double']), forloop.cond.right),
+                            ['double']), mysize_lv1),
                     c_ast.Cast(c_ast.IdentifierType(
                         ['double']),
-                    right_cond))
+                    mysize_lv2))
+                
                 # norm
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
@@ -809,23 +834,46 @@ class KernelBench(Kernel):
 
                 if isinstance(forloop.stmt, c_ast.Compound):
                     right_cond = forloop.stmt.block_items[0].cond.right
+                    lv2_init = forloop.stmt.block_items[0].init
                     norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue
                     norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue
                     stmt_rcond = forloop.stmt.block_items[0].stmt.block_items[0].cond.right
+                    lv3_init = forloop.stmt.block_items[0].stmt.block_items[0].init
                 else: #no compound
                     right_cond = forloop.stmt.cond.right
+                    lv2_init = forloop.stmt.init
                     norm_cond_lvalue = norm_loop.stmt.stmt.stmt.lvalue
                     norm_cond_rvalue = norm_loop.stmt.stmt.stmt.lvalue
                     stmt_rcond = forloop.stmt.stmt.cond.right
+                    lv3_init = forloop.stmt.stmt.init
+
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv1 = forloop.cond.right.left
+                myright_lv1 = int(forloop.cond.right.right.value)
+                myinit_lv1 = int(forloop.init.decls[0].init.value)
+                myright_lv1 += myinit_lv1
+                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv2 = right_cond.left
+                myright_lv2 = int(right_cond.right.value)
+                myinit_lv2 = int(lv2_init.decls[0].init.value)
+                myright_lv2 += myinit_lv2
+                mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
+                #extract the end condition of the for and calculate the total number of points on which we iterated
+                myleft_lv3 = stmt_rcond.left
+                myright_lv3 = int(stmt_rcond.right.value)
+                myinit_lv3 = int(lv3_init.decls[0].init.value)
+                myright_lv3 += myinit_lv3
+                mysize_lv3 = c_ast.BinaryOp('-', myleft_lv3, c_ast.Constant('int', myright_lv3))
 
                 lup_expression = c_ast.BinaryOp(
                     '*', c_ast.BinaryOp(
                         '*', c_ast.Cast(c_ast.IdentifierType(
-                            ['double']), forloop.cond.right),
+                            ['double']), mysize_lv1),
                         c_ast.Cast(c_ast.IdentifierType(
-                            ['double']), right_cond)),
+                            ['double']), mysize_lv2)),
                     c_ast.Cast(c_ast.IdentifierType(
-                        ['double']), stmt_rcond))
+                        ['double']), mysize_lv3))
                 # norm
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
