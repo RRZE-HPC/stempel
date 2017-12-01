@@ -26,8 +26,9 @@ from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
 from kerncraft.kernel import Kernel
 from kerncraft.kernel import KernelCode
-from stempel.benchkernel import KernelBench
 
+from .benchkernel import KernelBench
+from . import __version__
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
         sys.version_info[0] == 3 and sys.version_info < (3, 4):
@@ -94,6 +95,7 @@ def create_parser():
     example_gen = 'Example usage: stempel gen -D 2 -r 1 -s -k star -C variable -d 2'
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
 
     subparsers = parser.add_subparsers(dest='subparser_name',
                                        help='sub-command help')
