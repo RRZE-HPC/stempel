@@ -10,6 +10,7 @@ from glob import glob
 
 from ruamel import yaml
 from kerncraft import kerncraft
+from kerncraft.likwid_bench_auto import get_machine_topology
 
 #from . import stempel
 
@@ -28,7 +29,7 @@ def create_parser():
     parser.add_argument('-w', '--workspace', metavar=('WORKSAPCE'),
                         required=True, help='Path to the workspace')
 
-    parser.add_argument('-i', '--iaca', action='store_true',
+    parser.add_argument('-i', '--iaca', action='store_true', default=False,
                         help='Defines wether to run with IACA or not')
     parser.add_argument('-p', '--prova', nargs=2, metavar=('PROVAPATH', 'PROVAWORKSPACE'),
                         help='Defines wether to run an experiment through PROVA! or not')
@@ -71,9 +72,9 @@ def create_project(provapath, project, params, values, threads):
                         '--params', params, '--values', values, '--threads', str(threads)]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        # subprocess.check_output(cmd)
+        subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
-        print("Run failed:", e)
+        #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
@@ -87,9 +88,9 @@ def create_method(provapath, project, method_type, method_name):
                         '-m', method_type, '-n', method_name]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        # subprocess.check_output(cmd)
+        subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
-        print("Run failed:", e)
+        #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
@@ -103,9 +104,9 @@ def run_exp(provapath, project, executions, param_values, method_name, threads, 
                         '-d', param_values, '-m', method_name, '-t', str(threads), '--pin', pinning]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        # subprocess.check_output(cmd)
+        subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
-        print("Run failed:", e)
+        #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
@@ -191,12 +192,12 @@ def run_gen(args, output_file=sys.stdout):
                         cmd = ['stempel', 'gen', '-D', str(d), '-r', str(
                             r), '-k', k, '-C', c, '--' + l, '--store', os.path.join(stencil_path, stencil_name)]
                         try:
-                            print(cmd)
+                            #print(cmd)
                             logging.info(
                                 'Running command: {}'.format(' '.join(cmd)))
-                            # subprocess.check_output(cmd)
+                            subprocess.check_output(cmd)
                         except subprocess.CalledProcessError as e:
-                            print("Run failed:", e)
+                            #print("Run failed:", e)
                             logging.error(
                                 'Failed to execute {}: {}'.format(cmd, e))
                             sys.exit(1)
@@ -230,12 +231,12 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    print(cmd)
-                                    out = subprocess.check_output('ls')
+                                    #print(cmd)
+                                    out = subprocess.check_output(cmd)
                                     with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
                                         f.write(out)
                                 except subprocess.CalledProcessError as e:
-                                    print("kerncraft failed:", e)
+                                    #print("kerncraft failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
                                     sys.exit(1)
@@ -246,24 +247,26 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    print(cmd)
-                                    # subprocess.check_output(cmd)
+                                   #print(cmd)
+                                    subprocess.check_output(cmd)
                                 except subprocess.CalledProcessError as e:
-                                    print("Run failed:", e)
+                                    #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
-                                # run the code through prova!
-                                project = stencil_name.split('.')[0]
-                                params = '"M N"'
-                                values = '"{} {}"'.format(size, size)
-                                param_values = values
-                                threads = 2
+                                
+                                if withprova:
+                                    # run the code through prova!
+                                    project = stencil_name.split('.')[0]
+                                    params = '"M N"'
+                                    values = '"{} {}"'.format(size, size)
+                                    param_values = values
+                                    threads = 2
 
-                                run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
-                                          method_type, method_name, executions, param_values, exp_threads, pinning)
+                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
+                                              method_type, method_name, executions, param_values, exp_threads, pinning)
                         else:  # d == 3
                             for machine in machinefiles:
                                 logging.info('Retrieving machinefile')
@@ -294,12 +297,12 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    print(cmd)
-                                    out = subprocess.check_output('ls')
+                                    #print(cmd)
+                                    out = subprocess.check_output(cmd)
                                     with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
                                         f.write(out)
                                 except subprocess.CalledProcessError as e:
-                                    print("kerncraft failed:", e)
+                                    #print("kerncraft failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
                                     sys.exit(1)
@@ -310,24 +313,43 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    print(cmd)
-                                    # subprocess.check_output(cmd)
+                                    #print(cmd)
+                                    subprocess.check_output(cmd)
                                 except subprocess.CalledProcessError as e:
-                                    print("Run failed:", e)
+                                    #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
 
-                                project = stencil_name.split('.')[0]
-                                params = '"M N P"'
-                                values = '"{} {}"'.format(size, size, size)
-                                param_values = values
-                                threads = 2
-                                # run the code through prova!
-                                run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
-                                          method_type, method_name, executions, param_values, exp_threads, pinning)
+                                if withprova:
+                                    # machine = get_machine_topology()
+                                    # actual_machine_name = machine['model name'].replace(' ', '_').replace('(TM)', '') + '.yml'
+                                    # if not actual_machine_name in machinefiles:
+                                    #     cmd = ['python', 'likwid_bench_auto']
+                                    # logging.info(
+                                    #     'Running command: {}'.format(' '.join(cmd)))
+                                    # try:
+                                    #     out = subprocess.check_output(cmd)
+                                    # except subprocess.CalledProcessError as e:
+                                    #     #print("Run failed:", e)
+                                    #     logging.error(
+                                    #         'Failed to execute {}: {}'.format(cmd, e))
+                                    #     sys.exit(1)
+                                    # with open(os.path.join(machinepath, actual_machine_name), 'w', encoding='utf8') as outfile:
+                                    #     yaml.dump(machine, outfile, default_flow_style=False, allow_unicode=True)
+                                    # logging.info('Successfully created machinefile for the current architecture')
+                                    
+
+                                    project = stencil_name.split('.')[0]
+                                    params = '"M N P"'
+                                    values = '"{} {}"'.format(size, size, size)
+                                    param_values = values
+                                    threads = 2
+                                    # run the code through prova!
+                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
+                                              method_type, method_name, executions, param_values, exp_threads, pinning)
 
 
 def run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads, method_type, method_name, executions, param_values, exp_threads, pinning):
