@@ -899,16 +899,17 @@ class KernelBench(Kernel):
                                                                       c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
 
             # insert the printf of the stats
+
+            mystring = str("Performance in mlup/s: %lf\n").encode('unicode_escape')
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                      mlup])))
             mystring = str(
                 "size: %d    time: %lf    iter: %d    mlup/s: %lf\n").encode('unicode_escape')
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                       c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                       c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
 
-            mystring = str("Performance in mlup/s: %lf\n").encode('unicode_escape')
-            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                      mlup])))
             # insert the loop computing the total squared
             decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
                 'total', [], c_ast.IdentifierType(['double'])
