@@ -7,6 +7,7 @@ import logging
 import argparse
 from shutil import copyfile
 from glob import glob
+import pathlib
 
 from ruamel import yaml
 from kerncraft import kerncraft
@@ -33,6 +34,8 @@ def create_parser():
                         help='Defines wether to run with IACA or not')
     parser.add_argument('-p', '--prova', nargs=2, metavar=('PROVAPATH', 'PROVAWORKSPACE'),
                         help='Defines wether to run an experiment through PROVA! or not')
+    parser.add_argument('-l', '--likwid', nargs=2, metavar=('LIKWID_INC_PATH', 'LIKWID_LIB_PATH'),
+                        help='Specifies the path to the likwid include and library respectively.')
     parser.add_argument('-k', '--kind', metavar=('KIND'),
                         choices=['star', 'box'], help='Kind of stencil')
     parser.add_argument('-m', '--machinepath', metavar=('MACHINEPATH'),
@@ -63,48 +66,110 @@ def getlast_dir(mypath):
         directory = ''
     return directory
 
-def create_project(provapath, project, params, values, threads):
-    cmd_prefix = ['source', os.path.join(
-        provapath, 'util', 'BaseSetup.sh'), '&&']
 
+def copyheaders(headers_path, destination_dir):
+    headers = os.listdir(headers_path)
+
+    for h in headers:
+        filesrc = os.path.join(headers_path, h)
+        filedest = os.path.join(destination_dir, h)
+        try:
+            copyfile(filesrc, filedest)
+        except IOError as e:
+            logging.error('Unable to copy file {} to {}. {}'.format(
+                filesrc, filedest, e))
+
+
+def basesetup(provapath, provaworkspace, likwid_inc, likwid_lib):
+    os.environ['BENCHROOT'] = provapath
+    os.environ['WORKSPACE'] = provaworkspace
+    os.environ['PATH'] += ':' + provapath
+    os.environ['LIKWID_LIB'] = likwid_lib
+    os.environ['LIKWID_INC'] = likwid_inc
+    if 'LD_LIBRARY_PATH' in os.environ:
+        os.environ['LD_LIBRARY_PATH'] += ':' + likwid_lib
+    else:
+        os.environ['LD_LIBRARY_PATH'] = likwid_lib
+    logging.info('LIKWID_INC: {}'.format(likwid_inc))
+
+    method_avail = os.path.join(
+        provaworkspace, 'methodType', 'methodType_avail')
+    method_installed = os.path.join(
+        provaworkspace, 'methodType', 'methodType_installed')
+    pathlib.Path(method_avail).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(method_installed).mkdir(parents=True, exist_ok=True)
+
+
+def create_project(provapath, provaworkspace, project, params, values, threads):
+    # cmd_prefix = ['.', os.path.join(
+    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
     # create a project
-    cmd = cmd_prefix + ['workflow', 'project', '-c', '-p', project,
-                        '--params', params, '--values', values, '--threads', str(threads)]
+    mypathname = os.path.join(provaworkspace, project)
+    if os.path.exists(mypathname):
+        logging.error(
+            "Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
+        sys.exit(1)
+
+    cmd = ['workflow', 'project', '-c', '-p', project, '--params',
+           params, '--values', values, '--threads', str(threads)]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        subprocess.check_output(cmd)
+        out = subprocess.check_output(cmd)
+        logging.info('Returned: {}'.format(out))
     except subprocess.CalledProcessError as e:
-        #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
 
-def create_method(provapath, project, method_type, method_name):
-    cmd_prefix = ['source', os.path.join(
-        provapath, 'util', 'BaseSetup.sh'), '&&']
-
+def create_method(provapath, provaworkspace, project, method_type, method_name):
+    # cmd_prefix = ['.', os.path.join(
+    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
+    mypathname = os.path.join(provaworkspace, project, method_name)
+    if os.path.exists(mypathname):
+        logging.error(
+            "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
+        sys.exit(1)
     # create a method
-    cmd = cmd_prefix + ['workflow', 'method', '-c', '-p', project,
-                        '-m', method_type, '-n', method_name]
+    cmd = ['workflow', 'method', '-c', '-p', project,
+           '-m', method_type, '-n', method_name]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        subprocess.check_output(cmd)
+        out = subprocess.check_output(cmd)
+        logging.info('Returned: {}'.format(out))
     except subprocess.CalledProcessError as e:
-        #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
 
-def run_exp(provapath, project, executions, param_values, method_name, threads, pinning):
-    cmd_prefix = ['source', os.path.join(
-        provapath, 'util', 'BaseSetup.sh'), '&&']
+def run_exp(provapath, provaworkspace, project, executions, param_values, method_name, threads, pinning):
+    # cmd_prefix = ['.', os.path.join(
+    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
 
     # compile the code and run an experiment of the method
-    cmd = cmd_prefix + ['workflow', 'run_exp', '-p', project, '-e', str(executions),
-                        '-d', param_values, '-m', method_name, '-t', str(threads), '--pin', pinning]
+    cmd = ['workflow', 'run_exp', '-p', project, '-e', str(executions),
+           '-d', param_values, '-m', method_name, '-t', '2', '--pin', pinning]
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
-        subprocess.check_output(cmd)
+        out = subprocess.check_output(cmd)
+        logging.info('Returned: {}'.format(out))
+    except subprocess.CalledProcessError as e:
+        #print("Run failed:", e)
+        logging.error("Run failed: {}".format(e))
+        sys.exit(1)
+
+
+def build_graph(project, exp_dir, param_values, method_name, threads, pinning):
+    # cmd_prefix = ['.', os.path.join(
+    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
+
+    # compile the code and run an experiment of the method
+    method_name += '_' + pinning
+    cmd = ['workflow', 'build_graph', '-p', project, '-e', exp_dir,
+           '-d', param_values, '-m', method_name, '-t', '2', '-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
+    try:
+        logging.info('Running command: {}'.format(' '.join(cmd)))
+        out = subprocess.check_output(cmd)
+        logging.info('Returned: {}'.format(out))
     except subprocess.CalledProcessError as e:
         #print("Run failed:", e)
         logging.error("Run failed: {}".format(e))
@@ -150,11 +215,14 @@ def run_gen(args, output_file=sys.stdout):
         coefficients = ['constant', 'variable']
 
     iaca = args.iaca
-    if args.prova:
+    if args.prova and args.likwid:
         provapath, provaworkspace = args.prova
+        likwid_inc, likwid_lib = args.likwid
         withprova = True
     else:
         withprova = None
+        logging.info(
+            'Executing without PROVA because either PROVAPATH/PROVAWORKSPACE or LIKWID_INC/LIKWID_LIB is missing.')
 
     if args.threads:
         exp_threads = ''
@@ -192,7 +260,7 @@ def run_gen(args, output_file=sys.stdout):
                         cmd = ['stempel', 'gen', '-D', str(d), '-r', str(
                             r), '-k', k, '-C', c, '--' + l, '--store', os.path.join(stencil_path, stencil_name)]
                         try:
-                            #print(cmd)
+                            # print(cmd)
                             logging.info(
                                 'Running command: {}'.format(' '.join(cmd)))
                             subprocess.check_output(cmd)
@@ -205,7 +273,8 @@ def run_gen(args, output_file=sys.stdout):
                             logging.info('Retrieving machinefile')
                             for machine in machinefiles:
                                 with open(os.path.join(machinefilepath, machine)) as myFile:
-                                    results = yaml.load(myFile, Loader=yaml.RoundTripLoader)
+                                    results = yaml.load(
+                                        myFile, Loader=yaml.RoundTripLoader)
                                 try:
                                     dimension = results['memory hierarchy'][
                                         2]['size per group']
@@ -231,9 +300,9 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    #print(cmd)
+                                    # print(cmd)
                                     out = subprocess.check_output(cmd)
-                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
+                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                         f.write(out)
                                 except subprocess.CalledProcessError as e:
                                     #print("kerncraft failed:", e)
@@ -243,11 +312,11 @@ def run_gen(args, output_file=sys.stdout):
                                 # blocksize = 32
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                    machinefilepath, machine), '-D', size, '-D', size]  # , '-b', blocksize]
+                                    machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '--store']  # , '-b', blocksize]
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                   #print(cmd)
+                                   # print(cmd)
                                     subprocess.check_output(cmd)
                                 except subprocess.CalledProcessError as e:
                                     #print("Run failed:", e)
@@ -256,22 +325,25 @@ def run_gen(args, output_file=sys.stdout):
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
-                                
+
                                 if withprova:
                                     # run the code through prova!
-                                    project = stencil_name.split('.')[0]
-                                    params = '"M N"'
-                                    values = '"{} {}"'.format(size, size)
+                                    mystencilname = stencil_name.split('.')[0]
+                                    stencil_name = mystencilname + '_compilable.c'
+                                    project = mystencilname
+                                    params = 'M N'
+                                    values = '{} {}'.format(size, size)
                                     param_values = values
                                     threads = 2
 
-                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
+                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                               method_type, method_name, executions, param_values, exp_threads, pinning)
                         else:  # d == 3
                             for machine in machinefiles:
                                 logging.info('Retrieving machinefile')
                                 with open(os.path.join(machinefilepath, machine)) as myFile:
-                                    results = yaml.load(myFile, Loader=yaml.RoundTripLoader)
+                                    results = yaml.load(
+                                        myFile, Loader=yaml.RoundTripLoader)
                                 try:
                                     dimension = results['memory hierarchy'][
                                         2]['size per group']
@@ -297,9 +369,9 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    #print(cmd)
+                                    # print(cmd)
                                     out = subprocess.check_output(cmd)
-                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
+                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                         f.write(out)
                                 except subprocess.CalledProcessError as e:
                                     #print("kerncraft failed:", e)
@@ -313,7 +385,7 @@ def run_gen(args, output_file=sys.stdout):
                                 logging.info(
                                     'Running command: {}'.format(' '.join(cmd)))
                                 try:
-                                    #print(cmd)
+                                    # print(cmd)
                                     subprocess.check_output(cmd)
                                 except subprocess.CalledProcessError as e:
                                     #print("Run failed:", e)
@@ -340,31 +412,47 @@ def run_gen(args, output_file=sys.stdout):
                                     # with open(os.path.join(machinepath, actual_machine_name), 'w', encoding='utf8') as outfile:
                                     #     yaml.dump(machine, outfile, default_flow_style=False, allow_unicode=True)
                                     # logging.info('Successfully created machinefile for the current architecture')
-                                    
-
-                                    project = stencil_name.split('.')[0]
-                                    params = '"M N P"'
-                                    values = '"{} {}"'.format(size, size, size)
+                                    mystencilname = stencil_name.split('.')[0]
+                                    stencil_name = mystencilname + '_compilable.c'
+                                    project = mystencilname
+                                    params = 'M N P'
+                                    values = '{} {} {}'.format(
+                                        size, size, size)
                                     param_values = values
                                     threads = 2
                                     # run the code through prova!
-                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
+                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                               method_type, method_name, executions, param_values, exp_threads, pinning)
 
 
-def run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads, method_type, method_name, executions, param_values, exp_threads, pinning):
+def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads, method_type, method_name, executions, param_values, exp_threads, pinning):
     filesrc = os.path.join(stencil_path, stencil_name)
-    filedest = os.path.join(provaworkspace, project,
-                            method_name, 'src', 'example.c')
+    destination_dir = os.path.join(provaworkspace, project,
+                                   method_name, 'src')
+    filedest = os.path.join(destination_dir, 'example.c')
     logging.info('Later {} will be copied to {}'.format(filesrc, filedest))
 
-    create_project(provapath, project, params, values, threads)
-    create_method(provapath, project, method_type, method_name)
-    #copyfile(filesrc, filedest)
-    run_exp(provapath, project, executions, param_values,
+    basesetup(provapath, provaworkspace, likwid_inc, likwid_lib)
+    create_project(provapath, provaworkspace, project, params, values, threads)
+    create_method(provapath, provaworkspace, project, method_type, method_name)
+    try:
+        copyfile(filesrc, filedest)
+    except IOError as e:
+        logging.error('Unable to copy file {} to {}. {}'.format(
+            filesrc, filedest, e))
+
+    headers_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+    headers_path = os.path.join(headers_path, 'headers')
+    copyheaders(headers_path, destination_dir)
+    run_exp(provapath, provaworkspace, project, executions, param_values,
             method_name, exp_threads, pinning)
 
     exp_dir = getlast_dir(os.path.join(provaworkspace, project, 'experiments'))
+    exp_dir_name = os.path.basename(os.path.normpath(exp_dir))
+
+    build_graph(project, exp_dir_name, param_values,
+                method_name, threads, pinning)
+
     try:
         outfile = os.path.join(exp_dir, 'results.json')
     except OSError as e:
@@ -411,35 +499,7 @@ def main():
     """This method is the main, it creates a paerser, uses it and runs the
     business logic
     """
-    # provapath = '/export/hpwc/PROVA'
-    # provaworkspace = '~/Desktop/workspace'
-    # project = 'try1'
-    # params = '"M N"'
-    # values = '"200 200"'
-    # threads = 2
-    # method_type = 'OpenMP-4.0-GCC-4.9.3-2.25'
-    # method_name = 'mytry'
 
-    # executions = '5'
-    # param_values = '"200 200"'
-    # exp_threads = '2 4 8 16'
-    # pinning = 'node'
-
-    # d = 2
-    # r = 2
-    # l = 'isotropic'
-    # k = 'star'
-    # c = 'constant'
-    # #name = str(d) + 'd-' + str(r) + 'r-' + l + '-' + c + '-' + k + '-stencil.c'
-    # stencil_name = '2d-2r-isotropic-constant-star-stencil.c'
-    # workspace = '~/Desktop/workspace'
-    # stencil_path = os.path.join(workspace, 'stencils', str(
-    #     d) + 'D', str(r) + 'r', l, k, c)
-
-    # run_prova(stencil_path, stencil_name, provapath, provaworkspace, project, params, values, threads,
-    #           method_type, method_name, executions, param_values, exp_threads, pinning)
-
-    # exit(1)
     # Create and populate parser
     parser = create_parser()
 
@@ -449,134 +509,6 @@ def main():
     # # BUSINESS LOGIC
     args.func(args, parser)
 
-    # kind = ['star', 'box']
-
-    # #path = '/Users/guerrera/Documents/Projects/Stempel/stempel'
-    # workspace = '/Users/guerrera/Desktop/stempel_stencils'
-    # machinefilepath = os.path.join(workspace, 'machine-files')
-    # machinefiles = os.listdir(machinefilepath)
-    # stencilfiles = os.path.join(workspace, 'stencils')
-    # radius_star = [1, 2, 3, 4]
-    # radius_box = [1, 2]
-    # dimensions = [2, 3]
-    # classification = ['isotropic', 'heterogeneous',
-    #                   'homogeneous', 'point-symmetric']
-
-    # coefficients = ['constant', 'variable']
-    # iaca = None
-    # stencils = []
-    # for k in kind:
-    #     if k == 'star':
-    #         radius = radius_star
-    #     else:
-    #         radius = radius_box
-    #     for c in coefficients:
-    #         for l in classification:
-    #             for r in radius:
-    #                 for d in dimensions:
-
-    #                     name = str(d) + 'd-' + str(r) + 'r-' + l + \
-    #                         '-' + c + '-' + k + '-stencil.c'
-    #                     logging.info('Working on: {}'.format(name))
-    #                     mypath = os.path.join(stencilfiles, str(
-    #                         d) + 'D', str(r) + 'r', l, k, c)
-    #                     stencils.append(name)
-    #                     try:
-    #                         os.makedirs(mypath)
-    #                     except OSError as e:
-    #                         if e.errno != errno.EEXIST:
-    #                             raise
-    #                     cmd = ['stempel', 'gen', '-D', str(d), '-r', str(
-    #                         r), '-k', k, '-C', c, '--' + l, '--store', os.path.join(mypath, name)]
-    #                     try:
-    #                         print(cmd)
-    #                         # subprocess.check_output(cmd)
-    #                     except subprocess.CalledProcessError as e:
-    #                         print("Run failed:", e)
-    #                         sys.exit(1)
-    #                     if d == 2:
-    #                         logging.info('Retrieving machinefile')
-    #                         for machine in machinefiles:
-    #                             with open(os.path.join(machinefilepath, machine)) as myFile:
-    #                                 results = yaml.safe_load(myFile)
-    #                             try:
-    #                                 dimension = results['memory hierarchy'][
-    #                                     2]['size per group']
-    #                                 dimension = dimension.partition('.')[0]
-    #                             except:
-    #                                 line = results['memory hierarchy'][
-    #                                     2]['cache per group']
-    #                                 sets = line['sets']
-    #                                 ways = line['ways']
-    #                                 cl_size = line['cl_size']
-    #                                 dimension = int(
-    #                                     sets) * int(ways) * int(cl_size) / 1048576
-    #                                 dimension = str(
-    #                                     dimension).partition(' ')[0]
-    #                             size = float(dimension) * 1000000 / 8
-    #                             size = str(int(math.sqrt(size)))
-    #                             if iaca:
-    #                                 ECM = 'ECM'
-    #                             else:
-    #                                 ECM = 'ECMData'
-    #                             cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(
-    #                                 mypath, name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size, '-D', 'N', size]
-    #                             logging.info(
-    #                                 'Running command: {}'.format(' '.join(cmd)))
-    #                             try:
-    #                                 print(cmd)
-    #                                 out = subprocess.check_output('ls')
-    #                                 with open(os.path.join(mypath, name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
-    #                                     f.write(out)
-    #                             except subprocess.CalledProcessError as e:
-    #                                 print("kerncraft failed:", e)
-    #                                 sys.exit(1)
-    #                             # blocksize = 32
-    #                             # #run stempel bench to create actual C code
-    #                             # cmd = ['stempel', 'gen', os.path.join(mypath, name), '-m', os.path.join(machinefilepath, machine), '-D', size, '-D', size, '-b', blocksize]
-    #                             # try:
-    #                             #     print(cmd)
-    #                             #     # subprocess.check_output(cmd)
-    #                             # except subprocess.CalledProcessError as e:
-    #                             #     print("Run failed:", e)
-    #                             #     sys.exit(1)
-    #                     else:  # d == 3
-    #                         for machine in machinefiles:
-    #                             logging.info('Retrieving machinefile')
-    #                             with open(os.path.join(machinefilepath, machine)) as myFile:
-    #                                 results = yaml.safe_load(myFile)
-    #                             try:
-    #                                 dimension = results['memory hierarchy'][
-    #                                     2]['size per group']
-    #                                 dimension = dimension.partition('.')[0]
-    #                             except:
-    #                                 line = results['memory hierarchy'][
-    #                                     2]['cache per group']
-    #                                 sets = line['sets']
-    #                                 ways = line['ways']
-    #                                 cl_size = line['cl_size']
-    #                                 dimension = int(
-    #                                     sets) * int(ways) * int(cl_size) / 1048576
-    #                                 dimension = str(
-    #                                     dimension).partition(' ')[0]
-    #                             size = float(dimension) * 1000000 / 8
-    #                             size = str(int(round(size ** (1. / 3))))
-    #                             if iaca:
-    #                                 ECM = 'ECM'
-    #                             else:
-    #                                 ECM = 'ECMData'
-    #                             cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(mypath, name), '-m', os.path.join(
-    #                                 machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size]
-    #                             logging.info(
-    #                                 'Running command: {}'.format(' '.join(cmd)))
-    #                             try:
-    #                                 print(cmd)
-    #                                 out = subprocess.check_output('ls')
-    #                                 with open(os.path.join(mypath, name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'w') as f:
-    #                                     f.write(out)
-    #                             except subprocess.CalledProcessError as e:
-    #                                 print("kerncraft failed:", e)
-    #                                 sys.exit(1)
     logging.info('Finished')
 
 
