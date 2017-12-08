@@ -19,10 +19,9 @@ from functools import reduce
 from distutils.spawn import find_executable
 
 import sympy
-import six
 
-from kerncraft.pycparser import CParser, c_ast, plyparser
-from kerncraft.pycparser.c_generator import CGenerator
+from pycparser import CParser, c_ast, plyparser
+from pycparser.c_generator import CGenerator
 
 import kerncraft
 from kerncraft.kernel import Kernel
@@ -285,13 +284,12 @@ class KernelBench(Kernel):
     @classmethod
     def _get_basename(cls, aref):
         """
-        returns base name of ArrayRef object
+        Return base name of ArrayRef object.
         e.g. c[i+1][j-2] -> 'c'
         """
-
         if isinstance(aref.name, c_ast.ArrayRef):
             return cls._get_basename(aref.name)
-        elif isinstance(aref.name, six.string_types):
+        elif isinstance(aref.name, str):
             return aref.name
         else:
             return aref.name.name

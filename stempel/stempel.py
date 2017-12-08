@@ -21,7 +21,9 @@ import six
 from six.moves import range
 from ruamel import yaml
 
-from kerncraft.pycparser import clean_code
+from kerncraft.pycparser_utils import clean_code
+
+
 from kerncraft.machinemodel import MachineModel
 from kerncraft.kerncraft import AppendStringRange
 from kerncraft.kernel import Kernel
@@ -351,7 +353,7 @@ def run_bench(args, output_file=sys.stdout):
     machine = MachineModel(args.machine.name)  # , args=args)
     #compiler, compiler_args = machine.get_compiler()
 
-    code = six.text_type(args.code_file.read())
+    code = str(args.code_file.read())
     code = clean_code(code)
 
     kernel = KernelBench(code, filename=args.code_file.name,
