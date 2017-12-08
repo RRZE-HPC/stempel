@@ -900,7 +900,7 @@ class KernelBench(Kernel):
 
             # insert the printf of the stats
 
-            mystring = str("Performance in mlup/s: %lf\n").encode('unicode_escape')
+            mystring = str("Performance in mlup/s: %lf \n").encode('unicode_escape')
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                       c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                       mlup])))
