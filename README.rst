@@ -42,7 +42,7 @@ or
 
 3. Run a full analysis (a stencil is generated, analysed through kerncraft (applying ECM/Data, Roofline and Layer Condition models), a project is set up in PROVA! (if the path to it is passed on the cli) and an experiment is executed. The outputs are stored to the STEMPEL workspace):
 
-```analysis -w ~/Desktop/stempelwork -p ~/PROVA ~/Desktop/provastempel -k star -m BroadwellEP_E5-2697_CoD.yml -r 2 -d 2 -e 5 -t 2 4 8 10 --method_type OpenMP-4.0-GCC-4.9.3-2.25 -C constant -c isotropic -l /apps/likwid/system/include/ /apps/likwid/system/lib/ --iaca```
+``analysis -w ~/Desktop/stempelwork -p ~/PROVA ~/Desktop/provastempel -k star -m BroadwellEP_E5-2697_CoD.yml -r 2 -d 2 -e 5 -t 2 4 8 10 --method_type OpenMP-4.0-GCC-4.9.3-2.25 -C constant -c isotropic -l /apps/likwid/system/include/ /apps/likwid/system/lib/ --iaca``
 
 
 Credits
