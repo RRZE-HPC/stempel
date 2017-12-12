@@ -8,6 +8,7 @@ import argparse
 from shutil import copyfile
 from glob import glob
 import pathlib
+from datetime import datetime
 
 from ruamel import yaml
 from kerncraft import kerncraft
@@ -15,8 +16,8 @@ from kerncraft.likwid_bench_auto import get_machine_topology
 
 #from . import stempel
 
-
-logging.basicConfig(level=logging.INFO, filename='/tmp/myanalysis.log',
+current_time = datetime.now().strftime("%Y%m%d-%H%M")
+logging.basicConfig(level=logging.INFO, filename='/tmp/myanalysis_{}.log'.format(current_time),
                     format='%(asctime)s %(levelname)s %(message)s')
 
 
@@ -145,9 +146,12 @@ def run_exp(provapath, provaworkspace, project, executions, param_values, method
     # cmd_prefix = ['.', os.path.join(
     #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
 
+    exp_threads = threads.split()
     # compile the code and run an experiment of the method
     cmd = ['workflow', 'run_exp', '-p', project, '-e', str(executions),
-           '-d', param_values, '-m', method_name, '-t', '2', '--pin', pinning]
+           '-d', param_values, '-m', method_name, '-t'] + exp_threads + ['--pin', pinning]
+    #logging.info('Threads: {}, type {}').format(threads, type(threads))
+    #cmd = 'workflow run_exp -p {} -e {} -d {} -m {} -t {} --pin {}'.format(project, str(executions), param_values, method_name, threads, pinning)
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
         out = subprocess.check_output(cmd)
@@ -161,11 +165,11 @@ def run_exp(provapath, provaworkspace, project, executions, param_values, method
 def build_graph(project, exp_dir, param_values, method_name, threads, pinning):
     # cmd_prefix = ['.', os.path.join(
     #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
-
+    exp_threads = threads.split()
     # compile the code and run an experiment of the method
     method_name += '_' + pinning
     cmd = ['workflow', 'build_graph', '-p', project, '-e', exp_dir,
-           '-d', param_values, '-m', method_name, '-t', '2', '-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
+           '-d', param_values, '-m', method_name, '-t'] + exp_threads + ['-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
         out = subprocess.check_output(cmd)
@@ -451,7 +455,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
     exp_dir_name = os.path.basename(os.path.normpath(exp_dir))
 
     build_graph(project, exp_dir_name, param_values,
-                method_name, threads, pinning)
+                method_name, exp_threads, pinning)
 
     try:
         outfile = os.path.join(exp_dir, 'results.json')

@@ -1,0 +1,69 @@
+Intel Core 2 and Nehalem:
+
+4 DP FLOPs/cycle: 2-wide SSE2 addition + 2-wide SSE2 multiplication
+8 SP FLOPs/cycle: 4-wide SSE addition + 4-wide SSE multiplication
+Intel Sandy Bridge/Ivy Bridge:
+
+8 DP FLOPs/cycle: 4-wide AVX addition + 4-wide AVX multiplication
+16 SP FLOPs/cycle: 8-wide AVX addition + 8-wide AVX multiplication
+Intel Haswell/Broadwell/Skylake/Kaby Lake:
+
+16 DP FLOPs/cycle: two 4-wide FMA (fused multiply-add) instructions
+32 SP FLOPs/cycle: two 8-wide FMA (fused multiply-add) instructions
+AMD K10:
+
+4 DP FLOPs/cycle: 2-wide SSE2 addition + 2-wide SSE2 multiplication
+8 SP FLOPs/cycle: 4-wide SSE addition + 4-wide SSE multiplication
+AMD Bulldozer/Piledriver/Steamroller/Excavator, per module (two cores):
+
+8 DP FLOPs/cycle: 4-wide FMA
+16 SP FLOPs/cycle: 8-wide FMA
+AMD Ryzen
+
+8 DP FLOPs/cycle: 4-wide FMA
+16 SP FLOPs/cycle: 8-wide FMA
+Intel Atom (Bonnell/45nm, Saltwell/32nm, Silvermont/22nm):
+
+1.5 DP FLOPs/cycle: scalar SSE2 addition + scalar SSE2 multiplication every other cycle
+6 SP FLOPs/cycle: 4-wide SSE addition + 4-wide SSE multiplication every other cycle
+AMD Bobcat:
+
+1.5 DP FLOPs/cycle: scalar SSE2 addition + scalar SSE2 multiplication every other cycle
+4 SP FLOPs/cycle: 4-wide SSE addition every other cycle + 4-wide SSE multiplication every other cycle
+AMD Jaguar:
+
+3 DP FLOPs/cycle: 4-wide AVX addition every other cycle + 4-wide AVX multiplication in four cycles
+8 SP FLOPs/cycle: 8-wide AVX addition every other cycle + 8-wide AVX multiplication every other cycle
+ARM Cortex-A9:
+
+1.5 DP FLOPs/cycle: scalar addition + scalar multiplication every other cycle
+4 SP FLOPs/cycle: 4-wide NEON addition every other cycle + 4-wide NEON multiplication every other cycle
+ARM Cortex-A15:
+
+2 DP FLOPs/cycle: scalar FMA or scalar multiply-add
+8 SP FLOPs/cycle: 4-wide NEONv2 FMA or 4-wide NEON multiply-add
+Qualcomm Krait:
+
+2 DP FLOPs/cycle: scalar FMA or scalar multiply-add
+8 SP FLOPs/cycle: 4-wide NEONv2 FMA or 4-wide NEON multiply-add
+IBM PowerPC A2 (Blue Gene/Q), per core:
+
+8 DP FLOPs/cycle: 4-wide QPX FMA every cycle
+SP elements are extended to DP and processed on the same units
+IBM PowerPC A2 (Blue Gene/Q), per thread:
+
+4 DP FLOPs/cycle: 4-wide QPX FMA every other cycle
+SP elements are extended to DP and processed on the same units
+Intel Xeon Phi (Knights Corner), per core:
+
+16 DP FLOPs/cycle: 8-wide FMA every cycle
+32 SP FLOPs/cycle: 16-wide FMA every cycle
+Intel Xeon Phi (Knights Corner), per thread:
+
+8 DP FLOPs/cycle: 8-wide FMA every other cycle
+16 SP FLOPs/cycle: 16-wide FMA every other cycle
+Intel Xeon Phi (Knights Landing), per core:
+
+32 DP FLOPs/cycle: two 8-wide FMA every cycle
+64 SP FLOPs/cycle: two 16-wide FMA every cycle
+The reason why there are per-thread and per-core datum for IBM Blue Gene/Q and Intel Xeon Phi (Knights Corner) is that these cores have a higher instruction issue rate when running more than one thread per core.
