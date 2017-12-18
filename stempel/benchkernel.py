@@ -557,7 +557,7 @@ class KernelBench(Kernel):
                                 c_ast.ExprList([])),
                             c_ast.Cast(
                                 c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX')))
+                                c_ast.ID('RAND_MAX')))))
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
