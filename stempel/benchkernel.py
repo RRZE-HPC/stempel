@@ -550,10 +550,14 @@ class KernelBench(Kernel):
             else:
                 # this is a scalar, so a simple Assignment is enough
                 ast.block_items.insert(
-                    i + 1, c_ast.Assignment('=', c_ast.ID(d.name), c_ast.BinaryOp('/',
-                                                                                  c_ast.FuncCall(
-                                                                                      c_ast.ID('rand'), c_ast.ExprList([])),
-                                                                                  c_ast.ID('RAND_MAX'))))
+                    i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
+                        c_ast.BinaryOp(
+                            '/', c_ast.FuncCall(
+                                c_ast.ID('rand'),
+                                c_ast.ExprList([])),
+                            c_ast.Cast(
+                                c_ast.IdentifierType(['double']),
+                                c_ast.ID('RAND_MAX')))
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
