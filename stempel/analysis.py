@@ -30,7 +30,6 @@ def create_parser():
 
     parser.add_argument('-w', '--workspace', metavar=('WORKSAPCE'),
                         required=True, help='Path to the workspace')
-
     parser.add_argument('-i', '--iaca', action='store_true', default=False,
                         help='Defines wether to run with IACA or not')
     parser.add_argument('-p', '--prova', nargs=2, metavar=('PROVAPATH', 'PROVAWORKSPACE'),
@@ -70,7 +69,6 @@ def getlast_dir(mypath):
 
 def copyheaders(headers_path, destination_dir):
     headers = os.listdir(headers_path)
-
     for h in headers:
         filesrc = os.path.join(headers_path, h)
         filedest = os.path.join(destination_dir, h)
@@ -102,8 +100,7 @@ def basesetup(provapath, provaworkspace, likwid_inc, likwid_lib):
 
 
 def create_project(provapath, provaworkspace, project, params, values, threads):
-    # cmd_prefix = ['.', os.path.join(
-    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
+
     # create a project
     mypathname = os.path.join(provaworkspace, project)
     if os.path.exists(mypathname):
