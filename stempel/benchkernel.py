@@ -165,8 +165,7 @@ class KernelBench(Kernel):
         self.block_factor = block_factor
         # need to refer to local lextab, otherwise the systemwide lextab would
         # be imported
-        parser = CParser(lextab='kerncraft.pycparser.lextab',
-                         yacctab='kerncraft.pycparser.yacctab')
+        parser = CParser()
         try:
             self.kernel_ast = parser.parse(
                 self._as_function(),
@@ -197,8 +196,7 @@ class KernelBench(Kernel):
         self.asm_block = None
 
     def _process_code(self):
-        assert type(
-            self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
+        assert type(self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
         assert all([type(s) in [c_ast.Decl, c_ast.Pragma]
                     for s in self.kernel_ast.block_items[:-1]]), \
             'all statements before the for loop need to be declarations or pragmas'
@@ -217,13 +215,11 @@ class KernelBench(Kernel):
                     dims.append(self.conv_ast_to_sym(t.dim))
                     t = t.type
 
-                assert len(
-                    t.type.names) == 1, "only single types are supported"
+                assert len(t.type.names) == 1, "only single types are supported"
                 self.set_variable(item.name, t.type.names[0], list(dims))
 
             else:
-                assert len(
-                    item.type.type.names) == 1, "only single types are supported"
+                assert len(item.type.type.names) == 1, "only single types are supported"
                 self.set_variable(item.name, item.type.type.names[0], None)
 
         floop = self.kernel_ast.block_items[-1]
@@ -265,17 +261,14 @@ class KernelBench(Kernel):
         assert type(aref.subscript) in [c_ast.ID, c_ast.Constant, c_ast.BinaryOp], \
             'array subscript must only contain variables or binary operations'
 
-        idxs = []
-
         # Convert subscript to sympy and append
-        idxs.append(self.conv_ast_to_sym(aref.subscript))
+        idxs = [self.conv_ast_to_sym(aref.subscript)]
 
         # Check for more indices (multi-dimensional access)
         if type(aref.name) is c_ast.ArrayRef:
-            idxs += self._get_offsets(aref.name, dim=dim + 1)
+            idxs += self._get_offsets(aref.name, dim=dim+1)
 
-        # Reverse to preserver order (the subscripts in the AST are traversed
-        # backwards)
+        # Reverse to preserver order (the subscripts in the AST are traversed backwards)
         if dim == 0:
             idxs.reverse()
 
@@ -289,7 +282,7 @@ class KernelBench(Kernel):
         """
         if isinstance(aref.name, c_ast.ArrayRef):
             return cls._get_basename(aref.name)
-        elif isinstance(aref.name, str):
+        elif isinstance(aref.name, unicode):
             return aref.name
         else:
             return aref.name.name
@@ -301,17 +294,14 @@ class KernelBench(Kernel):
             "Loop must have initial, condition and next statements."
         assert type(floop.init) is c_ast.DeclList, \
             "Initialization of loops need to be declarations."
-        assert len(
-            floop.init.decls) == 1, "Only single declaration is allowed in init. of loop."
+        assert len(floop.init.decls) == 1, "Only single declaration is allowed in init. of loop."
         assert floop.cond.op in '<', "only lt (<) is allowed as loop condition"
-        assert type(
-            floop.cond.left) is c_ast.ID, 'left of cond. operand has to be a variable'
+        assert type(floop.cond.left) is c_ast.ID, 'left of cond. operand has to be a variable'
         assert type(floop.cond.right) in [c_ast.Constant, c_ast.ID, c_ast.BinaryOp], \
             'right of cond. operand has to be a constant, a variable or a binary operation'
         assert type(floop.next) in [c_ast.UnaryOp, c_ast.Assignment], \
             'next statement has to be a unary or assignment operation'
-        assert floop.next.op in [
-            '++', 'p++', '+='], 'only ++ and += next operations are allowed'
+        assert floop.next.op in ['++', 'p++', '+='], 'only ++ and += next operations are allowed'
         assert type(floop.stmt) in [c_ast.Compound, c_ast.Assignment, c_ast.For], \
             'the inner loop may contain only assignments or compounds of assignments'
 
@@ -331,15 +321,13 @@ class KernelBench(Kernel):
         if type(floop.next) is c_ast.Assignment:
             assert type(floop.next.lvalue) is c_ast.ID, \
                 'next operation may only act on loop counter'
-            assert type(
-                floop.next.rvalue) is c_ast.Constant, 'only constant increments are allowed'
+            assert type(floop.next.rvalue) is c_ast.Constant, 'only constant increments are allowed'
             assert floop.next.lvalue.name == floop.cond.left.name == floop.init.decls[0].name, \
                 'initial, condition and next statement of for loop must act on same loop ' \
                 'counter variable'
             step_size = int(floop.next.rvalue.value)
         else:
-            assert type(
-                floop.next.expr) is c_ast.ID, 'next operation may only act on loop counter'
+            assert type(floop.next.expr) is c_ast.ID, 'next operation may only act on loop counter'
             assert floop.next.expr.name == floop.cond.left.name == floop.init.decls[0].name, \
                 'initial, condition and next statement of for loop must act on same loop ' \
                 'counter variable'
@@ -383,7 +371,7 @@ class KernelBench(Kernel):
         if stmt.op != '=':
             write_and_read = True
             op = stmt.op.strip('=')
-            self._flops[op] = self._flops.get(op, 0) + 1
+            self._flops[op] = self._flops.get(op, 0)+1
 
         # Document data destination
         # self.destinations[dest name] = [dest offset, ...])
@@ -419,10 +407,10 @@ class KernelBench(Kernel):
             self._psources(stmt.left)
             self._psources(stmt.right)
 
-            self._flops[stmt.op] = self._flops.get(stmt.op, 0) + 1
+            self._flops[stmt.op] = self._flops.get(stmt.op, 0)+1
         elif type(stmt) is c_ast.UnaryOp:
             self._psources(stmt.expr)
-            self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0) + 1
+            self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0)+1
 
         return sources
 
@@ -778,6 +766,13 @@ class KernelBench(Kernel):
                                        c_ast.BinaryOp('*', point, point))
                 norm_cond_rvalue = newop
 
+                if isinstance(forloop.stmt, c_ast.Compound):
+                    norm_loop.stmt.block_items[0].lvalue = norm_cond_lvalue
+                    norm_loop.stmt.block_items[0].rvalue = norm_cond_rvalue
+                else:
+                    norm_loop.stmt.lvalue = norm_cond_lvalue
+                    norm_loop.stmt.rvalue = norm_cond_rvalue
+
             elif mydims == 2:
                 
                 # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
@@ -827,6 +822,15 @@ class KernelBench(Kernel):
                                        c_ast.ID('total'),
                                        c_ast.BinaryOp('*', point, point))
                 norm_cond_rvalue = newop
+
+                #rebuild the norm loop
+                if isinstance(norm_loop.stmt, c_ast.Compound):
+                    norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
+                    norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
+
+                else: #no compound
+                    norm_loop.stmt.stmt.lvalue = norm_cond_lvalue
+                    norm_loop.stmt.stmt.lvalue = norm_cond_rvalue
 
             elif mydims == 3:
 
@@ -882,6 +886,13 @@ class KernelBench(Kernel):
                                        c_ast.ID('total'),
                                        c_ast.BinaryOp('*', point, point))
                 norm_cond_rvalue = newop
+
+                if isinstance(norm_loop.stmt, c_ast.Compound):
+                    norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
+                    norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
+                else: #no compound
+                    norm_loop.stmt.stmt.stmt.lvalue = norm_cond_lvalue
+                    norm_loop.stmt.stmt.stmt.lvalue = norm_cond_rvalue
 
             # we build mlup. should be like:
             # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
