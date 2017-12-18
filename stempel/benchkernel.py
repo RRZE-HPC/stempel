@@ -464,6 +464,9 @@ class KernelBench(Kernel):
             ast.block_items.append(c_ast.Constant(
                 'string', 'INSERTMACROCLOSE'))
 
+        constants = [d.name for d in declarations if d.name.startswith('c')]
+        nconstants = len(constants)
+
         # inject array initialization
         for d in declarations:
             i = ast.block_items.index(d)
@@ -493,6 +496,7 @@ class KernelBench(Kernel):
                 # Next: i++
                 next_ = c_ast.UnaryOp('++', c_ast.ID(counter_name))
 
+
                 if d.name == 'W':
                     # get the number of dimensions by fetching the size of W
                     # w_dims can be 2 (1D array + 1 for constants), 3, or 4
@@ -521,14 +525,14 @@ class KernelBench(Kernel):
                     #,
                     # c_ast.Constant('float', factor))
                 else:
-                    rand_max = c_ast.BinaryOp('/',
-                                              c_ast.FuncCall(
-                                                  c_ast.ID('rand'),
-                                                  c_ast.ExprList([])),
-                                              c_ast.Cast(
-                                                  c_ast.IdentifierType(
-                                                      ['double']),
-                                                  c_ast.ID('RAND_MAX')))
+                    #array a or b
+                    rand_max = c_ast.BinaryOp(
+                            '/', c_ast.FuncCall(
+                                c_ast.ID('rand'),
+                                c_ast.ExprList([])),
+                            c_ast.Cast(
+                                c_ast.IdentifierType(['double']),
+                                c_ast.ID('RAND_MAX')))
 
                 stmt = c_ast.Assignment(
                     '=',
@@ -549,15 +553,21 @@ class KernelBench(Kernel):
                         iffalse=None))
             else:
                 # this is a scalar, so a simple Assignment is enough
+
+                #calculate the factor
+                factor = 2.0 + float(nconstants)
+
                 ast.block_items.insert(
                     i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
                         c_ast.BinaryOp(
+                        '/', c_ast.BinaryOp(
                             '/', c_ast.FuncCall(
                                 c_ast.ID('rand'),
                                 c_ast.ExprList([])),
                             c_ast.Cast(
                                 c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX')))))
+                                c_ast.ID('RAND_MAX'))),
+                        c_ast.Constant('float', factor))))
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
