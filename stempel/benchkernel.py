@@ -282,7 +282,7 @@ class KernelBench(Kernel):
         """
         if isinstance(aref.name, c_ast.ArrayRef):
             return cls._get_basename(aref.name)
-        elif isinstance(aref.name, unicode):
+        elif isinstance(aref.name, str):
             return aref.name
         else:
             return aref.name.name
