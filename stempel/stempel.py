@@ -17,8 +17,6 @@ import os
 import itertools
 
 import sympy
-import six
-from six.moves import range
 from ruamel import yaml
 
 from kerncraft.pycparser_utils import clean_code
