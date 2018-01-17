@@ -517,12 +517,14 @@ class KernelBench(Kernel):
                         else:#(sizeof(double)) * (3 * M) * N
                             factor = float(d.init.args.exprs[0].right.left.left.value)
                     else:  # w_dims == 4
-                        if isinstance(d.init.args.exprs[0].right.right, c_ast.Constant): #(sizeof(double)) * (M * N) * 3
+                        if isinstance(d.init.args.exprs[0].right.right, c_ast.Constant): #(sizeof(double)) * (((M * N) * P) * 3)
                             factor = float(d.init.args.exprs[0].right.right.value)
-                        elif isinstance(d.init.args.exprs[0].right.left.right, c_ast.Constant):#(sizeof(double)) * (M * 3) * N
+                        elif isinstance(d.init.args.exprs[0].right.left.right, c_ast.Constant):#(sizeof(double)) * (((M * N) * 3) * P)
                             factor = float(d.init.args.exprs[0].right.left.right.value)
-                        else:#(sizeof(double)) * (3 * M) * N
-                            factor = float(d.init.args.exprs[0].right.left.left.value)
+                        elif isinstance(d.init.args.exprs[0].right.left.left.right, c_ast.Constant):#(sizeof(double)) * (((M * 3) * N) * P)
+                            factor = float(d.init.args.exprs[0].right.left.left.right.value)
+                        else:#(sizeof(double)) * (((3 * M) * N) * P)
+                            factor = float(d.init.args.exprs[0].right.left.left.left.value)
 
                         factor = float(
                             d.init.args.exprs[0].right.right.right.value)
