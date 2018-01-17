@@ -504,10 +504,26 @@ class KernelBench(Kernel):
                     assert (w_dims < 5 and w_dims >
                             1), "STEMPEL can treat stencils up to 3D"
                     if w_dims == 2:
-                        factor = float(d.init.args.exprs[0].right.value)
+                        if isinstance(d.init.args.exprs[0].right.right, c_ast.Constant): #(sizeof(double)) * (N * 3))
+                            factor = float(d.init.args.exprs[0].right.right.value)
+                        else:#W[2][N]
+                            factor = float(d.init.args.exprs[0].right.left.value)
+
                     elif w_dims == 3:
-                        factor = float(d.init.args.exprs[0].right.right.value)
+                        if isinstance(d.init.args.exprs[0].right.right, c_ast.Constant): #(sizeof(double)) * (M * N) * 3
+                            factor = float(d.init.args.exprs[0].right.right.value)
+                        elif isinstance(d.init.args.exprs[0].right.left.right, c_ast.Constant):#(sizeof(double)) * (M * 3) * N
+                            factor = float(d.init.args.exprs[0].right.left.right.value)
+                        else:#(sizeof(double)) * (3 * M) * N
+                            factor = float(d.init.args.exprs[0].right.left.left.value)
                     else:  # w_dims == 4
+                        if isinstance(d.init.args.exprs[0].right.right, c_ast.Constant): #(sizeof(double)) * (M * N) * 3
+                            factor = float(d.init.args.exprs[0].right.right.value)
+                        elif isinstance(d.init.args.exprs[0].right.left.right, c_ast.Constant):#(sizeof(double)) * (M * 3) * N
+                            factor = float(d.init.args.exprs[0].right.left.right.value)
+                        else:#(sizeof(double)) * (3 * M) * N
+                            factor = float(d.init.args.exprs[0].right.left.left.value)
+
                         factor = float(
                             d.init.args.exprs[0].right.right.right.value)
 
