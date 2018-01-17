@@ -138,7 +138,7 @@ def find_array_references(ast):
 
 
 def force_iterable(f):
-    """Will make any functions return an iterable objects by wrapping its result in a string."""
+    """Will make any functions return an iterable objects by wrapping its result in a list."""
     def wrapper(*args, **kwargs):
         r = f(*args, **kwargs)
         if hasattr(r, '__iter__'):
@@ -216,7 +216,7 @@ class KernelBench(Kernel):
                     t = t.type
 
                 assert len(t.type.names) == 1, "only single types are supported"
-                self.set_variable(item.name, t.type.names[0], list(dims))
+                self.set_variable(item.name, t.type.names[0], tuple(dims))
 
             else:
                 assert len(item.type.type.names) == 1, "only single types are supported"
@@ -247,9 +247,9 @@ class KernelBench(Kernel):
 
     def _get_offsets(self, aref, dim=0):
         """
-        Return a list of offsets of an ArrayRef object in all dimensions.
+        Return a tuple of offsets of an ArrayRef object in all dimensions.
         The index order is right to left (c-code order).
-        e.g. c[i+1][j-2] -> [-2, +1]
+        e.g. c[i+1][j-2] -> (-2, +1)
         If aref is actually a c_ast.ID, None will be returned.
         """
         if isinstance(aref, c_ast.ID):
@@ -272,7 +272,7 @@ class KernelBench(Kernel):
         if dim == 0:
             idxs.reverse()
 
-        return idxs
+        return tuple(idxs)
 
     @classmethod
     def _get_basename(cls, aref):
@@ -375,20 +375,20 @@ class KernelBench(Kernel):
 
         # Document data destination
         # self.destinations[dest name] = [dest offset, ...])
-        self.destinations.setdefault(self._get_basename(stmt.lvalue), [])
-        self.destinations[self._get_basename(stmt.lvalue)].append(
+        self.destinations.setdefault(self._get_basename(stmt.lvalue), set())
+        self.destinations[self._get_basename(stmt.lvalue)].add(
             self._get_offsets(stmt.lvalue))
 
         if write_and_read:
             # this means that +=, -= or something of that sort was used
-            self.sources.setdefault(self._get_basename(stmt.lvalue), [])
-            self.sources[self._get_basename(stmt.lvalue)].append(
+            self.sources.setdefault(self._get_basename(stmt.lvalue), set())
+            self.sources[self._get_basename(stmt.lvalue)].add(
                 self._get_offsets(stmt.lvalue))
 
         # Traverse tree
-        self._psources(stmt.rvalue)
+        self._p_sources(stmt.rvalue)
 
-    def _psources(self, stmt):
+    def _p_sources(self, stmt):
         sources = []
         assert type(stmt) in \
             [c_ast.ArrayRef, c_ast.Constant, c_ast.ID, c_ast.BinaryOp, c_ast.UnaryOp], \
@@ -400,16 +400,16 @@ class KernelBench(Kernel):
         if type(stmt) in [c_ast.ArrayRef, c_ast.ID]:
             # Document data source
             bname = self._get_basename(stmt)
-            self.sources.setdefault(bname, [])
-            self.sources[bname].append(self._get_offsets(stmt))
+            self.sources.setdefault(bname, set())
+            self.sources[bname].add(self._get_offsets(stmt))
         elif type(stmt) is c_ast.BinaryOp:
             # Traverse tree
-            self._psources(stmt.left)
-            self._psources(stmt.right)
+            self._p_sources(stmt.left)
+            self._p_sources(stmt.right)
 
             self._flops[stmt.op] = self._flops.get(stmt.op, 0)+1
         elif type(stmt) is c_ast.UnaryOp:
-            self._psources(stmt.expr)
+            self._p_sources(stmt.expr)
             self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0)+1
 
         return sources
