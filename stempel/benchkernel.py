@@ -526,9 +526,6 @@ class KernelBench(Kernel):
                         else:#(sizeof(double)) * (((3 * M) * N) * P)
                             factor = float(d.init.args.exprs[0].right.left.left.left.value)
 
-                        factor = float(
-                            d.init.args.exprs[0].right.right.right.value)
-
                     # we add 2 in order to get a factor that stabilizes the results
                     # empirical value
                     factor = factor + 2.0
