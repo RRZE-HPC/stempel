@@ -530,7 +530,7 @@ compiler:
   clang: -03 -mavx2 -D_POSIX_C_SOURCE=200112L
   gcc: -O3 -march=core-avx2 -D_POSIX_C_SOURCE=200112L
   icc: -O3 -xCORE-AVX2 -fno-alias
-cores per NUMA domain: 0.1
+cores per NUMA domain: 10
 cores per socket: 10
 memory hierarchy:
 - cache per group:
