@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+Simple tool to fix the output of likwid_bench_auto.
+:author: Danilo Guerrera (University of Basel)
+"""
+
 import os
 from itertools import islice
 import sys
@@ -9,13 +15,20 @@ def create_parser():
     example_gen = 'Example usage: fix_yaml -i input.yml -o output.yml'
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input', help = 'input filename')
-    parser.add_argument('-o', '--output', help = 'output filename')
+    parser.add_argument('-i', '--input', required=true, help='input filename')
+    parser.add_argument('-o', '--output', help='output filename')
     parser.set_defaults(func=fix)
 
     return parser
 
 def fix(args, parser, output_file=sys.stdout):
+    """This method parses the input file and when finds an entry containing
+        the PrefixedUnit object reformats it properly
+    """
+    inputfile = args.input
+
+    if not args.output:
+        outputfile = inputfile + '_mod'
     with open(args.input) as f1:
         with open(args.output, 'wb') as f2:
             lines = f1.readlines()
