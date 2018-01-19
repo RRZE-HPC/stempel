@@ -12,11 +12,15 @@ For a detailed documentation see in `<docs/>`_.
 Installation
 ============
 
-On most systems with python pip and setuputils installed, just run:
-``pip install --user stempel`` for the latest release.
+Remember to setup properly your envirnment in advance. For example, using conda Python:
+```
+conda create -n stempel python=3.4
+source activate stempel
+```
 
-If you want to build from source:
-Clone this repository and run ``python ./setup.py install``.
+Clone this repository and run:
+``python ./setup.py install``
+
 
 If you are unfamiliar with python, here is a tutorial on how to install python packages: https://packaging.python.org/installing/ . The use of virtual enviornments is usually a good choice.
 
