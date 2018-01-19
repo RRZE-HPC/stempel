@@ -13,6 +13,7 @@ Installation
 ============
 
 Remember to setup properly your envirnment in advance. For example, using conda Python:
+
 ``conda create -n stempel python=3.4``
 
 ``source activate stempel``
