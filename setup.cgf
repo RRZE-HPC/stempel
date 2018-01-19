@@ -1,0 +1,9 @@
+[pep8]
+max-line-length = 100
+
+[metadata]
+license-file = LICENSE
+description-file = README.rst
+
+[build]
+build-base=build
