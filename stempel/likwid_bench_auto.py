@@ -19,8 +19,6 @@ import io
 from ruamel import yaml
 
 from kerncraft.prefixedunit import PrefixedUnit
-from six.moves import range
-
 
 def my_unicode_repr(self, data):
     return self.represent_str(data.encode('utf-8'))

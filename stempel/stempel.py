@@ -408,15 +408,6 @@ def run_bench(args, output_file=sys.stdout):
     # get compilable C code
     c_code = kernel.as_code()
 
-    #benchmark = kernel.build()
-    # benchmark = '2d-5pt.c.likwid_marked'
-    # # Build arguments to pass to command:
-    # kernel_args = [benchmark] + [six.text_type(s) for s in list(kernel.constants.values())]
-
-    # results = kernel.perfctr(kernel_args)
-
-    # print(results)
-
    # Save storage to file or print to STDOUT
     if args.store:
         # build the name of the output file according to dimensions and
