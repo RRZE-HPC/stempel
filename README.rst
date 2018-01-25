@@ -25,10 +25,10 @@ Clone this repository and run:
 If you are unfamiliar with python, here is a tutorial on how to install python packages: https://packaging.python.org/installing/ . The use of virtual enviornments is usually a good choice.
 
 Additional requirements are:
- * `kerncraft <https://github.com/RRZE-HPC/kerncraft>` (used to generate performance models)
+ * `kerncraft <https://github.com/RRZE-HPC/kerncraft>`_ (used to generate performance models)
  * `Intel Achitecture Code Analyzer (IACA) <https://software.intel.com/en-us/articles/intel-architecture-code-analyzer>`_, with (working) ``iaca.sh`` in PATH environment variable (used by ECM, ECMCPU and RooflineIACA models)
- * `likwid <https://github.com/RRZE-HPC/likwid>` (used in Benchmark model)
- * `PROVA! <https://prova.io>`, in case you want to run a full analysis
+ * `likwid <https://github.com/RRZE-HPC/likwid>`_ (used in Benchmark model)
+ * `PROVA! <https://prova.io>`_, in case you want to run a full analysis
 
 Usage
 =====
