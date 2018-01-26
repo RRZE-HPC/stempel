@@ -938,12 +938,11 @@ class KernelBench(Kernel):
 
             # insert the printf of the stats
 
-            mystring = str("Performance in mlup/s: %lf \n").encode('unicode_escape')
+            mystring = "Performance in mlup/s: %lf\\n"
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                       c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                       mlup])))
-            mystring = str(
-                "size: %d    time: %lf    iter: %d    mlup/s: %lf\n").encode('unicode_escape')
+            mystring = "size: %d    time: %lf    iter: %d    mlup/s: %lf\\n"
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                       c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                       c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
@@ -956,8 +955,7 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, norm_loop)
 
             # insert the printf of the norm
-            mystring = str("norm(a): %lf\n")
-            mystring = mystring.encode('unicode_escape')
+            mystring = "norm(a): %lf\\n"
 
             sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
                                         c_ast.ExprList([c_ast.ID('total')]))

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """stempel setup file."""
 
 # Always prefer setuptools over distutils
@@ -81,10 +81,8 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate wheter you support Python2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.4',
     ],
 
     # What doesd your project relate to?
@@ -93,15 +91,14 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'kerncraft',
-        'six',
+        'kerncraft'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -116,6 +113,11 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
+    package_data={
+        'stempel': ['headers/*.c', 'headers/*.h', 'headers/Makefile'],
+        'examples': ['machine-files/*.yaml', 'machine-files/*.yml'],
+        'tests': ['testfiles/*.yml'],
+    },
     include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
@@ -130,6 +132,7 @@ setup(
     entry_points={
         'console_scripts': [
             'stempel=stempel.stempel:main',
+            'analysis=stempel.analysis:main'
         ],
     },
 )
