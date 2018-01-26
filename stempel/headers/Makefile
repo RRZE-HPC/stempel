@@ -13,7 +13,7 @@ PROJECT_NAME = project
 all: module
 
 module: $(SRC)
-	$(GCC) $(OMP_FLAG) ${LIKWID_FLAGS} $+ timing.c dummy.c ${LDFLAGS} -o ../bin/$(PROJECT_NAME) -DLIKWID_PERFMON $(LIKWID_I) $(LIKWID_L) $(LIBS)
+	$(GCC) $(OMP_FLAG) ${LIKWID_FLAGS} $+ timing.c dummy.c ${LDFLAGS} -o ../bin/$(PROJECT_NAME) -DLIKWID_PERFMON -I$(LIKWID_I) -L$(LIKWID_L) $(LIBS)
 
 .PHONY: clean
 
