@@ -1037,7 +1037,7 @@ class KernelBench(Kernel):
                 myblockstmt.cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound(
-                    [assign, pragma_int, forloop] + dummies)
+                    [assign, pragma_int, forloop])
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
@@ -1070,14 +1070,14 @@ class KernelBench(Kernel):
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
                             myblockstmt.cond.right])))
                 mycompound = c_ast.Compound(
-                    [assign, pragma_int, forloop] + dummies)
+                    [assign, pragma_int, forloop])
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
                 mycompound = c_ast.Compound([pragma, newfor])
 
         else:
-            mycompound = c_ast.Compound([pragma_int, forloop] + dummies)
+            mycompound = c_ast.Compound([pragma_int, forloop])
 
         #mycode = CGenerator().visit(mycompound)
         # logging.warning(type(forloop))
