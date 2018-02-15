@@ -423,6 +423,7 @@ class KernelBench(Kernel):
                                             "kernel description rather than code."
 
         ast = deepcopy(self.kernel_ast)
+
         declarations = [d for d in ast.block_items if type(d) is c_ast.Decl]
 
         # transform multi-dimensional declarations to one dimensional
@@ -981,8 +982,6 @@ class KernelBench(Kernel):
 
         ast = c_ast.FuncDef(decl, None, ast)
 
-        # embed Compound AST into FileAST
-        #ast = c_ast.FileAST([ast])
 
         myvariables = []
         for i in range(0, mydims):
@@ -990,9 +989,17 @@ class KernelBench(Kernel):
 
         #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
         pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
+
         # declaring the function of the kernel with the parameters list built
         # before
-        decl = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
+        #declare and use in the main file
+        decl_sig_kernel = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
+            c_ast.ParamList(pointers_list + variables_list),
+            c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['extern void']))),
+                          None, None)
+
+        #declare to use in kernel.c
+        decl_kernel = c_ast.Decl('kernel_loop', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList(pointers_list + variables_list),
             c_ast.TypeDecl('kernel_loop', [], c_ast.IdentifierType(['void']))),
                           None, None)
@@ -1079,13 +1086,16 @@ class KernelBench(Kernel):
         else:
             mycompound = c_ast.Compound([pragma_int, forloop])
 
-        #mycode = CGenerator().visit(mycompound)
         # logging.warning(type(forloop))
-        ast1 = c_ast.FuncDef(decl, None, mycompound)
-        ast = c_ast.FileAST([ast1, ast])
-        #ast.ext.insert(0, decl)
+        ast_kernel = c_ast.FuncDef(decl_kernel, None, mycompound)
+        
+        # ast = c_ast.FuncDef(decl_sig_kernel, None, ast)
+        
+        ast = c_ast.FileAST([ast])
 
-        #ast.ext.insert(0, forloop)
+        #add the declaration of the kernel function to the AST
+        ast.ext.insert(0, decl_sig_kernel)
+
         # add dummy function declaration
         decl = c_ast.Decl('dummy', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList([c_ast.Typename(None, [], c_ast.PtrDecl(
@@ -1169,8 +1179,10 @@ class KernelBench(Kernel):
         code = code.rstrip()
         if code.endswith(';'):
             code = code = code[0:-1]
+
+        kernel = CGenerator().visit(ast_kernel)
         # return mycode
-        return code
+        return code, kernel
 
     def build(self, lflags=None, verbose=False):
         """

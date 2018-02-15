@@ -185,9 +185,7 @@ def create_parser():
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
                               action=AppendStringRange,
                               help='Define constant to be used in C code. Values '\
-                              'must be integer or match start-stop[:num[log[base]]].'\
-                              ' If range is given, all permutation s will be tested.'\
-                              ' Overwrites constants from testcase file.')
+                              'must be integer')
     parser_bench.add_argument('--store', action='store_true',
                               help='Addes results to a C file for later processing.')
 
@@ -406,7 +404,7 @@ def run_bench(args, output_file=sys.stdout):
             kernel.set_constant(k, v)
 
     # get compilable C code
-    c_code = kernel.as_code()
+    c_code, kernel = kernel.as_code()
 
    # Save storage to file or print to STDOUT
     if args.store:
@@ -417,8 +415,11 @@ def run_bench(args, output_file=sys.stdout):
         with open(tempname, 'w') as out:
             out.write(c_code)
         shutil.move(tempname, args.code_file.name.split('.')[0] + "_compilable.c")
+        with open('kernel.c', 'w') as out:
+            out.write(kernel)
     else:
         print(c_code)
+        print(kernel)
 
 
 def main():
