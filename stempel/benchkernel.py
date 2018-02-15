@@ -785,16 +785,30 @@ class KernelBench(Kernel):
 
                 lup_expression = c_ast.Cast(
                     c_ast.IdentifierType(['double']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
-                # norm
+                
+
+                # # norm
+                # point = norm_cond_lvalue
+                # # set the name of the grid to the first (the order changed
+                # # after the swap)
+                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+                # norm_cond_lvalue = c_ast.ID('total')
+                # newop = c_ast.BinaryOp('+',
+                #                        c_ast.ID('total'),
+                #                        c_ast.BinaryOp('*', point, point))
+                # norm_cond_rvalue = newop
+                # calculate difference between a and b
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
+                point1 = deepcopy(point)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
-                                       c_ast.BinaryOp('*', point, point))
+                                       c_ast.BinaryOp('-', point, point1))
                 norm_cond_rvalue = newop
+
 
                 if isinstance(forloop.stmt, c_ast.Compound):
                     norm_loop.stmt.block_items[0].lvalue = norm_cond_lvalue
@@ -842,15 +856,26 @@ class KernelBench(Kernel):
                         ['double']),
                     mysize_lv2))
                 
-                # norm
+                # # norm
+                # point = norm_cond_lvalue
+                # # set the name of the grid to the first (the order changed
+                # # after the swap)
+                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+                # norm_cond_lvalue = c_ast.ID('total')
+                # newop = c_ast.BinaryOp('+',
+                #                        c_ast.ID('total'),
+                #                        c_ast.BinaryOp('*', point, point))
+                # norm_cond_rvalue = newop
+                # calculate difference between a and b
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
+                point1 = deepcopy(point)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
-                                       c_ast.BinaryOp('*', point, point))
+                                       c_ast.BinaryOp('-', point, point1))
                 norm_cond_rvalue = newop
 
                 #rebuild the norm loop
@@ -906,16 +931,29 @@ class KernelBench(Kernel):
                             ['double']), mysize_lv2)),
                     c_ast.Cast(c_ast.IdentifierType(
                         ['double']), mysize_lv3))
-                # norm
+                
+
+                # # calculate norm
+                # point = norm_cond_lvalue
+                # # set the name of the grid to the first (the order changed
+                # # after the swap)
+                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+                # norm_cond_lvalue = c_ast.ID('total')
+                # newop = c_ast.BinaryOp('+',
+                #                        c_ast.ID('total'),
+                #                        c_ast.BinaryOp('*', point, point))
+                # calculate difference between a and b
                 point = norm_cond_lvalue
                 # set the name of the grid to the first (the order changed
                 # after the swap)
+                point1 = deepcopy(point)
                 point.name = c_ast.ID(pointers_list[0].type.type.declname)
                 norm_cond_lvalue = c_ast.ID('total')
                 newop = c_ast.BinaryOp('+',
                                        c_ast.ID('total'),
-                                       c_ast.BinaryOp('*', point, point))
+                                       c_ast.BinaryOp('-', point, point1))
                 norm_cond_rvalue = newop
+
 
                 if isinstance(norm_loop.stmt, c_ast.Compound):
                     norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
@@ -955,14 +993,22 @@ class KernelBench(Kernel):
             ast.block_items.insert(-6, decl)
             ast.block_items.insert(-1, norm_loop)
 
+            #calculate and print the norm of a
             # insert the printf of the norm
-            mystring = "norm(a): %lf\\n"
+            # mystring = "norm(a): %lf\\n"
 
-            sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
-                                        c_ast.ExprList([c_ast.ID('total')]))
+            # sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
+            #                             c_ast.ExprList([c_ast.ID('total')]))
+            # ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+            #                                           c_ast.ExprList([
+            #                                               c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
+
+            # calculate and print a(i,j) - b(i,j)
+            mystring = "diff(a-b): %lf\\n"
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                      c_ast.ExprList([
-                                                          c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
+                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                      c_ast.ID('total')])))
+
 
         else:
             ast.block_items += dummies
