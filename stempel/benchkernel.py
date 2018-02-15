@@ -468,8 +468,27 @@ class KernelBench(Kernel):
         constants = [d.name for d in declarations if d.name.startswith('c')]
         nconstants = len(constants)
 
+        
+        #extract name of the sizes
+        sizes_names=[x.name for x in array_dimensions[declarations[0].name]]
+
+
+        #declare the variables of the sizes, i.e.: int M = 100;
+        sizes_decls_typenames = []
+        for s in sizes_names:
+
+            type_decl = c_ast.TypeDecl(
+                s, [], c_ast.IdentifierType(['int']))
+            type_name = c_ast.Typename(None, [], type_decl)
+            sizes_decls_typenames.append(type_name)
+
+            ast.block_items.insert(0, c_ast.Decl(
+                s, ['const'], [], [],
+                type_decl, c_ast.Constant('int', '100'), None))
+
         # inject array initialization
         for d in declarations:
+
             i = ast.block_items.index(d)
 
             # Build ast to inject
@@ -559,14 +578,14 @@ class KernelBench(Kernel):
 
                 # inject dummy access to arrays, so compiler does not over-optimize code
                 # with if around it, so code will actually run
-                ast.block_items.insert(
-                    i + 2, c_ast.If(
-                        cond=c_ast.ID('var_false'),
-                        iftrue=c_ast.Compound([
-                            c_ast.FuncCall(
-                                c_ast.ID('dummy'),
-                                c_ast.ExprList([c_ast.ID(d.name)]))]),
-                        iffalse=None))
+                # ast.block_items.insert(
+                #     i + 2, c_ast.If(
+                #         cond=c_ast.ID('var_false'),
+                #         iftrue=c_ast.Compound([
+                #             c_ast.FuncCall(
+                #                 c_ast.ID('dummy'),
+                #                 c_ast.ExprList([c_ast.ID(d.name)]))]),
+                #         iffalse=None))
             else:
                 # this is a scalar, so a simple Assignment is enough
 
@@ -587,14 +606,14 @@ class KernelBench(Kernel):
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
-                ast.block_items.insert(
-                    i + 2, c_ast.If(
-                        cond=c_ast.ID('var_false'),
-                        iftrue=c_ast.Compound([
-                            c_ast.FuncCall(
-                                c_ast.ID('dummy'),
-                                c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
-                        iffalse=None))
+                # ast.block_items.insert(
+                #     i + 2, c_ast.If(
+                #         cond=c_ast.ID('var_false'),
+                #         iftrue=c_ast.Compound([
+                #             c_ast.FuncCall(
+                #                 c_ast.ID('dummy'),
+                #                 c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
+                #         iffalse=None))
 
         # transform multi-dimensional array references to one dimensional
         # references
@@ -710,7 +729,7 @@ class KernelBench(Kernel):
             next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
             #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
             stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations]))
+                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sizes_names]))
             swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
                                         c_ast.ID(pointers_list[0].type.type.declname))
             swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
@@ -760,8 +779,12 @@ class KernelBench(Kernel):
 
             # creating a list of standard types for all the non-pointer
             # variables
+            
+            #     asd.append(c_ast.Typename(None, [], c_ast.TypeDecl(s, [], 'int')))
             variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
                 d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
+            variables_list = variables_list + sizes_decls_typenames
+
 
             norm_loop = deepcopy(forloop)
             # generate the LUP expression according to the number of dimensions
