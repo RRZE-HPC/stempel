@@ -442,17 +442,6 @@ class KernelBench(Kernel):
             # add declaration of the block
             if self.block_factor:
                 var_list.append('block_factor')
-
-                # type_decl = c_ast.TypeDecl(
-                #     'block_factor', [], c_ast.IdentifierType(['int']))
-                # decl = c_ast.Decl(
-                #     'block_factor', ['const'], [], [],
-                #     type_decl, c_ast.Constant('int', str(self.block_factor)), None)
-                # ast.block_items.insert(-3, decl)
-
-                # # add it to the list of declarations, so it gets passed to the
-                # # kernel_loop
-                # declarations.append(decl)
   
             i = 1  # subscript for cli input
             for k in var_list:
@@ -495,21 +484,6 @@ class KernelBench(Kernel):
         constants = [d.name for d in declarations if d.name.startswith('c')]
         nconstants = len(constants)
 
-        
-        #extract name of the sizes
-        #sizes_names=[x.name for x in array_dimensions[declarations[0].name]]
-        #declare the variables of the sizes, i.e.: int M = 100;
-        # sizes_decls_typenames = []
-        # for s in sizes_names:
-
-        #     type_decl = c_ast.TypeDecl(
-        #         s, [], c_ast.IdentifierType(['int']))
-        #     type_name = c_ast.Typename(None, [], type_decl)
-        #     sizes_decls_typenames.append(type_name)
-
-        #     ast.block_items.insert(0, c_ast.Decl(
-        #         s, ['const'], [], [],
-        #         type_decl, c_ast.Constant('int', '100'), None))
 
         # inject array initialization
         for d in declarations:
@@ -673,394 +647,397 @@ class KernelBench(Kernel):
             ast.block_items.insert(-2,
                                    c_ast.Constant('string', 'INSERTMACROSTART'))
 
-            if not from_cli:
-                # add declaration of the block
-                if self.block_factor:
-                    type_decl = c_ast.TypeDecl(
-                        'block_factor', [], c_ast.IdentifierType(['int']))
-                    decl = c_ast.Decl(
-                        'block_factor', ['const'], [], [],
-                        type_decl, c_ast.Constant('int', str(self.block_factor)), None)
-                    ast.block_items.insert(-3, decl)
+        # if we do not want the version accepting inputs from command line,
+        # we need to declare the blocking factor
+        if not from_cli:
+            # add declaration of the block
+            if self.block_factor:
+                type_decl = c_ast.TypeDecl(
+                    'block_factor', [], c_ast.IdentifierType(['int']))
+                decl = c_ast.Decl(
+                    'block_factor', ['const'], [], [],
+                    type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                ast.block_items.insert(-3, decl)
 
-                    # add it to the list of declarations, so it gets passed to the
-                    # kernel_loop
-                    declarations.append(decl)
+                # add it to the list of declarations, so it gets passed to the
+                # kernel_loop
+                declarations.append(decl)
 
-            # Wrap everything in a loop
-            # int repeat = atoi(argv[2])
-            type_decl = c_ast.TypeDecl(
-                'repeat', [], c_ast.IdentifierType(['int']))
-            # init = c_ast.FuncCall(
-            #     c_ast.ID('atoi'),
-            #     c_ast.ExprList([c_ast.ArrayRef(
-            #         c_ast.ID('argv'), c_ast.Constant('int', str(len(self.constants)+2)))]))
-            # ast.block_items.insert(-3, c_ast.Decl(
-            #     'repeat', ['const'], [], [],
-            #     type_decl, init, None))
-            ast.block_items.insert(-3, c_ast.Decl(
-                'repeat', ['const'], [], [],
-                type_decl, c_ast.Constant('int', '1'), None))
+        # Wrap everything in a loop
+        # int repeat = atoi(argv[2])
+        type_decl = c_ast.TypeDecl(
+            'repeat', [], c_ast.IdentifierType(['int']))
+        # init = c_ast.FuncCall(
+        #     c_ast.ID('atoi'),
+        #     c_ast.ExprList([c_ast.ArrayRef(
+        #         c_ast.ID('argv'), c_ast.Constant('int', str(len(self.constants)+2)))]))
+        # ast.block_items.insert(-3, c_ast.Decl(
+        #     'repeat', ['const'], [], [],
+        #     type_decl, init, None))
+        ast.block_items.insert(-3, c_ast.Decl(
+            'repeat', ['const'], [], [],
+            type_decl, c_ast.Constant('int', '1'), None))
 
-            # timing variables declaration and initialisation
-            type_decl = c_ast.TypeDecl(
-                'runtime', [], c_ast.IdentifierType(['double']))
-            ast.block_items.insert(-3, c_ast.Decl(
-                'runtime', ['const'], [], [],
-                type_decl, c_ast.Constant('double', '0.0'), None))
+        # timing variables declaration and initialisation
+        type_decl = c_ast.TypeDecl(
+            'runtime', [], c_ast.IdentifierType(['double']))
+        ast.block_items.insert(-3, c_ast.Decl(
+            'runtime', ['const'], [], [],
+            type_decl, c_ast.Constant('double', '0.0'), None))
 
-            decl = c_ast.Decl('wct_start', [], [], [], c_ast.TypeDecl(
-                'wct_start', [], c_ast.IdentifierType(['double'])
-            ), None, None)
-            ast.block_items.insert(-3, decl)
-            decl = c_ast.Decl('wct_end', [], [], [], c_ast.TypeDecl(
-                'wct_end', [], c_ast.IdentifierType(['double'])
-            ), None, None)
-            ast.block_items.insert(-3, decl)
-            decl = c_ast.Decl('cput_start', [], [], [], c_ast.TypeDecl(
-                'cput_start', [], c_ast.IdentifierType(['double'])
-            ), None, None)
-            ast.block_items.insert(-3, decl)
-            decl = c_ast.Decl('cput_end', [], [], [], c_ast.TypeDecl(
-                'cput_end', [], c_ast.IdentifierType(['double'])
-            ), None, None)
-            ast.block_items.insert(-3, decl)
+        decl = c_ast.Decl('wct_start', [], [], [], c_ast.TypeDecl(
+            'wct_start', [], c_ast.IdentifierType(['double'])
+        ), None, None)
+        ast.block_items.insert(-3, decl)
+        decl = c_ast.Decl('wct_end', [], [], [], c_ast.TypeDecl(
+            'wct_end', [], c_ast.IdentifierType(['double'])
+        ), None, None)
+        ast.block_items.insert(-3, decl)
+        decl = c_ast.Decl('cput_start', [], [], [], c_ast.TypeDecl(
+            'cput_start', [], c_ast.IdentifierType(['double'])
+        ), None, None)
+        ast.block_items.insert(-3, decl)
+        decl = c_ast.Decl('cput_end', [], [], [], c_ast.TypeDecl(
+            'cput_end', [], c_ast.IdentifierType(['double'])
+        ), None, None)
+        ast.block_items.insert(-3, decl)
 
-            # call the timing function at the beginning
-            start_timing = c_ast.FuncCall(c_ast.ID('timing'),
-                                          c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_start')),
-                                                          c_ast.UnaryOp('&', c_ast.ID('cput_start'))]))
+        # call the timing function at the beginning
+        start_timing = c_ast.FuncCall(c_ast.ID('timing'),
+                                      c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_start')),
+                                                      c_ast.UnaryOp('&', c_ast.ID('cput_start'))]))
 
-            # take out the for loop that will be written in a function on top
-            forloop = ast.block_items.pop(-2)
+        # take out the for loop that will be written in a function on top
+        forloop = ast.block_items.pop(-2)
 
-            # creating a list of pointer to all the variables of type pointer
-            pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
-                [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
-            first_array_name = pointers_list[0].type.type.declname
-            # get the number of dimensions by fetching the size of the first
-            # array
-            mydims = len(array_dimensions.get(first_array_name))
+        # creating a list of pointer to all the variables of type pointer
+        pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
+            [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
+        first_array_name = pointers_list[0].type.type.declname
+        # get the number of dimensions by fetching the size of the first
+        # array
+        mydims = len(array_dimensions.get(first_array_name))
 
-            # for(n = 0; n < repeat; n++) {...}
-            index_name = 'n'
-            init = c_ast.DeclList([
-                c_ast.Decl(
-                    index_name, [], [], [], c_ast.TypeDecl(
-                        index_name, [], c_ast.IdentifierType(['int'])),
-                    c_ast.Constant('int', '0'),
-                    None)], None)
-            cond = c_ast.BinaryOp('<', c_ast.ID(
-                index_name), c_ast.ID('repeat'))
-            next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
-            #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
-            stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]))
-            swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
-                                        c_ast.ID(pointers_list[0].type.type.declname))
-            swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
-                                         c_ast.ID(pointers_list[1].type.type.declname))
-            last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
-                                         c_ast.ID('tmp'))
-            stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
-            myfor = c_ast.For(init, cond, next_, stmt)
+        # for(n = 0; n < repeat; n++) {...}
+        index_name = 'n'
+        init = c_ast.DeclList([
+            c_ast.Decl(
+                index_name, [], [], [], c_ast.TypeDecl(
+                    index_name, [], c_ast.IdentifierType(['int'])),
+                c_ast.Constant('int', '0'),
+                None)], None)
+        cond = c_ast.BinaryOp('<', c_ast.ID(
+            index_name), c_ast.ID('repeat'))
+        next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
+        #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+        stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
+                              c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]))
+        swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
+                                    c_ast.ID(pointers_list[0].type.type.declname))
+        swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
+                                     c_ast.ID(pointers_list[1].type.type.declname))
+        last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
+                                     c_ast.ID('tmp'))
+        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
+        myfor = c_ast.For(init, cond, next_, stmt)
 
-            # call the timing function at the beginning
-            end_timing = c_ast.FuncCall(c_ast.ID('timing'),
-                                        c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_end')),
-                                                        c_ast.UnaryOp('&', c_ast.ID('cput_end'))]))
+        # call the timing function at the beginning
+        end_timing = c_ast.FuncCall(c_ast.ID('timing'),
+                                    c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID('wct_end')),
+                                                    c_ast.UnaryOp('&', c_ast.ID('cput_end'))]))
 
-            update_runtime = c_ast.Assignment('=', c_ast.ID('runtime'),
-                                              c_ast.BinaryOp('-', c_ast.ID('wct_end'), c_ast.ID('wct_start')))
+        update_runtime = c_ast.Assignment('=', c_ast.ID('runtime'),
+                                          c_ast.BinaryOp('-', c_ast.ID('wct_end'), c_ast.ID('wct_start')))
 
-            update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
-                                           c_ast.Constant('int', '2'))
+        update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
+                                       c_ast.Constant('int', '2'))
 
-            # while(runtime<.5) {...}
-            cond = c_ast.BinaryOp('<', c_ast.ID(
-                'runtime'), c_ast.Constant('double', '0.5'))
-            stmt = c_ast.Compound(
-                [start_timing, myfor, end_timing, update_runtime, update_iter])
+        # while(runtime<.5) {...}
+        cond = c_ast.BinaryOp('<', c_ast.ID(
+            'runtime'), c_ast.Constant('double', '0.5'))
+        stmt = c_ast.Compound(
+            [start_timing, myfor, end_timing, update_runtime, update_iter])
 
-            ast.block_items.insert(-1, c_ast.While(cond, stmt))
+        ast.block_items.insert(-1, c_ast.While(cond, stmt))
 
+        if type_ == 'likwid':
             # close the region "Sweep" of likwid
             ast.block_items.insert(-1,
                                    c_ast.Constant('string', 'INSERTMACROSTOP'))
 
-            # the variable repeat must be divided by 2 since in the last loop
-            # was doubled before exiting
-            ast.block_items.insert(-1, c_ast.Assignment('/=',
-                                                        c_ast.ID('repeat'), c_ast.Constant('int', '2')))
+        # the variable repeat must be divided by 2 since in the last loop
+        # was doubled before exiting
+        ast.block_items.insert(-1, c_ast.Assignment('/=',
+                                                    c_ast.ID('repeat'), c_ast.Constant('int', '2')))
 
-            # calculate the size of the grid, taking the letters representing
-            # its dimensions from the array of constants
-            size = '(' + ' * '.join(k.name for k in self.constants) + ')'
+        # calculate the size of the grid, taking the letters representing
+        # its dimensions from the array of constants
+        size = '(' + ' * '.join(k.name for k in self.constants) + ')'
 
-            decl = c_ast.Decl('tmp', [], [], [], c_ast.PtrDecl(
-                [], c_ast.TypeDecl('tmp', [],
-                                   pointers_list[0].type.type.type.type)),
-                              None, None)
-            ast.block_items.insert(-5, decl)
+        decl = c_ast.Decl('tmp', [], [], [], c_ast.PtrDecl(
+            [], c_ast.TypeDecl('tmp', [],
+                               pointers_list[0].type.type.type.type)),
+                          None, None)
+        ast.block_items.insert(-5, decl)
 
-            # creating a list of standard types for all the non-pointer
-            # variables
+        # creating a list of standard types for all the non-pointer
+        # variables
+        
+        #     asd.append(c_ast.Typename(None, [], c_ast.TypeDecl(s, [], 'int')))
+        variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
+            d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
+        variables_list = variables_list + sizes_decls_typenames
+
+
+        norm_loop = deepcopy(forloop)
+        # generate the LUP expression according to the number of dimensions
+        # it is necessary to do so since we do not know a priori how many nested for we have
+        # additionally builds the norm of the array
+        if mydims == 1:
+
+            if isinstance(forloop.stmt, c_ast.Compound):
+                norm_cond_lvalue = norm_loop.stmt.block_items[0].lvalue
+                norm_cond_rvalue = norm_loop.stmt.block_items[0].rvalue
+            else:
+                norm_cond_lvalue = norm_loop.stmt.lvalue
+                norm_cond_rvalue = norm_loop.stmt.rvalue
+
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv1 = forloop.cond.right.left
+            myright_lv1 = int(forloop.cond.right.right.value)
+            myinit_lv1 = int(forloop.init.decls[0].init.value)
+            myright_lv1 += myinit_lv1
+            mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+
+            lup_expression = c_ast.Cast(
+                c_ast.IdentifierType(['double']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
             
-            #     asd.append(c_ast.Typename(None, [], c_ast.TypeDecl(s, [], 'int')))
-            variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
-                d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
-            variables_list = variables_list + sizes_decls_typenames
+
+            # # norm
+            # point = norm_cond_lvalue
+            # # set the name of the grid to the first (the order changed
+            # # after the swap)
+            # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            # norm_cond_lvalue = c_ast.ID('total')
+            # newop = c_ast.BinaryOp('+',
+            #                        c_ast.ID('total'),
+            #                        c_ast.BinaryOp('*', point, point))
+            # norm_cond_rvalue = newop
+            # calculate difference between a and b
+            point = norm_cond_lvalue
+            # set the name of the grid to the first (the order changed
+            # after the swap)
+            point1 = deepcopy(point)
+            point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            norm_cond_lvalue = c_ast.ID('total')
+            newop = c_ast.BinaryOp('+',
+                                   c_ast.ID('total'),
+                                   c_ast.BinaryOp('-', point, point1))
+            norm_cond_rvalue = newop
 
 
-            norm_loop = deepcopy(forloop)
-            # generate the LUP expression according to the number of dimensions
-            # it is necessary to do so since we do not know a priori how many nested for we have
-            # additionally builds the norm of the array
-            if mydims == 1:
+            if isinstance(forloop.stmt, c_ast.Compound):
+                norm_loop.stmt.block_items[0].lvalue = norm_cond_lvalue
+                norm_loop.stmt.block_items[0].rvalue = norm_cond_rvalue
+            else:
+                norm_loop.stmt.lvalue = norm_cond_lvalue
+                norm_loop.stmt.rvalue = norm_cond_rvalue
 
-                if isinstance(forloop.stmt, c_ast.Compound):
-                    norm_cond_lvalue = norm_loop.stmt.block_items[0].lvalue
-                    norm_cond_rvalue = norm_loop.stmt.block_items[0].rvalue
-                else:
-                    norm_cond_lvalue = norm_loop.stmt.lvalue
-                    norm_cond_rvalue = norm_loop.stmt.rvalue
+        elif mydims == 2:
+            
+            # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
+            # print(mycode)
+            # exit(1)
 
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv1 = forloop.cond.right.left
-                myright_lv1 = int(forloop.cond.right.right.value)
-                myinit_lv1 = int(forloop.init.decls[0].init.value)
-                myright_lv1 += myinit_lv1
-                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+            if isinstance(forloop.stmt, c_ast.Compound):
+                right_cond = forloop.stmt.block_items[0].cond.right
+                lv2_init = forloop.stmt.block_items[0].init
+                norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue
+                norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue
 
-                lup_expression = c_ast.Cast(
-                    c_ast.IdentifierType(['double']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
+            else: #no compound
+                right_cond = forloop.stmt.cond.right
+                lv2_init = forloop.stmt.init
+                norm_cond_lvalue = norm_loop.stmt.stmt.lvalue
+                norm_cond_rvalue = norm_loop.stmt.stmt.lvalue
+
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv1 = forloop.cond.right.left
+            myright_lv1 = int(forloop.cond.right.right.value)
+            myinit_lv1 = int(forloop.init.decls[0].init.value)
+            myright_lv1 += myinit_lv1
+            mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv2 = right_cond.left
+            myright_lv2 = int(right_cond.right.value)
+            myinit_lv2 = int(lv2_init.decls[0].init.value)
+            myright_lv2 += myinit_lv2
+            mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
+
+            lup_expression = c_ast.BinaryOp(
+                '*', c_ast.Cast(
+                    c_ast.IdentifierType(
+                        ['double']), mysize_lv1),
+                c_ast.Cast(c_ast.IdentifierType(
+                    ['double']),
+                mysize_lv2))
                 
+            # # norm
+            # point = norm_cond_lvalue
+            # # set the name of the grid to the first (the order changed
+            # # after the swap)
+            # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            # norm_cond_lvalue = c_ast.ID('total')
+            # newop = c_ast.BinaryOp('+',
+            #                        c_ast.ID('total'),
+            #                        c_ast.BinaryOp('*', point, point))
+            # norm_cond_rvalue = newop
+            # calculate difference between a and b
+            point = norm_cond_lvalue
+            # set the name of the grid to the first (the order changed
+            # after the swap)
+            point1 = deepcopy(point)
+            point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            norm_cond_lvalue = c_ast.ID('total')
+            newop = c_ast.BinaryOp('+',
+                                   c_ast.ID('total'),
+                                   c_ast.BinaryOp('-', point, point1))
+            norm_cond_rvalue = newop
 
-                # # norm
-                # point = norm_cond_lvalue
-                # # set the name of the grid to the first (the order changed
-                # # after the swap)
-                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                # norm_cond_lvalue = c_ast.ID('total')
-                # newop = c_ast.BinaryOp('+',
-                #                        c_ast.ID('total'),
-                #                        c_ast.BinaryOp('*', point, point))
-                # norm_cond_rvalue = newop
-                # calculate difference between a and b
-                point = norm_cond_lvalue
-                # set the name of the grid to the first (the order changed
-                # after the swap)
-                point1 = deepcopy(point)
-                point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_cond_lvalue = c_ast.ID('total')
-                newop = c_ast.BinaryOp('+',
-                                       c_ast.ID('total'),
-                                       c_ast.BinaryOp('-', point, point1))
-                norm_cond_rvalue = newop
+            #rebuild the norm loop
+            if isinstance(norm_loop.stmt, c_ast.Compound):
+                norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
+                norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
 
+            else: #no compound
+                norm_loop.stmt.stmt.lvalue = norm_cond_lvalue
+                norm_loop.stmt.stmt.lvalue = norm_cond_rvalue
 
-                if isinstance(forloop.stmt, c_ast.Compound):
-                    norm_loop.stmt.block_items[0].lvalue = norm_cond_lvalue
-                    norm_loop.stmt.block_items[0].rvalue = norm_cond_rvalue
-                else:
-                    norm_loop.stmt.lvalue = norm_cond_lvalue
-                    norm_loop.stmt.rvalue = norm_cond_rvalue
+        elif mydims == 3:
 
-            elif mydims == 2:
-                
-                # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
-                # print(mycode)
-                # exit(1)
+            if isinstance(forloop.stmt, c_ast.Compound):
+                right_cond = forloop.stmt.block_items[0].cond.right
+                lv2_init = forloop.stmt.block_items[0].init
+                norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue
+                norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue
+                stmt_rcond = forloop.stmt.block_items[0].stmt.block_items[0].cond.right
+                lv3_init = forloop.stmt.block_items[0].stmt.block_items[0].init
+            else: #no compound
+                right_cond = forloop.stmt.cond.right
+                lv2_init = forloop.stmt.init
+                norm_cond_lvalue = norm_loop.stmt.stmt.stmt.lvalue
+                norm_cond_rvalue = norm_loop.stmt.stmt.stmt.lvalue
+                stmt_rcond = forloop.stmt.stmt.cond.right
+                lv3_init = forloop.stmt.stmt.init
 
-                if isinstance(forloop.stmt, c_ast.Compound):
-                    right_cond = forloop.stmt.block_items[0].cond.right
-                    lv2_init = forloop.stmt.block_items[0].init
-                    norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue
-                    norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv1 = forloop.cond.right.left
+            myright_lv1 = int(forloop.cond.right.right.value)
+            myinit_lv1 = int(forloop.init.decls[0].init.value)
+            myright_lv1 += myinit_lv1
+            mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv2 = right_cond.left
+            myright_lv2 = int(right_cond.right.value)
+            myinit_lv2 = int(lv2_init.decls[0].init.value)
+            myright_lv2 += myinit_lv2
+            mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
+            #extract the end condition of the for and calculate the total number of points on which we iterated
+            myleft_lv3 = stmt_rcond.left
+            myright_lv3 = int(stmt_rcond.right.value)
+            myinit_lv3 = int(lv3_init.decls[0].init.value)
+            myright_lv3 += myinit_lv3
+            mysize_lv3 = c_ast.BinaryOp('-', myleft_lv3, c_ast.Constant('int', myright_lv3))
 
-                else: #no compound
-                    right_cond = forloop.stmt.cond.right
-                    lv2_init = forloop.stmt.init
-                    norm_cond_lvalue = norm_loop.stmt.stmt.lvalue
-                    norm_cond_rvalue = norm_loop.stmt.stmt.lvalue
-
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv1 = forloop.cond.right.left
-                myright_lv1 = int(forloop.cond.right.right.value)
-                myinit_lv1 = int(forloop.init.decls[0].init.value)
-                myright_lv1 += myinit_lv1
-                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv2 = right_cond.left
-                myright_lv2 = int(right_cond.right.value)
-                myinit_lv2 = int(lv2_init.decls[0].init.value)
-                myright_lv2 += myinit_lv2
-                mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
-
-                lup_expression = c_ast.BinaryOp(
-                    '*', c_ast.Cast(
-                        c_ast.IdentifierType(
-                            ['double']), mysize_lv1),
+            lup_expression = c_ast.BinaryOp(
+                '*', c_ast.BinaryOp(
+                    '*', c_ast.Cast(c_ast.IdentifierType(
+                        ['double']), mysize_lv1),
                     c_ast.Cast(c_ast.IdentifierType(
-                        ['double']),
-                    mysize_lv2))
-                
-                # # norm
-                # point = norm_cond_lvalue
-                # # set the name of the grid to the first (the order changed
-                # # after the swap)
-                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                # norm_cond_lvalue = c_ast.ID('total')
-                # newop = c_ast.BinaryOp('+',
-                #                        c_ast.ID('total'),
-                #                        c_ast.BinaryOp('*', point, point))
-                # norm_cond_rvalue = newop
-                # calculate difference between a and b
-                point = norm_cond_lvalue
-                # set the name of the grid to the first (the order changed
-                # after the swap)
-                point1 = deepcopy(point)
-                point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_cond_lvalue = c_ast.ID('total')
-                newop = c_ast.BinaryOp('+',
-                                       c_ast.ID('total'),
-                                       c_ast.BinaryOp('-', point, point1))
-                norm_cond_rvalue = newop
-
-                #rebuild the norm loop
-                if isinstance(norm_loop.stmt, c_ast.Compound):
-                    norm_loop.stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
-                    norm_loop.stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
-
-                else: #no compound
-                    norm_loop.stmt.stmt.lvalue = norm_cond_lvalue
-                    norm_loop.stmt.stmt.lvalue = norm_cond_rvalue
-
-            elif mydims == 3:
-
-                if isinstance(forloop.stmt, c_ast.Compound):
-                    right_cond = forloop.stmt.block_items[0].cond.right
-                    lv2_init = forloop.stmt.block_items[0].init
-                    norm_cond_lvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue
-                    norm_cond_rvalue = norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue
-                    stmt_rcond = forloop.stmt.block_items[0].stmt.block_items[0].cond.right
-                    lv3_init = forloop.stmt.block_items[0].stmt.block_items[0].init
-                else: #no compound
-                    right_cond = forloop.stmt.cond.right
-                    lv2_init = forloop.stmt.init
-                    norm_cond_lvalue = norm_loop.stmt.stmt.stmt.lvalue
-                    norm_cond_rvalue = norm_loop.stmt.stmt.stmt.lvalue
-                    stmt_rcond = forloop.stmt.stmt.cond.right
-                    lv3_init = forloop.stmt.stmt.init
-
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv1 = forloop.cond.right.left
-                myright_lv1 = int(forloop.cond.right.right.value)
-                myinit_lv1 = int(forloop.init.decls[0].init.value)
-                myright_lv1 += myinit_lv1
-                mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv2 = right_cond.left
-                myright_lv2 = int(right_cond.right.value)
-                myinit_lv2 = int(lv2_init.decls[0].init.value)
-                myright_lv2 += myinit_lv2
-                mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
-                #extract the end condition of the for and calculate the total number of points on which we iterated
-                myleft_lv3 = stmt_rcond.left
-                myright_lv3 = int(stmt_rcond.right.value)
-                myinit_lv3 = int(lv3_init.decls[0].init.value)
-                myright_lv3 += myinit_lv3
-                mysize_lv3 = c_ast.BinaryOp('-', myleft_lv3, c_ast.Constant('int', myright_lv3))
-
-                lup_expression = c_ast.BinaryOp(
-                    '*', c_ast.BinaryOp(
-                        '*', c_ast.Cast(c_ast.IdentifierType(
-                            ['double']), mysize_lv1),
-                        c_ast.Cast(c_ast.IdentifierType(
-                            ['double']), mysize_lv2)),
-                    c_ast.Cast(c_ast.IdentifierType(
-                        ['double']), mysize_lv3))
+                        ['double']), mysize_lv2)),
+                c_ast.Cast(c_ast.IdentifierType(
+                    ['double']), mysize_lv3))
                 
 
-                # # calculate norm
-                # point = norm_cond_lvalue
-                # # set the name of the grid to the first (the order changed
-                # # after the swap)
-                # point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                # norm_cond_lvalue = c_ast.ID('total')
-                # newop = c_ast.BinaryOp('+',
-                #                        c_ast.ID('total'),
-                #                        c_ast.BinaryOp('*', point, point))
-                # calculate difference between a and b
-                point = norm_cond_lvalue
-                # set the name of the grid to the first (the order changed
-                # after the swap)
-                point1 = deepcopy(point)
-                point.name = c_ast.ID(pointers_list[0].type.type.declname)
-                norm_cond_lvalue = c_ast.ID('total')
-                newop = c_ast.BinaryOp('+',
-                                       c_ast.ID('total'),
-                                       c_ast.BinaryOp('-', point, point1))
-                norm_cond_rvalue = newop
+            # # calculate norm
+            # point = norm_cond_lvalue
+            # # set the name of the grid to the first (the order changed
+            # # after the swap)
+            # point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            # norm_cond_lvalue = c_ast.ID('total')
+            # newop = c_ast.BinaryOp('+',
+            #                        c_ast.ID('total'),
+            #                        c_ast.BinaryOp('*', point, point))
+            # calculate difference between a and b
+            point = norm_cond_lvalue
+            # set the name of the grid to the first (the order changed
+            # after the swap)
+            point1 = deepcopy(point)
+            point.name = c_ast.ID(pointers_list[0].type.type.declname)
+            norm_cond_lvalue = c_ast.ID('total')
+            newop = c_ast.BinaryOp('+',
+                                   c_ast.ID('total'),
+                                   c_ast.BinaryOp('-', point, point1))
+            norm_cond_rvalue = newop
 
 
-                if isinstance(norm_loop.stmt, c_ast.Compound):
-                    norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
-                    norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
-                else: #no compound
-                    norm_loop.stmt.stmt.stmt.lvalue = norm_cond_lvalue
-                    norm_loop.stmt.stmt.stmt.lvalue = norm_cond_rvalue
+            if isinstance(norm_loop.stmt, c_ast.Compound):
+                norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].lvalue = norm_cond_lvalue
+                norm_loop.stmt.block_items[0].stmt.block_items[0].stmt.block_items[0].rvalue = norm_cond_rvalue
+            else: #no compound
+                norm_loop.stmt.stmt.stmt.lvalue = norm_cond_lvalue
+                norm_loop.stmt.stmt.stmt.lvalue = norm_cond_rvalue
 
-            # we build mlup. should be like:
-            # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
-            lup_expression = c_ast.BinaryOp('*',
-                                            c_ast.Cast(
-                                                c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
-                                            lup_expression)
-            # cast it to double since the first variables are ints
-            #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), lup_expression)
-            # we put all together to get mlup
-            #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
-            mlup = c_ast.BinaryOp('/', lup_expression, c_ast.BinaryOp('*',
-                                                                      c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+        # we build mlup. should be like:
+        # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
+        lup_expression = c_ast.BinaryOp('*',
+                                        c_ast.Cast(
+                                            c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
+                                        lup_expression)
+        # cast it to double since the first variables are ints
+        #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), lup_expression)
+        # we put all together to get mlup
+        #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+        mlup = c_ast.BinaryOp('/', lup_expression, c_ast.BinaryOp('*',
+                                                                  c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
 
-            # insert the printf of the stats
+        # insert the printf of the stats
 
-            mystring = "Performance in mlup/s: %lf\\n"
-            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                      mlup])))
-            mystring = "size: %d    time: %lf    iter: %d    mlup/s: %lf\\n"
-            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                      c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
+        mystring = "Performance in mlup/s: %lf\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  mlup])))
+        mystring = "size: %d    time: %lf    iter: %d    mlup/s: %lf\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
 
-            # insert the loop computing the total squared
-            decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
-                'total', [], c_ast.IdentifierType(['double'])
-            ), c_ast.Constant('double', '0.0'), None)
-            ast.block_items.insert(-6, decl)
-            ast.block_items.insert(-1, norm_loop)
+        # insert the loop computing the total squared
+        decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
+            'total', [], c_ast.IdentifierType(['double'])
+        ), c_ast.Constant('double', '0.0'), None)
+        ast.block_items.insert(-1, decl)
+        ast.block_items.insert(-1, norm_loop)
 
-            #calculate and print the norm of a
-            # insert the printf of the norm
-            # mystring = "norm(a): %lf\\n"
+        #calculate and print the norm of a
+        # insert the printf of the norm
+        # mystring = "norm(a): %lf\\n"
 
-            # sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
-            #                             c_ast.ExprList([c_ast.ID('total')]))
-            # ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-            #                                           c_ast.ExprList([
-            #                                               c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
+        # sqrt_total = c_ast.FuncCall(c_ast.ID('sqrt'),
+        #                             c_ast.ExprList([c_ast.ID('total')]))
+        # ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+        #                                           c_ast.ExprList([
+        #                                               c_ast.Constant('string', '"{}"'.format(mystring)), sqrt_total])))
 
-            # calculate and print a(i,j) - b(i,j)
-            mystring = "diff(a-b): %lf\\n"
-            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                      c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                      c_ast.ID('total')])))
+        # calculate and print a(i,j) - b(i,j)
+        mystring = "diff(a-b): %lf\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  c_ast.ID('total')])))
 
 
-        else:
-            ast.block_items += dummies
+        # else:
+        #     ast.block_items += dummies
 
         # embed compound into main FuncDecl
         decl = c_ast.Decl('main', [], [], [], c_ast.FuncDecl(
