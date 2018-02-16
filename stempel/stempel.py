@@ -179,9 +179,9 @@ def create_parser():
     parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
                               required=True, help='Path to machine description '
                               'yaml file.')
-    parser_bench.add_argument('--block', '-b', type=int,
-                              help='Path to machine description '
-                              'yaml file.')
+    parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1,
+                              help='B.ocking factor for the middle (3D) or '
+                              'outermost (2D) loop')
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
                               action=AppendStringRange,
                               help='Define constant to be used in C code. Values '\
@@ -404,7 +404,7 @@ def run_bench(args, output_file=sys.stdout):
             kernel.set_constant(k, v)
 
     # get compilable C code
-    c_code, kernel = kernel.as_code()
+    c_code, kernel = kernel.as_code()#from_cli=False)
 
    # Save storage to file or print to STDOUT
     if args.store:

@@ -414,7 +414,7 @@ class KernelBench(Kernel):
 
         return sources
 
-    def as_code(self, type_='likwid'):
+    def as_code(self, type_='likwid', from_cli=True):
         """
         generates compilable source code from AST
         *type* can be iaca or likwid.
@@ -433,25 +433,52 @@ class KernelBench(Kernel):
         # transform to pointer and malloc notation (stack can be too small)
         list(map(transform_array_decl_to_malloc, declarations))
 
-        # add declarations for constants from the executable command line
-        # i = 1  # subscript for cli input
-        # for k in self.constants:
-        #     # cont int N = atoi(argv[1])
-        #     type_decl = c_ast.TypeDecl(k.name, ['const'], c_ast.IdentifierType(['int']))
-        #     init = c_ast.FuncCall(
-        #         c_ast.ID('atoi'),
-        #         c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('int', str(i)))]))
-        #     i += 1
-        #     decl = c_ast.Decl(k.name, ['const'], [], [], type_decl, init, None)
-        #     ast.block_items.insert(0, decl)
 
-        # add declarations for constants from value passed to stempel
-        # for name, value in list(self.constants.items()):
-        #     type_decl = c_ast.TypeDecl(str(name), [], c_ast.IdentifierType(['int']))
-        #     decl = c_ast.Decl(
-        #         name, ['const'], [], [],
-        #             type_decl, c_ast.Constant('int', str(value)), None)
-        #     ast.block_items.insert(0, decl)
+        sizes_decls_typenames = []
+        # add declarations for constants from the executable command line
+        if(from_cli):
+            var_list = sorted([k.name for k in self.constants])
+
+            # add declaration of the block
+            if self.block_factor:
+                var_list.append('block_factor')
+
+                # type_decl = c_ast.TypeDecl(
+                #     'block_factor', [], c_ast.IdentifierType(['int']))
+                # decl = c_ast.Decl(
+                #     'block_factor', ['const'], [], [],
+                #     type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                # ast.block_items.insert(-3, decl)
+
+                # # add it to the list of declarations, so it gets passed to the
+                # # kernel_loop
+                # declarations.append(decl)
+  
+            i = 1  # subscript for cli input
+            for k in var_list:
+                # cont int N = atoi(argv[1])
+                type_decl = c_ast.TypeDecl(k, [], c_ast.IdentifierType(['int']))
+                init = c_ast.FuncCall(
+                    c_ast.ID('atoi'),
+                    c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('int', str(i)))]))
+                i += 1
+                #add the variable to the list of variables
+                type_name = c_ast.Typename(None, [], type_decl)
+                sizes_decls_typenames.append(type_name)
+                decl = c_ast.Decl(k, ['const'], [], [], type_decl, init, None)
+                ast.block_items.insert(0, decl)
+        else:
+            # add declarations for constants from value passed to stempel
+            for name, value in list(self.constants.items()):
+                type_decl = c_ast.TypeDecl(str(name), [], c_ast.IdentifierType(['int']))
+                decl = c_ast.Decl(
+                    name, ['const'], [], [],
+                        #type_decl, c_ast.Constant('int', str(value)), None)
+                        type_decl, c_ast.Constant('int', str(name.name+'_MAX')), None)
+                type_name = c_ast.Typename(None, [], type_decl)
+                sizes_decls_typenames.append(type_name)
+                ast.block_items.insert(0, decl)
+
 
         if type_ == 'likwid':
             # Call likwid_markerInit()
@@ -470,21 +497,19 @@ class KernelBench(Kernel):
 
         
         #extract name of the sizes
-        sizes_names=[x.name for x in array_dimensions[declarations[0].name]]
-
-
+        #sizes_names=[x.name for x in array_dimensions[declarations[0].name]]
         #declare the variables of the sizes, i.e.: int M = 100;
-        sizes_decls_typenames = []
-        for s in sizes_names:
+        # sizes_decls_typenames = []
+        # for s in sizes_names:
 
-            type_decl = c_ast.TypeDecl(
-                s, [], c_ast.IdentifierType(['int']))
-            type_name = c_ast.Typename(None, [], type_decl)
-            sizes_decls_typenames.append(type_name)
+        #     type_decl = c_ast.TypeDecl(
+        #         s, [], c_ast.IdentifierType(['int']))
+        #     type_name = c_ast.Typename(None, [], type_decl)
+        #     sizes_decls_typenames.append(type_name)
 
-            ast.block_items.insert(0, c_ast.Decl(
-                s, ['const'], [], [],
-                type_decl, c_ast.Constant('int', '100'), None))
+        #     ast.block_items.insert(0, c_ast.Decl(
+        #         s, ['const'], [], [],
+        #         type_decl, c_ast.Constant('int', '100'), None))
 
         # inject array initialization
         for d in declarations:
@@ -648,18 +673,19 @@ class KernelBench(Kernel):
             ast.block_items.insert(-2,
                                    c_ast.Constant('string', 'INSERTMACROSTART'))
 
-            # add declaration of the block
-            if self.block_factor:
-                type_decl = c_ast.TypeDecl(
-                    'block_factor', [], c_ast.IdentifierType(['int']))
-                decl = c_ast.Decl(
-                    'block_factor', ['const'], [], [],
-                    type_decl, c_ast.Constant('int', str(self.block_factor)), None)
-                ast.block_items.insert(-3, decl)
+            if not from_cli:
+                # add declaration of the block
+                if self.block_factor:
+                    type_decl = c_ast.TypeDecl(
+                        'block_factor', [], c_ast.IdentifierType(['int']))
+                    decl = c_ast.Decl(
+                        'block_factor', ['const'], [], [],
+                        type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                    ast.block_items.insert(-3, decl)
 
-                # add it to the list of declarations, so it gets passed to the
-                # kernel_loop
-                declarations.append(decl)
+                    # add it to the list of declarations, so it gets passed to the
+                    # kernel_loop
+                    declarations.append(decl)
 
             # Wrap everything in a loop
             # int repeat = atoi(argv[2])
@@ -729,7 +755,7 @@ class KernelBench(Kernel):
             next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
             #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
             stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sizes_names]))
+                                  c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]))
             swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
                                         c_ast.ID(pointers_list[0].type.type.declname))
             swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
@@ -1196,12 +1222,15 @@ class KernelBench(Kernel):
 
         # add empty line on top
         code = '\n' + code
-        # add defines of the variables storing the size of the dimensions
-        for name, value in list(self.constants.items()):
-            line = '#define {} {}L\n'.format(name, value)
-            code = line + code
 
-        code = '\n' + code
+        if not from_cli:
+            # add defines of the variables storing the size of the dimensions
+            for name, value in list(self.constants.items()):
+                line = '#define {} {}L\n'.format(name.name+'_MAX', value)
+                code = line + code
+
+            code = '\n' + code
+
         ifdefperf = '#ifdef LIKWID_PERFMON\n'
         endif = '#endif\n'
 
