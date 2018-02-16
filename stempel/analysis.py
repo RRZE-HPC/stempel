@@ -176,6 +176,14 @@ def build_graph(project, exp_dir, param_values, method_name, threads, pinning):
         logging.error("Run failed: {}".format(e))
         sys.exit(1)
 
+def logspace(start, end, num):
+    start = math.log10(start)
+    end = math.log10(end)
+    steplength = float((end-start))/float((num-1))
+    i = 0
+    while i < num:
+        yield int(10**(start+i*steplength))
+        i += 1
 
 def run_gen(args, output_file=sys.stdout):
 
@@ -291,54 +299,60 @@ def run_gen(args, output_file=sys.stdout):
                                     dimension = str(
                                         dimension).partition(' ')[0]
                                 size = float(dimension) * 1000000 / 8
-                                size = str(int(math.sqrt(size)))
-                                if iaca:
-                                    ECM = 'ECM'
-                                else:
-                                    ECM = 'ECMData'
-                                cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(
-                                    stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size, '-D', 'N', size]
-                                logging.info(
-                                    'Running command: {}'.format(' '.join(cmd)))
-                                try:
-                                    # print(cmd)
-                                    out = subprocess.check_output(cmd)
-                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
-                                        f.write(out)
-                                except subprocess.CalledProcessError as e:
-                                    #print("kerncraft failed:", e)
-                                    logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
-                                    sys.exit(1)
-                                # blocksize = 32
-                                # #run stempel bench to create actual C code
-                                cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                    machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '--store']  # , '-b', blocksize]
-                                logging.info(
-                                    'Running command: {}'.format(' '.join(cmd)))
-                                try:
-                                   # print(cmd)
-                                    subprocess.check_output(cmd)
-                                except subprocess.CalledProcessError as e:
-                                    #print("Run failed:", e)
-                                    logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
-                                    sys.exit(1)
-                                logging.info('Successfully created benchmark file: {}{}'.format(
-                                    stencil_name.split('.')[0], '_compilable.c'))
+                                size = int(math.sqrt(size))
+                                half_size = str(size / 2)
+                                quarter_size = str(size / 4)
+                                double_size = str(size * 2)
+                                size = str(size)
+                                sizes = [quarter_size, half_size, size, double_size]
+                                for size in sizes:
+                                    if iaca:
+                                        ECM = 'ECM'
+                                    else:
+                                        ECM = 'ECMData'
+                                    cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(
+                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-v']
+                                    logging.info(
+                                        'Running command: {}'.format(' '.join(cmd)))
+                                    try:
+                                        # print(cmd)
+                                        out = subprocess.check_output(cmd)
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                            f.write(out)
+                                    except subprocess.CalledProcessError as e:
+                                        #print("kerncraft failed:", e)
+                                        logging.error(
+                                            'Failed to execute {}: {}'.format(cmd, e))
+                                        sys.exit(1)
+                                    # blocksize = 32
+                                    # #run stempel bench to create actual C code
+                                    cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '--store']  # , '-b', blocksize]
+                                    logging.info(
+                                        'Running command: {}'.format(' '.join(cmd)))
+                                    try:
+                                       # print(cmd)
+                                        subprocess.check_output(cmd)
+                                    except subprocess.CalledProcessError as e:
+                                        #print("Run failed:", e)
+                                        logging.error(
+                                            'Failed to execute {}: {}'.format(cmd, e))
+                                        sys.exit(1)
+                                    logging.info('Successfully created benchmark file: {}{}'.format(
+                                        stencil_name.split('.')[0], '_compilable.c'))
 
-                                if withprova:
-                                    # run the code through prova!
-                                    mystencilname = stencil_name.split('.')[0]
-                                    stencil_name = mystencilname + '_compilable.c'
-                                    project = mystencilname
-                                    params = 'M N'
-                                    values = '{} {}'.format(size, size)
-                                    param_values = values
-                                    threads = 2
+                                    if withprova:
+                                        # run the code through prova!
+                                        mystencilname = stencil_name.split('.')[0]
+                                        stencil_name = mystencilname + '_compilable.c'
+                                        project = mystencilname
+                                        params = 'M N'
+                                        values = '{} {}'.format(size, size)
+                                        param_values = values
+                                        threads = 2
 
-                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
-                                              method_type, method_name, executions, param_values, exp_threads, pinning)
+                                        run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                                  method_type, method_name, executions, param_values, exp_threads, pinning)
                         else:  # d == 3
                             for machine in machinefiles:
                                 logging.info('Retrieving machinefile')
@@ -360,77 +374,70 @@ def run_gen(args, output_file=sys.stdout):
                                     dimension = str(
                                         dimension).partition(' ')[0]
                                 size = float(dimension) * 1000000 / 8
-                                size = str(int(round(size ** (1. / 3))))
-                                if iaca:
-                                    ECM = 'ECM'
-                                else:
-                                    ECM = 'ECMData'
-                                cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                    machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size]
-                                logging.info(
-                                    'Running command: {}'.format(' '.join(cmd)))
-                                try:
-                                    # print(cmd)
-                                    out = subprocess.check_output(cmd)
-                                    with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
-                                        f.write(out)
-                                except subprocess.CalledProcessError as e:
-                                    #print("kerncraft failed:", e)
-                                    logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
-                                    sys.exit(1)
-                                # blocksize = 32
-                                # #run stempel bench to create actual C code
-                                cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                    machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '--store']  # , '-b', blocksize]
-                                logging.info(
-                                    'Running command: {}'.format(' '.join(cmd)))
-                                try:
-                                    # print(cmd)
-                                    subprocess.check_output(cmd)
-                                except subprocess.CalledProcessError as e:
-                                    #print("Run failed:", e)
-                                    logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
-                                    sys.exit(1)
-                                logging.info('Successfully created benchmark file: {}{}'.format(
-                                    stencil_name.split('.')[0], '_compilable.c'))
+                                size = int(round(size ** (1. / 3)))
+                                half_size = str(size / 2)
+                                quarter_size = str(size / 4)
+                                double_size = str(size * 2)
+                                size = str(size)
+                                sizes = [quarter_size, half_size, size, double_size]
+                                
+                                for size in sizes:
+                                    if iaca:
+                                        ECM = 'ECM'
+                                    else:
+                                        ECM = 'ECMData'
+                                    cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '-v']
+                                    logging.info(
+                                        'Running command: {}'.format(' '.join(cmd)))
+                                    try:
+                                        # print(cmd)
+                                        out = subprocess.check_output(cmd)
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                            f.write(out)
+                                    except subprocess.CalledProcessError as e:
+                                        #print("kerncraft failed:", e)
+                                        logging.error(
+                                            'Failed to execute {}: {}'.format(cmd, e))
+                                        sys.exit(1)
+                                    # blocksize = 32
+                                    # #run stempel bench to create actual C code
+                                    cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '--store']  # , '-b', blocksize]
+                                    logging.info(
+                                        'Running command: {}'.format(' '.join(cmd)))
+                                    try:
+                                        # print(cmd)
+                                        subprocess.check_output(cmd)
+                                    except subprocess.CalledProcessError as e:
+                                        #print("Run failed:", e)
+                                        logging.error(
+                                            'Failed to execute {}: {}'.format(cmd, e))
+                                        sys.exit(1)
+                                    logging.info('Successfully created benchmark file: {}{}'.format(
+                                        stencil_name.split('.')[0], '_compilable.c'))
 
-                                if withprova:
-                                    # machine = get_machine_topology()
-                                    # actual_machine_name = machine['model name'].replace(' ', '_').replace('(TM)', '') + '.yml'
-                                    # if not actual_machine_name in machinefiles:
-                                    #     cmd = ['python', 'likwid_bench_auto']
-                                    # logging.info(
-                                    #     'Running command: {}'.format(' '.join(cmd)))
-                                    # try:
-                                    #     out = subprocess.check_output(cmd)
-                                    # except subprocess.CalledProcessError as e:
-                                    #     #print("Run failed:", e)
-                                    #     logging.error(
-                                    #         'Failed to execute {}: {}'.format(cmd, e))
-                                    #     sys.exit(1)
-                                    # with open(os.path.join(machinepath, actual_machine_name), 'w', encoding='utf8') as outfile:
-                                    #     yaml.dump(machine, outfile, default_flow_style=False, allow_unicode=True)
-                                    # logging.info('Successfully created machinefile for the current architecture')
-                                    mystencilname = stencil_name.split('.')[0]
-                                    stencil_name = mystencilname + '_compilable.c'
-                                    project = mystencilname
-                                    params = 'M N P'
-                                    values = '{} {} {}'.format(
-                                        size, size, size)
-                                    param_values = values
-                                    threads = 2
-                                    # run the code through prova!
-                                    run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
-                                              method_type, method_name, executions, param_values, exp_threads, pinning)
+                                    if withprova:
+                                        mystencilname = stencil_name.split('.')[0]
+                                        stencil_name = mystencilname + '_compilable.c'
+                                        project = mystencilname
+                                        params = 'M N P'
+                                        values = '{} {} {}'.format(
+                                            size, size, size)
+                                        param_values = values
+                                        threads = 2
+                                        # run the code through prova!
+                                        run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                                  method_type, method_name, executions, param_values, exp_threads, pinning)
 
 
 def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads, method_type, method_name, executions, param_values, exp_threads, pinning):
     filesrc = os.path.join(stencil_path, stencil_name)
+    filekernelsrc = os.path.join(stencil_path, 'kernel.c')
     destination_dir = os.path.join(provaworkspace, project,
                                    method_name, 'src')
     filedest = os.path.join(destination_dir, 'example.c')
+    filekerneldest = os.path.join(destination_dir, 'kernel.c')
     logging.info('Later {} will be copied to {}'.format(filesrc, filedest))
 
     basesetup(provapath, provaworkspace, likwid_inc, likwid_lib)
@@ -441,6 +448,12 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
             filesrc, filedest, e))
+
+    try:
+        copyfile(filekernelsrc, filekerneldest)
+    except IOError as e:
+        logging.error('Unable to copy file {} to {}. {}'.format(
+            filekernelsrc, filekerneldest, e))
 
     headers_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     headers_path = os.path.join(headers_path, 'headers')
