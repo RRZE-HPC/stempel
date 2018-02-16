@@ -1214,6 +1214,7 @@ class KernelBench(Kernel):
         code = ifdefperf + '#include <likwid.h>\n' + endif + code
 
         # add "#include"s for dummy, var_false and stdlib (for malloc)
+        code = '#include "kernel.c"\n' + code
         code = '#include "kerncraft.h"\n' + code
         code = '#include "timing.h"\n' + code
 

@@ -415,7 +415,7 @@ def run_bench(args, output_file=sys.stdout):
         with open(tempname, 'w') as out:
             out.write(c_code)
         shutil.move(tempname, args.code_file.name.split('.')[0] + "_compilable.c")
-        with open('kernel.c', 'w') as out:
+        with open(os.path.join(os.path.dirname(tempname), 'kernel.c'), 'w') as out:
             out.write(kernel)
     else:
         print(c_code)
