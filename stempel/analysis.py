@@ -250,8 +250,10 @@ def run_gen(args, output_file=sys.stdout):
     for k in kind:
         if k == 'star':
             radius = radius_star
+            cache_model = "LC"
         else:
             radius = radius_box
+            cache_model = "SIM"
         for c in coefficients:
             for l in classification:
                 for r in radius:
@@ -278,6 +280,7 @@ def run_gen(args, output_file=sys.stdout):
                             logging.error(
                                 'Failed to execute {}: {}'.format(cmd, e))
                             sys.exit(1)
+
                         if d == 2:
                             logging.info('Retrieving machinefile')
                             for machine in machinefiles:
@@ -310,7 +313,7 @@ def run_gen(args, output_file=sys.stdout):
                                         ECM = 'ECM'
                                     else:
                                         ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(
+                                    cmd = ['kerncraft', '-p', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
                                         stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-v']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
@@ -386,7 +389,7 @@ def run_gen(args, output_file=sys.stdout):
                                         ECM = 'ECM'
                                     else:
                                         ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-p', 'LC', '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                    cmd = ['kerncraft', '-p', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
                                         machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '-v']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
