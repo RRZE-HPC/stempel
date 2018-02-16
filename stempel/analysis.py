@@ -347,14 +347,15 @@ def run_gen(args, output_file=sys.stdout):
                                     if withprova:
                                         # run the code through prova!
                                         mystencilname = stencil_name.split('.')[0]
-                                        stencil_name = mystencilname + '_compilable.c'
                                         project = mystencilname
+                                        mystencilname = mystencilname + '_compilable.c'
+                                        
                                         params = 'M N'
                                         values = '{} {}'.format(size, size)
                                         param_values = values
                                         threads = 2
 
-                                        run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                        run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                                   method_type, method_name, executions, param_values, exp_threads, pinning)
                         else:  # d == 3
                             for machine in machinefiles:
@@ -421,16 +422,18 @@ def run_gen(args, output_file=sys.stdout):
                                         stencil_name.split('.')[0], '_compilable.c'))
 
                                     if withprova:
+                                        # run the code through prova!
                                         mystencilname = stencil_name.split('.')[0]
-                                        stencil_name = mystencilname + '_compilable.c'
                                         project = mystencilname
+                                        mystencilname = mystencilname + '_compilable.c'
+
                                         params = 'M N P'
                                         values = '{} {} {}'.format(
                                             size, size, size)
                                         param_values = values
                                         threads = 2
                                         # run the code through prova!
-                                        run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                        run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                                   method_type, method_name, executions, param_values, exp_threads, pinning)
 
 
@@ -476,6 +479,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
         logging.error('Unable to correctly retrieve the last experiment.')
 
     try:
+        logging.info('Copying file: results.json')
         copyfile(outfile, os.path.join(stencil_path, 'results.json'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
@@ -483,6 +487,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     outfile = os.path.join(exp_dir, 'results.dat')
     try:
+        logging.info('Copying file: results.dat')
         copyfile(outfile, os.path.join(stencil_path, 'results.dat'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
@@ -490,6 +495,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     outfile = os.path.join(exp_dir, 'graph.svg')
     try:
+        logging.info('Copying file: graph.svg')
         copyfile(outfile, os.path.join(stencil_path, 'graph.svg'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
@@ -497,6 +503,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     outfile = os.path.join(exp_dir, 'gnuplot.gp')
     try:
+        logging.info('Copying file: gnuplot.gp')
         copyfile(outfile, os.path.join(stencil_path, 'gnuplot.gp'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
@@ -504,6 +511,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     outfile = os.path.join(exp_dir, '.experiment')
     try:
+        logging.info('Copying file: .experiment')
         copyfile(outfile, os.path.join(stencil_path, '.experiment'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
