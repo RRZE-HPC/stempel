@@ -395,6 +395,11 @@ def run_bench(args, output_file=sys.stdout):
     else:
         define_product = [{}]
 
+    # if define_product:
+    #     size = define_product[0][0][1]
+    # else:
+    #     size = 100
+
     for define in define_product:
         # Reset state of kernel
         kernel.clear_state()
