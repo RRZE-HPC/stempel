@@ -1202,11 +1202,12 @@ class KernelBench(Kernel):
 
         if not from_cli:
             # add defines of the variables storing the size of the dimensions
-            for name, value in list(self.constants.items()):
-                line = '#define {} {}L\n'.format(name.name+'_MAX', value)
-                code = line + code
+            # for name, value in list(self.constants.items()):
+            #     line = '#define {} {}L\n'.format(name.name+'_MAX', value)
+            #     code = line + code
+            #code = '\n' + code
+            code = '#include "dim_input.h"\n' + code
 
-            code = '\n' + code
 
         ifdefperf = '#ifdef LIKWID_PERFMON\n'
         endif = '#endif\n'
