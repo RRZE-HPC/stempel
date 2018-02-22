@@ -15,9 +15,9 @@ from kerncraft import kerncraft
 from kerncraft.likwid_bench_auto import get_machine_topology
 
 #from . import stempel
-
+home = str(pathlib.Path.home())
 current_time = datetime.now().strftime("%Y%m%d-%H%M")
-logging.basicConfig(level=logging.INFO, filename='/tmp/myanalysis_{}.log'.format(current_time),
+logging.basicConfig(level=logging.INFO, filename=home+'/.stempel/myanalysis_{}.log'.format(current_time),
                     format='%(asctime)s %(levelname)s %(message)s')
 
 
@@ -103,10 +103,10 @@ def create_project(provapath, provaworkspace, project, params, values, threads):
 
     # create a project
     mypathname = os.path.join(provaworkspace, project)
-    if os.path.exists(mypathname):
-        logging.error(
-            "Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
-        sys.exit(1)
+    # if os.path.exists(mypathname):
+    #     logging.error(
+    #         "Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
+    #     sys.exit(1)
 
     cmd = ['workflow', 'project', '-c', '-p', project, '--params',
            params, '--values', values, '--threads', str(threads)]
@@ -123,10 +123,10 @@ def create_method(provapath, provaworkspace, project, method_type, method_name):
     # cmd_prefix = ['.', os.path.join(
     #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
     mypathname = os.path.join(provaworkspace, project, method_name)
-    if os.path.exists(mypathname):
-        logging.error(
-            "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
-        sys.exit(1)
+    # if os.path.exists(mypathname):
+    #     logging.error(
+    #         "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
+    #     sys.exit(1)
     # create a method
     cmd = ['workflow', 'method', '-c', '-p', project,
            '-m', method_type, '-n', method_name]
@@ -303,10 +303,11 @@ def run_gen(args, output_file=sys.stdout):
                                         dimension).partition(' ')[0]
                                 size = float(dimension) * 1000000 / 8
                                 size = int(math.sqrt(size))
-                                half_size = str(size / 2)
-                                quarter_size = str(size / 4)
-                                double_size = str(size * 2)
-                                size = str(size)
+                                half_size = str(int(size / 2))
+                                quarter_size = str(int(size / 4))
+                                double_size = str(int(size * 2))
+                                size = str(int(size))
+
                                 sizes = [quarter_size, half_size, size, double_size]
                                 for size in sizes:
                                     if iaca:
@@ -320,7 +321,7 @@ def run_gen(args, output_file=sys.stdout):
                                     try:
                                         # print(cmd)
                                         out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
                                             f.write(out)
                                     except subprocess.CalledProcessError as e:
                                         #print("kerncraft failed:", e)
@@ -342,7 +343,7 @@ def run_gen(args, output_file=sys.stdout):
                                             'Failed to execute {}: {}'.format(cmd, e))
                                         sys.exit(1)
                                     logging.info('Successfully created benchmark file: {}{}'.format(
-                                        stencil_name.split('.')[0], '_compilable.c'))
+                                        stencil_name.split('.')[0]+'_compilable.c'))
 
                                     if withprova:
                                         # run the code through prova!
@@ -350,10 +351,14 @@ def run_gen(args, output_file=sys.stdout):
                                         project = mystencilname
                                         mystencilname = mystencilname + '_compilable.c'
                                         
-                                        params = 'M N'
+                                        params = 'M_MAX N_MAX'
                                         values = '{} {}'.format(size, size)
                                         param_values = values
                                         threads = 2
+                                        logging.info('Using: {}'.format(mystencilname))
+                                        logging.info('Running: {}'.format(project))
+                                        logging.info('Rnning: {}'.format(param_values))
+                                        exit(1)
 
                                         run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                                   method_type, method_name, executions, param_values, exp_threads, pinning)
@@ -379,10 +384,10 @@ def run_gen(args, output_file=sys.stdout):
                                         dimension).partition(' ')[0]
                                 size = float(dimension) * 1000000 / 8
                                 size = int(round(size ** (1. / 3)))
-                                half_size = str(size / 2)
-                                quarter_size = str(size / 4)
-                                double_size = str(size * 2)
-                                size = str(size)
+                                half_size = str(int(size / 2))
+                                quarter_size = str(int(size / 4))
+                                double_size = str(int(size * 2))
+                                size = str(int(size))
                                 sizes = [quarter_size, half_size, size, double_size]
                                 
                                 for size in sizes:
@@ -397,7 +402,7 @@ def run_gen(args, output_file=sys.stdout):
                                     try:
                                         # print(cmd)
                                         out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                             f.write(out)
                                     except subprocess.CalledProcessError as e:
                                         #print("kerncraft failed:", e)
@@ -427,11 +432,15 @@ def run_gen(args, output_file=sys.stdout):
                                         project = mystencilname
                                         mystencilname = mystencilname + '_compilable.c'
 
-                                        params = 'M N P'
+                                        params = 'M_MAX N_MAX P_MAX'
                                         values = '{} {} {}'.format(
                                             size, size, size)
                                         param_values = values
                                         threads = 2
+
+                                        logging.info('Using: {}'.format(mystencilname))
+                                        logging.info('Running: {}'.format(project))
+                                        logging.info('Rnning: {}'.format(param_values))
                                         # run the code through prova!
                                         run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
                                                   method_type, method_name, executions, param_values, exp_threads, pinning)
