@@ -92,7 +92,7 @@ def call_kerncraft(code='', verbosity=''):
 def create_parser():
     """This method creates a parser
     """
-    example_gen = 'Example usage: stempel gen -D 2 -r 1 -s -k star -C variable -d 2'
+    example_gen = 'Example usage: stempel gen -D 2 -r 1 -i -k star -C variable -d 2'
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
