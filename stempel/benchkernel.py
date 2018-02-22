@@ -1060,7 +1060,11 @@ class KernelBench(Kernel):
             myvariables.append(chr(ord('i') + i))
 
         #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
-        pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
+        pragma_int = None
+        if self.block_factor:
+            pragma_int = c_ast.Pragma('omp for schedule(runtime)')
+        else:
+            pragma_int = c_ast.Pragma('omp parallel for schedule(runtime)')
 
         # declaring the function of the kernel with the parameters list built
         # before
@@ -1088,7 +1092,7 @@ class KernelBench(Kernel):
                 beginning = myvariables[0] + 'b'
                 end = myvariables[0] + 'end'
                 pragma = c_ast.Pragma(
-                    'omp for private({}, {})'.format(beginning, end))
+                    'omp parallel private({}, {})'.format(beginning, end))
 
                 #mycode = CGenerator().visit(forloop.stmt.block_items[0].init.decls[0])
 
@@ -1126,7 +1130,7 @@ class KernelBench(Kernel):
                 beginning = myvariables[1] + 'b'
                 end = myvariables[1] + 'end'
                 pragma = c_ast.Pragma(
-                    'omp for private({}, {})'.format(beginning, end))
+                    'omp parallel private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
                     c_ast.Decl(
@@ -1148,6 +1152,10 @@ class KernelBench(Kernel):
                             c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
                             myblockstmt.cond.right])))
+
+                myblockstmt.init.decls[0].init = c_ast.ID(beginning)
+                myblockstmt.cond.right = c_ast.ID(end)
+
                 mycompound = c_ast.Compound(
                     [assign, pragma_int, forloop])
 
@@ -1261,122 +1269,3 @@ class KernelBench(Kernel):
         # return mycode
         return code, kernel
 
-    def build(self, lflags=None, verbose=False):
-        """
-        compiles source to executable with likwid capabilities
-        returns the executable name
-        """
-
-        compiler, compiler_args = self._machine.get_compiler()
-
-        # if not (('LIKWID_INCLUDE' in os.environ or 'LIKWID_INC' in os.environ) and
-        #         'LIKWID_LIB' in os.environ):
-        #     print('Could not find LIKWID_INCLUDE and LIKWID_LIB environment variables',
-        #           file=sys.stderr)
-        #     sys.exit(1)
-
-        compiler_args += [
-            '-std=c99',
-            '-I' +
-            os.path.abspath(os.path.dirname(
-                os.path.realpath(__file__))) + '/headers/',
-            '-DLIKWID_PERFMON', '-llikwid']
-        # os.environ.get('LIKWID_INCLUDE', ''),
-        # os.environ.get('LIKWID_INC', '')]
-
-        # This is a special case for unittesting
-        # if os.environ.get('LIKWID_LIB') == '':
-        #     compiler_args = compiler_args[:-1]
-
-        if lflags is None:
-            lflags = []
-        # lflags += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
-        # compiler_args += os.environ['LIKWID_LIB'].split(' ') + ['-pthread']
-        compiler_args += ['-pthread']
-
-        if not self._filename:
-            source_file = tempfile.NamedTemporaryFile(
-                suffix='_compilable.c', mode='w', encoding='ascii'
-            )
-        else:
-            source_file = open(self._filename + "_compilable.c", 'w')
-
-        source_file.write(self.as_code(type_='likwid'))
-        source_file.flush()
-
-        infiles = [os.path.abspath(os.path.dirname(os.path.realpath(__file__))) + '/headers/dummy.c',
-                   source_file.name]
-        if self._filename:
-            outfile = os.path.abspath(os.path.splitext(
-                self._filename)[0] + '.likwid_marked')
-        else:
-            outfile = tempfile.mkstemp(suffix='.likwid_marked')
-        cmd = [compiler] + infiles + compiler_args + ['-o', outfile]
-        # remove empty arguments
-        cmd = list(filter(bool, cmd))
-        if verbose:
-            print('Executing (build): ', ' '.join(cmd))
-        try:
-            subprocess.check_output(cmd)
-        except subprocess.CalledProcessError as e:
-            print("Build failed:", e, file=sys.stderr)
-            sys.exit(1)
-        finally:
-            source_file.close()
-
-        return outfile
-
-    def perfctr(self, cmd, group='MEM', cpu='S0:0', code_markers=True, pin=True):
-        '''
-        runs *cmd* with likwid-perfctr and returns result as dict
-        *group* may be a performance group known to likwid-perfctr or an event string.
-        Only works with single core!
-        '''
-
-        # Making sure iaca.sh is available:
-        if find_executable('likwid-perfctr') is None:
-            print("likwid-perfctr was not found. Make sure likwid is installed and found in PATH.",
-                  file=sys.stderr)
-            sys.exit(1)
-
-        # FIXME currently only single core measurements support!
-        perf_cmd = ['likwid-perfctr', '-f', '-O', '-g', group]
-
-        if pin:
-            perf_cmd += ['-C', cpu]
-        else:
-            perf_cmd += ['-c', cpu]
-
-        if code_markers:
-            perf_cmd.append('-m')
-
-        perf_cmd += cmd
-        if self._args.verbose > 1:
-            print(' '.join(perf_cmd))
-        try:
-            output = subprocess.check_output(
-                perf_cmd).decode('utf-8').split('\n')
-        except subprocess.CalledProcessError as e:
-            print("Executing benchmark failed: {!s}".format(
-                e), file=sys.stderr)
-            sys.exit(1)
-
-        results = {}
-
-        for l in output:
-            l = l.split(',')
-            try:
-                # Metrics
-                results[l[0]] = float(l[1])
-            except:
-                pass
-            try:
-                # Event counters
-                counter_value = int(l[2])
-                if fullmatch(r'[A-Z0-9_]+', l[0]) and fullmatch(r'[A-Z0-9]+', l[1]):
-                    results.setdefault(l[0], {})
-                    results[l[0]][l[1]] = counter_value
-            except (IndexError, ValueError):
-                pass
-
-        return results
