@@ -309,6 +309,7 @@ def run_gen(args, output_file=sys.stdout):
                                 size = str(int(size))
 
                                 sizes = [quarter_size, half_size, size, double_size]
+                                param_values = ''
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
@@ -329,39 +330,40 @@ def run_gen(args, output_file=sys.stdout):
                                             'Failed to execute {}: {}'.format(cmd, e))
                                         sys.exit(1)
                                     # blocksize = 32
-                                    # #run stempel bench to create actual C code
-                                    cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '--store']  # , '-b', blocksize]
-                                    logging.info(
-                                        'Running command: {}'.format(' '.join(cmd)))
-                                    try:
-                                       # print(cmd)
-                                        subprocess.check_output(cmd)
-                                    except subprocess.CalledProcessError as e:
-                                        #print("Run failed:", e)
-                                        logging.error(
-                                            'Failed to execute {}: {}'.format(cmd, e))
-                                        sys.exit(1)
-                                    logging.info('Successfully created benchmark file: {}{}'.format(
-                                        stencil_name.split('.')[0]+'_compilable.c'))
 
-                                    if withprova:
-                                        # run the code through prova!
-                                        mystencilname = stencil_name.split('.')[0]
-                                        project = mystencilname
-                                        mystencilname = mystencilname + '_compilable.c'
-                                        
-                                        params = 'M_MAX N_MAX'
-                                        values = '{} {}'.format(size, size)
-                                        param_values = values
-                                        threads = 2
-                                        logging.info('Using: {}'.format(mystencilname))
-                                        logging.info('Running: {}'.format(project))
-                                        logging.info('Rnning: {}'.format(param_values))
-                                        exit(1)
+                                    param_values = param_values + ' "{} {}"'.format(size, size)
 
-                                        run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
-                                                  method_type, method_name, executions, param_values, exp_threads, pinning)
+                                # #run stempel bench to create actual C code
+                                cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                    machinefilepath, machine), '--store', '--nocli']  # , '-b', blocksize]
+                                logging.info(
+                                    'Running command: {}'.format(' '.join(cmd)))
+                                try:
+                                   # print(cmd)
+                                    subprocess.check_output(cmd)
+                                except subprocess.CalledProcessError as e:
+                                    #print("Run failed:", e)
+                                    logging.error(
+                                        'Failed to execute {}: {}'.format(cmd, e))
+                                    sys.exit(1)
+                                logging.info('Successfully created benchmark file: {}{}'.format(
+                                    stencil_name.split('.')[0], '_compilable.c'))
+
+                                if withprova:
+                                    # run the code through prova!
+                                    mystencilname = stencil_name.split('.')[0]
+                                    project = mystencilname
+                                    mystencilname = mystencilname + '_compilable.c'
+                                    
+                                    params = 'M_MAX N_MAX'
+                                    values = '{} {}'.format(sizes[0], sizes[0])
+                                    threads = 2
+                                    logging.info('Using: {}'.format(mystencilname))
+                                    logging.info('Running: {}'.format(project))
+                                    logging.info('Running with sizes: {}'.format(param_values))
+
+                                    run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                        method_type, method_name, executions, param_values, exp_threads, pinning)
                         else:  # d == 3
                             for machine in machinefiles:
                                 logging.info('Retrieving machinefile')
@@ -389,7 +391,7 @@ def run_gen(args, output_file=sys.stdout):
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
                                 sizes = [quarter_size, half_size, size, double_size]
-                                
+                                param_values = ''
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
@@ -409,41 +411,43 @@ def run_gen(args, output_file=sys.stdout):
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
                                         sys.exit(1)
-                                    # blocksize = 32
-                                    # #run stempel bench to create actual C code
-                                    cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '--store']  # , '-b', blocksize]
-                                    logging.info(
-                                        'Running command: {}'.format(' '.join(cmd)))
-                                    try:
-                                        # print(cmd)
-                                        subprocess.check_output(cmd)
-                                    except subprocess.CalledProcessError as e:
-                                        #print("Run failed:", e)
-                                        logging.error(
-                                            'Failed to execute {}: {}'.format(cmd, e))
-                                        sys.exit(1)
-                                    logging.info('Successfully created benchmark file: {}{}'.format(
-                                        stencil_name.split('.')[0], '_compilable.c'))
 
-                                    if withprova:
-                                        # run the code through prova!
-                                        mystencilname = stencil_name.split('.')[0]
-                                        project = mystencilname
-                                        mystencilname = mystencilname + '_compilable.c'
+                                    param_values = param_values + ' "{} {} {}"'.format(size, size, size)
 
-                                        params = 'M_MAX N_MAX P_MAX'
-                                        values = '{} {} {}'.format(
-                                            size, size, size)
-                                        param_values = values
-                                        threads = 2
+                                # #run stempel bench to create actual C code
+                                cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                    machinefilepath, machine), '--store', '--nocli']  # , '-b', blocksize]
+                                logging.info(
+                                    'Running command: {}'.format(' '.join(cmd)))
+                                try:
+                                    # print(cmd)
+                                    subprocess.check_output(cmd)
+                                except subprocess.CalledProcessError as e:
+                                    #print("Run failed:", e)
+                                    logging.error(
+                                        'Failed to execute {}: {}'.format(cmd, e))
+                                    sys.exit(1)
+                                logging.info('Successfully created benchmark file: {}{}'.format(
+                                    stencil_name.split('.')[0], '_compilable.c'))
 
-                                        logging.info('Using: {}'.format(mystencilname))
-                                        logging.info('Running: {}'.format(project))
-                                        logging.info('Rnning: {}'.format(param_values))
-                                        # run the code through prova!
-                                        run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
-                                                  method_type, method_name, executions, param_values, exp_threads, pinning)
+
+                                if withprova:
+                                    # run the code through prova!
+                                    mystencilname = stencil_name.split('.')[0]
+                                    project = mystencilname
+                                    mystencilname = mystencilname + '_compilable.c'
+
+                                    params = 'M_MAX N_MAX P_MAX'
+                                    values = '{} {} {}'.format(
+                                        sizes[0], sizes[0], sizes[0])
+                                    threads = 2
+
+                                    logging.info('Using: {}'.format(mystencilname))
+                                    logging.info('Running: {}'.format(project))
+                                    logging.info('Running with sizes: {}'.format(param_values))
+                                    # run the code through prova!
+                                    run_prova(stencil_path, mystencilname, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads,
+                                              method_type, method_name, executions, param_values, exp_threads, pinning)
 
 
 def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc, likwid_lib, project, params, values, threads, method_type, method_name, executions, param_values, exp_threads, pinning):
