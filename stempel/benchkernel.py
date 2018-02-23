@@ -469,7 +469,7 @@ class KernelBench(Kernel):
             mysize = 'size ' * len(self.constants)
             num_args = num_args + len(self.constants)
 
-            argerror_string = 'Wrong number of arguments. Usage:\\n%s {}{}'.format(mysize, blocking)
+            argerror_string = 'Wrong number of arguments. Usage:\\n%s {}{}\\n'.format(mysize, blocking)
             argerror_cond = c_ast.BinaryOp('!=',
                     c_ast.ID('argc'), c_ast.Constant('int', num_args))
 
@@ -480,7 +480,7 @@ class KernelBench(Kernel):
                     c_ast.ID('return'), c_ast.ExprList([c_ast.Constant('int', '0')]))]),
                 iffalse=None)
             ast.block_items.insert(0, arg_check_if)
-            
+
         else:
             # add declarations for constants from value passed to stempel
             for name, value in list(self.constants.items()):
