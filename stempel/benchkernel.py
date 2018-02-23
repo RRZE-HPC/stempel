@@ -1035,10 +1035,19 @@ class KernelBench(Kernel):
         ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                   mlup])))
-        mystring = "size: %d    time: %lf    iter: %d    mlup/s: %lf\\n"
+        mystring = "size: %d\\n"
         ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                  c_ast.ID(size), c_ast.ID('runtime'), c_ast.ID('repeat'), mlup])))
+                                                                  c_ast.ID(size)])))
+        mystring = "time: %lf\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  c_ast.ID('runtime')])))
+
+        mystring = "iterations: %d\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  c_ast.ID('repeat')])))
 
         # insert the loop computing the total squared
         decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(
