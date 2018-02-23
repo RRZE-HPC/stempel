@@ -1,28 +1,24 @@
-Usage of STempEL
-=====
-
-STempEL has 2 subcommands (gen and bench) used to generate a C like stencil kernel, used by kerncraft to analyse the stencil, and to create the benchmark code.
+Usage of STempEL:
 
 stempel gen accept several parameters:
-- number of dimensions desired, by specifying the -D flag (i.e. -D 2)
-- radius of the stencil, by specifying the -r flag (i.e. -r 2)
-- kind of the stencil, that can be star or box, by using the -k flag (i.e. -k star). When not specified, it defaults to star
-- type of the coefficients, that can be constant or variable, by specifying the -C flag (i.e. -C variable). When not specified, it defaults to constant
-	in case of variable coefficients, the dimension that stores the coefficients can be selected through the -d flag (i.e. -d 1). All the coefficients are packed into an array (e.g. W[M][N][2]) and this flag allows to modify how the array is built: -d 2 means W[M][N][2] -> W[M][2][N]
-- data type of your computation, either double or float, by specifying the -t flag (i.e. -t float). When not specified, it defaults to double
-- classification of the stencil with respect to its weighting factors. The possible, mutually exclusive, choices are:
-	isotropic, i.e. the coefficients do not depend on the direction, by passing the flag -i
-	heterogeneous, i.e. the weighting factors expose no simmetry (a different coefficient for each direction), by passing the flag -e
-	homogeneous, the only coefficient is a scalar, by passing the flag -o
-	point-symmetric, i.e. the weighting factors are simmetric to the origin, by passing the flag -p
-- whether to store, by passing the --store flag (specifying the name of the file), or simply print to screen the generated stencil
+	number of dimensions desired, by specifying the -D flag (i.e. -D 2)
+	radius of the stencil, by specifying the -r flag (i.e. -r 2)
+	kind of the stencil, that can be star or box, by using the -k flag (i.e. -k star). When not specified, it defaults to star
+	type of the coefficients, that can be constant or variable, by specifying the -C flag (i.e. -C variable). When not specified, it defaults to constant
+		in case of variable coefficients, the dimension that stores the coefficients can be selected through the -d flag (i.e. -d 1). All the coefficients are packed into an array (e.g. W[M][N][2]) and this flag allows to modify how the array is built: -d 2 means W[M][N][2] -> W[M][2][N]
+	data type of your computation, either double or float, by specifying the -t flag (i.e. -t float). When not specified, it defaults to double
+	classification of the stencil with respect to its weighting factors. The possible, mutually exclusive, choices are:
+		isotropic, i.e. the coefficients do not depend on the direction, by passing the flag -i
+		heterogeneous, i.e. the weighting factors expose no simmetry (a different coefficient for each direction), by passing the flag -e
+		homogeneous, the only coefficient is a scalar, by passing the flag -o
+		point-symmetric, i.e. the weighting factors are simmetric to the origin, by passing the flag -p
+	whether to store, by passing the --store flag (specifying the name of the file), or simply print to screen the generated stencil
 
 An example of command line to generate a 3D radius 2 star point-symmetric stencil, with variable coefficients, stored in its first dimension, and float as data type is:
-``stempel gen -D 3 -r 2 -k star -C variable -p -t float -d 1``
+stempel gen -D 3 -r 2 -k star -C variable -p -t float -d 1
 
 The output is:
 
-::
 float a[M][N][P];
 float b[M][N][P];
 float W[7][M][N][P];
@@ -41,15 +37,13 @@ b[k][j][i] = W[0][k][j][i] * a[k][j][i]
 }
 }
 }
-::
+
 
 In case we do not pass the datatype and we choose the second dimension to store the coefficients, we run the following command:
-
-``stempel gen -D 3 -r 2 -k star -C variable -p -d 2 --store stencil.c``
+stempel gen -D 3 -r 2 -k star -C variable -p -d 2 --store stencil.c
 
 and get this output saved in the file stencil.c:
 
-``
 double a[M][N][P];
 double b[M][N][P];
 double W[M][7][N][P];
@@ -68,7 +62,6 @@ b[k][j][i] = W[k][0][j][i] * a[k][j][i]
 }
 }
 }
-``
 
 The ouput of the generator produces a kernel accepted by kerncraft, thus allowing the analysis of the stencil an the modeling of its performance.
 After the modeling we can pass to generate the benchmark code out of the kernel. In order to do so, we use the bench subcommand provided by stempel.
@@ -80,14 +73,9 @@ stempel bench accept several parameters:
 The size of each dimension will be accepted by command line, when running the executable generated compiling the source code produced by stempel bench.
 
 The command:
-
-``
 stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml
-``
 
 produces the following output, saved in stencil_compilable.c:
-
-``
 #include <stdlib.h>
 #include <math.h>
 
@@ -201,11 +189,9 @@ int main(int argc, char **argv)
   #endif
 
 }
-``
+
 
 and the file kernel.c:
-
-``
 #ifndef min
 #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
 #endif
@@ -226,17 +212,11 @@ void kernel_loop(double *a, double *b, double *W, int M, int N, int P)
   }
 
 }
-``
 
 It is possible to generate a blocked version of the code, using the following command line:
-
-``
 stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml -b
-``
 
 and obtaining this stencil_compilable.c:
-
-``
 #include <stdlib.h>
 #include <math.h>
 
@@ -351,11 +331,9 @@ int main(int argc, char **argv)
   #endif
 
 }
-``
 
 and the following kernel.c:
 
-``
 #ifndef min
 #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
 #endif
@@ -382,77 +360,20 @@ void kernel_loop(double *a, double *b, double *W, int M, int N, int P, int block
   }
 
 }
-``
+
 
 In order to compile you then need some headers available in headers. An example of working compilation command is:
-
-``gcc -std=c99 -O3 -fopenmp -D_POSIX_C_SOURCE=200112L -Iheaders headers/timing.c stencil_compilable.c -o stencil.exe``
+gcc -std=c99 -O3 -fopenmp -D_POSIX_C_SOURCE=200112L -Iheaders headers/timing.c stencil_compilable.c -o stencil.exe
 
 Running:
-
-``./stencil.exe 200 200 250``
+./stencil.exe 200 200 250
 
 causes the termination of the program:
-
-``
 Wrong number of arguments. Usage:
 ./stencil.exe size size size blocking
-``
 
 because in this example, a blocked version of the stecnil was used. So the correct command is:
-
-``./stencil.exe 200 200 250 64``
+./stencil.exe 200 200 250 64
 
 This way the stencil was run with dimensions 200, 200 and 250 and a blocking factor of 64 on the middle loop.
-
-If compiled enabling LIKWID_PERF:
-
-``gcc -std=c99 -O3 -fopenmp -march=native -fargument-noalias -pthread -D_POSIX_C_SOURCE=200112L -DLIKWID_PERFMON -Iheaders -I/apps/likwid/system/include/ -L/apps/likwid/system/lib headers/timing.c stencil_compilable.c -o stencil.exe -llikwid``
-
-can then be run this way:
-
-``likwid-perfctr -m -g L2CACHE -C S0:2 ./stencil.exe 250 250 250 64``
-
-and tis is an example output (when run with the previous command line):
-
-``
---------------------------------------------------------------------------------
-CPU name:	Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz
-CPU type:	Intel Core Westmere processor
-CPU clock:	2.67 GHz
---------------------------------------------------------------------------------
-Performance in mlup/s: 90.453027
-size: 15625000    time: 0.658328    iter: 4    mlup/s: 90.453027
-diff(a-b): -288130.231583
---------------------------------------------------------------------------------
-Region Sweep, Group 1: L2CACHE
-+-------------------+----------+
-|    Region Info    |  Core 2  |
-+-------------------+----------+
-| RDTSC Runtime [s] | 1.316398 |
-|     call count    |     1    |
-+-------------------+----------+
-
-+-----------------------+---------+------------+
-|         Event         | Counter |   Core 2   |
-+-----------------------+---------+------------+
-|   INSTR_RETIRED_ANY   |  FIXC0  | 3684279000 |
-| CPU_CLK_UNHALTED_CORE |  FIXC1  | 3521397000 |
-|  CPU_CLK_UNHALTED_REF |  FIXC2  | 3064407000 |
-|  L2_RQSTS_REFERENCES  |   PMC0  |  386624000 |
-|     L2_RQSTS_MISS     |   PMC1  |  183417800 |
-+-----------------------+---------+------------+
-
-+----------------------+-----------+
-|        Metric        |   Core 2  |
-+----------------------+-----------+
-|  Runtime (RDTSC) [s] |   1.3164  |
-| Runtime unhalted [s] |   1.3204  |
-|      Clock [MHz]     | 3064.5259 |
-|          CPI         |   0.9558  |
-|    L2 request rate   |   0.1049  |
-|     L2 miss rate     |   0.0498  |
-|     L2 miss ratio    |   0.4744  |
-+----------------------+-----------+
-``
 
