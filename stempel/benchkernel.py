@@ -450,7 +450,21 @@ class KernelBench(Kernel):
                 var_list.append('block_factor')
                 blocking = 'blocking'
                 num_args = num_args + 1
-            
+
+            i = 1  # subscript for cli input
+            for k in var_list:
+                # cont int N = atoi(argv[1])
+                type_decl = c_ast.TypeDecl(k, [], c_ast.IdentifierType(['int']))
+                init = c_ast.FuncCall(
+                    c_ast.ID('atoi'),
+                    c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('int', str(i)))]))
+                i += 1
+                #add the variable to the list of variables
+                type_name = c_ast.Typename(None, [], type_decl)
+                sizes_decls_typenames.append(type_name)
+                decl = c_ast.Decl(k, ['const'], [], [], type_decl, init, None)
+                ast.block_items.insert(0, decl)
+
             #build and add the if statement checking the number of arguments passed on the command line
             mysize = 'size ' * len(self.constants)
             num_args = num_args + len(self.constants)
@@ -466,20 +480,7 @@ class KernelBench(Kernel):
                     c_ast.ID('return'), c_ast.ExprList([c_ast.Constant('int', '0')]))]),
                 iffalse=None)
             ast.block_items.insert(0, arg_check_if)
-
-            i = 1  # subscript for cli input
-            for k in var_list:
-                # cont int N = atoi(argv[1])
-                type_decl = c_ast.TypeDecl(k, [], c_ast.IdentifierType(['int']))
-                init = c_ast.FuncCall(
-                    c_ast.ID('atoi'),
-                    c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('int', str(i)))]))
-                i += 1
-                #add the variable to the list of variables
-                type_name = c_ast.Typename(None, [], type_decl)
-                sizes_decls_typenames.append(type_name)
-                decl = c_ast.Decl(k, ['const'], [], [], type_decl, init, None)
-                ast.block_items.insert(0, decl)
+            
         else:
             # add declarations for constants from value passed to stempel
             for name, value in list(self.constants.items()):
