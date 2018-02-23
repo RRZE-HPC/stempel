@@ -103,10 +103,11 @@ def create_project(provapath, provaworkspace, project, params, values, threads):
 
     # create a project
     mypathname = os.path.join(provaworkspace, project)
-    # if os.path.exists(mypathname):
-    #     logging.error(
-    #         "Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
-    #     sys.exit(1)
+    if os.path.exists(mypathname):
+        logging.error(
+            "Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
+        print("Run failed: The project {} already exists. Please choose a different name or delete it first.".format(project))
+        sys.exit(1)
 
     cmd = ['workflow', 'project', '-c', '-p', project, '--params',
            params, '--values', values, '--threads', str(threads)]
@@ -120,14 +121,14 @@ def create_project(provapath, provaworkspace, project, params, values, threads):
 
 
 def create_method(provapath, provaworkspace, project, method_type, method_name):
-    # cmd_prefix = ['.', os.path.join(
-    #     provapath, 'util', 'BaseSetup.sh'), provaworkspace, '&&']
+
     mypathname = os.path.join(provaworkspace, project, method_name)
-    # if os.path.exists(mypathname):
-    #     logging.error(
-    #         "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
-    #     sys.exit(1)
-    # create a method
+    if os.path.exists(mypathname):
+        logging.error(
+            "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
+        print("Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
+        sys.exit(1)
+    create a method
     cmd = ['workflow', 'method', '-c', '-p', project,
            '-m', method_type, '-n', method_name]
     try:
