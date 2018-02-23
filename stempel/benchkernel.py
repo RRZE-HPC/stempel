@@ -788,7 +788,9 @@ class KernelBench(Kernel):
 
         # creating a list of standard types for all the non-pointer
         # variables
-
+        variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
+            d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
+        variables_list = variables_list + sizes_decls_typenames
 
         norm_loop = deepcopy(forloop)
         # generate the LUP expression according to the number of dimensions
@@ -1060,7 +1062,6 @@ class KernelBench(Kernel):
         for i in range(0, mydims):
             myvariables.append(chr(ord('i') + i))
 
-        #pragma_int = c_ast.Pragma('omp for private({}) schedule(runtime)'.format(','.join(myvariables)))
         pragma_int = None
         if self.block_factor:
             pragma_int = c_ast.Pragma('omp for schedule(runtime)')
