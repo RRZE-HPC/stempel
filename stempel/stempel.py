@@ -122,7 +122,7 @@ def create_parser():
     classification_group.add_argument('-e', '--heterogeneous', action='store_const',
                                       dest='classification', const='heterogeneous',
                                       help='Define if the weighting factors expose'\
-                                      ' no symmetry, i.e. s a different coefficient '\
+                                      ' no symmetry, i.e. a different coefficient '\
                                       'for each direction')
     classification_group.add_argument('-o', '--homogeneous', action='store_const',
                                       dest='classification', const='homogeneous',
@@ -180,12 +180,16 @@ def create_parser():
                               required=True, help='Path to machine description '
                               'yaml file.')
     parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1,
-                              help='B.ocking factor for the middle (3D) or '
+                              help='Blocking factor for the middle (3D) or '
                               'outermost (2D) loop')
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
                               action=AppendStringRange,
                               help='Define constant to be used in C code. Values '\
                               'must be integer')
+    parser_bench.add_argument('--nocli', action='store_true', default=False,
+                                      help='Define wehther to generate the '\
+                                      'version of the code to be run via '\
+                                      'command line interface or via PROVA')
     parser_bench.add_argument('--store', action='store_true',
                               help='Addes results to a C file for later processing.')
 
@@ -409,7 +413,7 @@ def run_bench(args, output_file=sys.stdout):
             kernel.set_constant(k, v)
 
     # get compilable C code
-    c_code, kernel = kernel.as_code()#from_cli=False)
+    c_code, kernel = kernel.as_code(from_cli=not args.nocli)
 
    # Save storage to file or print to STDOUT
     if args.store:
