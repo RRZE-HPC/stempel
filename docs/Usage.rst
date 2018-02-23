@@ -2,16 +2,27 @@ Usage of STempEL:
 
 stempel gen accept several parameters:
 	number of dimensions desired, by specifying the -D flag (i.e. -D 2)
+	
 	radius of the stencil, by specifying the -r flag (i.e. -r 2)
+	
 	kind of the stencil, that can be star or box, by using the -k flag (i.e. -k star). When not specified, it defaults to star
+	
 	type of the coefficients, that can be constant or variable, by specifying the -C flag (i.e. -C variable). When not specified, it defaults to constant
+	
 		in case of variable coefficients, the dimension that stores the coefficients can be selected through the -d flag (i.e. -d 1). All the coefficients are packed into an array (e.g. W[M][N][2]) and this flag allows to modify how the array is built: -d 2 means W[M][N][2] -> W[M][2][N]
+		
 	data type of your computation, either double or float, by specifying the -t flag (i.e. -t float). When not specified, it defaults to double
+	
 	classification of the stencil with respect to its weighting factors. The possible, mutually exclusive, choices are:
+		
 		isotropic, i.e. the coefficients do not depend on the direction, by passing the flag -i
+		
 		heterogeneous, i.e. the weighting factors expose no simmetry (a different coefficient for each direction), by passing the flag -e
+		
 		homogeneous, the only coefficient is a scalar, by passing the flag -o
+		
 		point-symmetric, i.e. the weighting factors are simmetric to the origin, by passing the flag -p
+	
 	whether to store, by passing the --store flag (specifying the name of the file), or simply print to screen the generated stencil
 
 An example of command line to generate a 3D radius 2 star point-symmetric stencil, with variable coefficients, stored in its first dimension, and float as data type is:
