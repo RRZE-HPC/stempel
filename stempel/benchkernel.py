@@ -434,15 +434,39 @@ class KernelBench(Kernel):
         list(map(transform_array_decl_to_malloc, declarations))
 
 
+        # if(argc != ) {
+        #     printf("Usage: %s N NB M MB L LB repetitions\n", argv[0]);
+        #     return 0;
+        # }
+
         sizes_decls_typenames = []
         # add declarations for constants from the executable command line
         if(from_cli):
             var_list = sorted([k.name for k in self.constants])
-
+            blocking = ''
+            num_args = 1
             # add declaration of the block
             if self.block_factor:
                 var_list.append('block_factor')
-  
+                blocking = 'blocking'
+                num_args = num_args + 1
+            
+            #build and add the if statement checking the number of arguments passed on the command line
+            mysize = 'size ' * len(self.constants)
+            num_args = num_args + len(self.constants)
+
+            argerror_string = 'Wrong number of arguments. Usage:\\n%s {}{}'.format(mysize, blocking)
+            argerror_cond = c_ast.BinaryOp('!=',
+                    c_ast.ID('argc'), c_ast.Constant('int', num_args))
+
+            argerror = c_ast.FuncCall(c_ast.ID('printf'),
+                c_ast.ExprList([
+                    c_ast.Constant('string', '"{}"'.format(argerror_string)), c_ast.ID('argv[0]')]))
+            arg_check_if = c_ast.If(cond=argerror_cond, iftrue=c_ast.Compound([argerror, c_ast.FuncCall(
+                    c_ast.ID('return'), c_ast.ExprList([c_ast.Constant('int', '0')]))]),
+                iffalse=None)
+            ast.block_items.insert(0, arg_check_if)
+
             i = 1  # subscript for cli input
             for k in var_list:
                 # cont int N = atoi(argv[1])
