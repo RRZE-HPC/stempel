@@ -730,8 +730,14 @@ class KernelBench(Kernel):
             index_name), c_ast.ID('repeat'))
         next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
         #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+
+        expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
+        if self.block_factor:
+            expr_list = expr_list + [c_ast.ID('block_factor')]
+
         stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-                              c_ast.ExprList([c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]))
+                              c_ast.ExprList(expr_list))
+
         swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
                                     c_ast.ID(pointers_list[0].type.type.declname))
         swap_grid = c_ast.Assignment('=', c_ast.ID(pointers_list[0].type.type.declname),
@@ -782,11 +788,6 @@ class KernelBench(Kernel):
 
         # creating a list of standard types for all the non-pointer
         # variables
-        
-        #     asd.append(c_ast.Typename(None, [], c_ast.TypeDecl(s, [], 'int')))
-        variables_list = [c_ast.Typename(None, [], c_ast.TypeDecl(
-            d.name, [], d.type.type)) for d in declarations if type(d.type) is c_ast.TypeDecl]
-        variables_list = variables_list + sizes_decls_typenames
 
 
         norm_loop = deepcopy(forloop)
@@ -1091,8 +1092,9 @@ class KernelBench(Kernel):
             if mydims == 2:  # blocking on the inner-most loop
                 beginning = myvariables[0] + 'b'
                 end = myvariables[0] + 'end'
+
                 pragma = c_ast.Pragma(
-                    'omp parallel private({}, {})'.format(beginning, end))
+                    'omp parallel')# private({}, {})'.format(beginning, end))
 
                 #mycode = CGenerator().visit(forloop.stmt.block_items[0].init.decls[0])
 
@@ -1109,18 +1111,18 @@ class KernelBench(Kernel):
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-                assign = c_ast.Assignment(
-                    '=', c_ast.ID(end), c_ast.FuncCall(
-                        c_ast.ID('min'), c_ast.ExprList([
-                            c_ast.BinaryOp(
+                decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                    end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                    c_ast.ID('min'), c_ast.ExprList([
+                        c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                            myblockstmt.cond.right])))
+                        myblockstmt.cond.right])), None)
 
                 myblockstmt.init.decls[0].init = c_ast.ID(beginning)
                 myblockstmt.cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound(
-                    [assign, pragma_int, forloop])
+                    [decl, pragma_int, forloop])
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
@@ -1130,7 +1132,7 @@ class KernelBench(Kernel):
                 beginning = myvariables[1] + 'b'
                 end = myvariables[1] + 'end'
                 pragma = c_ast.Pragma(
-                    'omp parallel private({}, {})'.format(beginning, end))
+                    'omp parallel')# private({}, {})'.format(beginning, end))
 
                 init = c_ast.DeclList([
                     c_ast.Decl(
@@ -1146,18 +1148,18 @@ class KernelBench(Kernel):
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
                 #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-                assign = c_ast.Assignment(
-                    '=', c_ast.ID(end), c_ast.FuncCall(
-                        c_ast.ID('min'), c_ast.ExprList([
-                            c_ast.BinaryOp(
+                decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                    end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                    c_ast.ID('min'), c_ast.ExprList([
+                        c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                            myblockstmt.cond.right])))
+                        myblockstmt.cond.right])), None)
 
                 myblockstmt.init.decls[0].init = c_ast.ID(beginning)
                 myblockstmt.cond.right = c_ast.ID(end)
 
                 mycompound = c_ast.Compound(
-                    [assign, pragma_int, forloop])
+                    [decl, pragma_int, forloop])
 
                 newfor = c_ast.For(init, cond, next_, mycompound)
 
@@ -1266,6 +1268,10 @@ class KernelBench(Kernel):
             code = code = code[0:-1]
 
         kernel = CGenerator().visit(ast_kernel)
+        kernel = '#endif\n' + kernel
+        kernel = '#define min( a, b ) ( ((a) < (b)) ? (a) : (b) )\n' + kernel
+        kernel = '#ifndef min\n' + kernel
+
         # return mycode
         return code, kernel
 
