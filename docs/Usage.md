@@ -73,6 +73,8 @@ b[k][j][i] = W[k][0][j][i] * a[k][j][i]
 ```
 
 The ouput of the generator produces a kernel accepted by kerncraft, thus allowing the analysis of the stencil an the modeling of its performance.
+
+
 After the modeling we can pass to generate the benchmark code out of the kernel. In order to do so, we use the bench subcommand provided by stempel.
 stempel bench accept several parameters:
 	file containing the stencil specification (the one previously created using the --store flag)
@@ -80,6 +82,7 @@ stempel bench accept several parameters:
 	blocking version or not, by passing the -b flag (the blocking is on the innermost loop when 2D and middle loop when 3D)
 	whether to store, by passing the --store flag. It will generate a file called inputfilename_compilable.c and kernel.c, containing the main and the kernel function respectively.
 The size of each dimension will be accepted by command line, when running the executable generated compiling the source code produced by stempel bench.
+The generated coded is compliant to the specifications available in the [stencil_blueprints](https://github.com/RRZE-HPC/stempel/blob/master/docs/Stencil_Blueprints.pptx)
 
 The command:
 
