@@ -24,7 +24,7 @@ An example of command line to generate a 3D radius 2 star point-symmetric stenci
 
 The output is:
 
-```
+```c
 float a[M][N][P];
 float b[M][N][P];
 float W[7][M][N][P];
@@ -51,7 +51,7 @@ In case we do not pass the datatype and we choose the second dimension to store 
 
 and get this output saved in the file stencil.c:
 
-```
+```c
 double a[M][N][P];
 double b[M][N][P];
 double W[M][7][N][P];
@@ -87,7 +87,7 @@ The command:
 
 produces the following output, saved in stencil_compilable.c:
 
-```
+```c
 #include <stdlib.h>
 #include <math.h>
 
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 
 and the file kernel.c:
 
-```
+```c
 #ifndef min
 #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
 #endif
@@ -234,7 +234,7 @@ It is possible to generate a blocked version of the code, using the following co
 
 and obtaining this stencil_compilable.c:
 
-```
+```c
 #include <stdlib.h>
 #include <math.h>
 
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 
 and the following kernel.c:
 
-```
+```c
 #ifndef min
 #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
 #endif
