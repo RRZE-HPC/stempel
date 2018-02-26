@@ -478,7 +478,7 @@ The analysis accepts several arguments, derived by the stempel gen and stempel b
 ...homogeneous, the only coefficient is a scalar, by passing the flag -o
 ...point-symmetric, i.e. the weighting factors are simmetric to the origin, by passing the flag -p
 - workspace for the stencil generator (path that will be created and used to store the stencils and their analysis), by using the -w flag
-- path of PROVA! and a workspace for the executions, by using the -p flag
+- path to a working installation of PROVA! and a workspace for the executions, by using the -p flag
 - whether to use IACA or not, via the --iaca flag (allows to apply the full ECM model)
 - paths to the likwid include and libs folders (order matters!), needed to run the executions of the compiled code, by using the -l flag
 - method type (a concept belonging to PROVA!), by using the --method_type flag, foloowed by the name of the chosen method. It is used to bind the code with a certain software stack and a fixed way to compile and run the produced code (see more at [PROVA!](https://prova.io)).
