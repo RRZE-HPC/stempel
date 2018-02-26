@@ -613,4 +613,4 @@ At the end of the execution of the command presented above, the following graph 
 
 ![alt text][logo]
 
-[logo]: https://github.com/RRZE-HPC/stempel/blob/master/stempel/examples/test-runs/2d-2r-star-constant-lima.pdf "2D 2r isotropic constant coefficient star stencil on LiMa"
+[logo]: https://github.com/RRZE-HPC/stempel/files/1759323/2d-2r-star-constant-lima.pdf "2D 2r isotropic constant coefficient star stencil on LiMa"
