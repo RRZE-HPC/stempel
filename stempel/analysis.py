@@ -15,9 +15,13 @@ from kerncraft import kerncraft
 from kerncraft.likwid_bench_auto import get_machine_topology
 
 #from . import stempel
-home = str(pathlib.Path.home())
+stempel_logpath = pathlib.Path(pathlib.Path.home(), '.stempel')
+stempel_logpath.mkdir(exist_ok=True, parents=True)
+
 current_time = datetime.now().strftime("%Y%m%d-%H%M")
-logging.basicConfig(level=logging.INFO, filename=home+'/.stempel/myanalysis_{}.log'.format(current_time),
+log_name = 'myanalysis_{}.log'.format(current_time)
+stempel_logfilepath = str(pathlib.Path(stempel_logpath, log_name))
+logging.basicConfig(level=logging.INFO, filename=stempel_logfilepath,
                     format='%(asctime)s %(levelname)s %(message)s')
 
 
@@ -128,7 +132,7 @@ def create_method(provapath, provaworkspace, project, method_type, method_name):
             "Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
         print("Run failed: The method {} already exists in this project. Please choose a different name or delete it first.".format(method_name))
         sys.exit(1)
-    create a method
+    #create a method
     cmd = ['workflow', 'method', '-c', '-p', project,
            '-m', method_type, '-n', method_name]
     try:
