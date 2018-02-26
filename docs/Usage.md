@@ -611,4 +611,4 @@ saturating at inf cores
 
 At the end of the execution of the command presented above, the following graph has been generated (automatically by PROVA!):
 
-![alt text](https://github.com/RRZE-HPC/stempel/files/1759323/2d-2r-star-constant-lima.pdf "2D 2r isotropic constant coefficient star stencil on LiMa")
+![alt text](https://github.com/RRZE-HPC/stempel/files/1759323/2d-2r-star-constant-lima.png "2D 2r isotropic constant coefficient star stencil on LiMa")
