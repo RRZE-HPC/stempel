@@ -1,0 +1,128 @@
+                                   kerncraft                                    
+/home/hpc/ihpc/ihpc07/Desktop/stempelwork/stencils/2D/2r/isotropic/star/constant/2d-2r-isotropic-constant-star-stencil.c-m examples/machine-files/Intel_Xeon_CPU_X5650_2.67GHz_mod.yml
+-D N 1224 -D M 1224
+----------------------------------- Roofline -----------------------------------
+constants:     name | value     
+           ---------+-----------
+                  M | 1224      
+                  N | 1224      
+           
+
+{'cache stats': [{'EVICT_byte': 6528,
+                  'EVICT_count': 102,
+                  'HIT_byte': 54672,
+                  'HIT_count': 6834,
+                  'LOAD_byte': 65280,
+                  'LOAD_count': 7446,
+                  'MISS_byte': 10608,
+                  'MISS_count': 612,
+                  'STORE_byte': 6528,
+                  'STORE_count': 816,
+                  'name': 'L1'},
+                 {'EVICT_byte': 6528,
+                  'EVICT_count': 102,
+                  'HIT_byte': 26112,
+                  'HIT_count': 408,
+                  'LOAD_byte': 39168,
+                  'LOAD_count': 612,
+                  'MISS_byte': 13056,
+                  'MISS_count': 204,
+                  'STORE_byte': 6528,
+                  'STORE_count': 102,
+                  'name': 'L2'},
+                 {'EVICT_byte': 6528,
+                  'EVICT_count': 102,
+                  'HIT_byte': 0,
+                  'HIT_count': 0,
+                  'LOAD_byte': 13056,
+                  'LOAD_count': 204,
+                  'MISS_byte': 13056,
+                  'MISS_count': 204,
+                  'STORE_byte': 6528,
+                  'STORE_count': 102,
+                  'name': 'L3'},
+                 {'EVICT_byte': 0,
+                  'EVICT_count': 0,
+                  'HIT_byte': 13056,
+                  'HIT_count': 204,
+                  'LOAD_byte': 13056,
+                  'LOAD_count': 204,
+                  'MISS_byte': 0,
+                  'MISS_count': 0,
+                  'STORE_byte': 6528,
+                  'STORE_count': 102,
+                  'name': 'MEM'}],
+ 'cachelines in stats': 102,
+ 'memory hierarchy': [{'cycles': None,
+                       'index': 0,
+                       'level': 'L1',
+                       'total evicts': 64.0,
+                       'total hits': 536.0,
+                       'total lines evicts': 1.0,
+                       'total lines hits': 67.0,
+                       'total lines misses': 6.0,
+                       'total misses': 104.0},
+                      {'cycles': None,
+                       'index': 1,
+                       'level': 'L2',
+                       'total evicts': 64.0,
+                       'total hits': 256.0,
+                       'total lines evicts': 1.0,
+                       'total lines hits': 4.0,
+                       'total lines misses': 2.0,
+                       'total misses': 128.0},
+                      {'cycles': None,
+                       'index': 2,
+                       'level': 'L3',
+                       'total evicts': 64.0,
+                       'total hits': 0.0,
+                       'total lines evicts': 1.0,
+                       'total lines hits': 0.0,
+                       'total lines misses': 2.0,
+                       'total misses': 128.0}]}
+Bottlenecks:
+  level | a. intensity |   performance   |   peak bandwidth  | peak bandwidth kernel
+--------+--------------+-----------------+-------------------+----------------------
+    CPU |              |   10.68 GFLOP/s |                   |
+     L1 |  0.21 FLOP/B |    8.13 GFLOP/s |        38.43 GB/s | copy    
+     L2 |   0.2 FLOP/B |    7.19 GFLOP/s |        36.59 GB/s | copy    
+     L3 |  0.46 FLOP/B |   12.81 GFLOP/s |        27.96 GB/s | copy    
+    MEM |  0.46 FLOP/B |    5.86 GFLOP/s |        12.78 GB/s | copy    
+
+Cache or mem bound with 1 core(s)
+5.86 GFLOP/s due to MEM transfer bottleneck (bw with from copy benchmark)
+Arithmetic Intensity: 0.46 FLOP/B
+
+                                   kerncraft                                    
+/home/hpc/ihpc/ihpc07/Desktop/stempelwork/stencils/2D/2r/isotropic/star/constant/2d-2r-isotropic-constant-star-stencil.c-m examples/machine-files/Intel_Xeon_CPU_X5650_2.67GHz_mod.yml
+-D N 1224 -D M 1224
+-------------------------------------- LC --------------------------------------
+constants:     name | value     
+           ---------+-----------
+                  M | 1224      
+                  N | 1224      
+           
+
+1D layer condition:
+L1: unconditionally fulfilled
+L2: unconditionally fulfilled
+L3: unconditionally fulfilled
+2D layer condition:
+L1: N <= 2048/3
+L2: N <= 16384/3
+L3: N <= 262144
+
+                                   kerncraft                                    
+/home/hpc/ihpc/ihpc07/Desktop/stempelwork/stencils/2D/2r/isotropic/star/constant/2d-2r-isotropic-constant-star-stencil.c-m examples/machine-files/Intel_Xeon_CPU_X5650_2.67GHz_mod.yml
+-D N 1224 -D M 1224
+------------------------------------- ECM --------------------------------------
+constants:     name | value     
+           ---------+-----------
+                  M | 1224      
+                  N | 1224      
+           
+
+{ 96.0 || 96.0 | 7.0 | 6.0 | 25.8 } cy/CL
+{ 96.0 \ 103.0 \ 109.0 \ 134.8 } cy/CL
+saturating at 5.2 cores
+
