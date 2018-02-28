@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This module defines some utility functions used in the Stencil classes.
 """
+import re
+
 def signum(number=1):
     """This function takes in input a number (either as unicode, string or int
     and returns its signum as a string
@@ -49,3 +51,34 @@ def right(centerpoint='a[j][i]', dimension=2, loop_variables=None,
     letter = loop_variables[dimension-1]
     newpoint = centerpoint.replace(letter, letter+'+{}'.format(abs(myrange)))
     return newpoint
+
+def remove_for(loop_code):
+    mycode = loop_code.split('\n')
+    index = []
+    for i in range(len(mycode)):
+        if mycode[i].startswith('for'):
+            index.append(i)
+    line = index[-1]
+
+    mycode = mycode[line+1:]
+    mycode = '\n'.join(mycode)
+
+    return mycode
+
+
+def count_ops(kernel_code):
+    """
+    Count the number of operations a kernel consists of.
+    It accepts a string as input.
+    The code must be only the kernel, with the for(s) 
+    """
+    mycode = remove_for(kernel_code)
+    
+    mycode = re.sub("[\[].*?[\]]", "", mycode)
+
+    operations =['+', '-', '*', '/']
+    count = 0
+    for op in operations:
+        count += mycode.count(op)
+
+    return count

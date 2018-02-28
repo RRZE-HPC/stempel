@@ -28,6 +28,7 @@ from kerncraft.kernel import Kernel
 from kerncraft.kernel import KernelCode
 
 from .benchkernel import KernelBench
+from .utilities import count_ops
 from . import __version__
 # Version check
 if sys.version_info[0] == 2 and sys.version_info < (2, 7) or \
@@ -299,7 +300,8 @@ def run_gen(args, parser, output_file=sys.stdout):
     # create the declaration part of the final C code
     declaration = stencil.declaration()
     # create the loop part of the final C code
-    loop = stencil.loop()
+    loop, flop = stencil.loop()
+    
     code = declaration + '\n'.join(loop)
 
     if args.coefficient == 'variable':
@@ -332,13 +334,17 @@ def run_gen(args, parser, output_file=sys.stdout):
         with open(tempname, 'w') as out:
             out.write(code)
         shutil.move(tempname, args.store.name)
+
+        with open(args.store.name.split('.')[0]+'.flop', 'w') as out:
+            out.write('FLOP: {}'.format(flop))
     else:
         print(code)
+        print('The kernel consists of {} FLOP'.format(flop))
 
     # if verbose print a little bit more infos
     if args.verbose > 0:
         for arg in vars(args):
-            print('{:<40}{:>40}'.format(arg, getattr(args, arg)),
+            print('{:<40}{:>40}'.format(arg, str(getattr(args, arg))),
                   file=output_file)
 
 
@@ -356,8 +362,10 @@ def run_bench(args, output_file=sys.stdout):
     code = str(args.code_file.read())
     code = clean_code(code)
 
+    flop = count_ops(code)
+
     kernel = KernelBench(code, filename=args.code_file.name,
-                         machine=machine, block_factor=args.block)
+                         machine=machine, block_factor=args.block, flop=flop)
 
     # taken from kerncraft
     # # works only for up to 3 dimensions

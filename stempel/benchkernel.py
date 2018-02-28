@@ -15,6 +15,7 @@ import os.path
 import sys
 import collections
 from functools import reduce
+
 #import logging
 from distutils.spawn import find_executable
 
@@ -147,14 +148,13 @@ def force_iterable(f):
             return [r]
     return wrapper
 
-
 class KernelBench(Kernel):
     """
     Kernel information gathered from code using pycparser
     This version allows compilation and generation of code for benchmarking
     """
 
-    def __init__(self, kernel_code, machine, block_factor=None, filename=None):
+    def __init__(self, kernel_code, machine, block_factor=None, flop=None, filename=None):
         super(KernelBench, self).__init__(machine=machine)
 
         # Initialize state
@@ -163,6 +163,7 @@ class KernelBench(Kernel):
         self.kernel_code = kernel_code
         self._filename = filename
         self.block_factor = block_factor
+        self.flop = flop
         # need to refer to local lextab, otherwise the systemwide lextab would
         # be imported
         parser = CParser()
@@ -837,9 +838,10 @@ class KernelBench(Kernel):
             myright_lv1 += myinit_lv1
             mysize_lv1 = c_ast.BinaryOp('-', myleft_lv1, c_ast.Constant('int', myright_lv1))
 
+            lup_expression_long = c_ast.Cast(
+                c_ast.IdentifierType(['long long']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
             lup_expression = c_ast.Cast(
-                c_ast.IdentifierType(['double']), mysize_lv1)  # c_ast.ExprList([forloop.cond.right])
-            
+                c_ast.IdentifierType(['double']), mysize_lv1)
 
             # # norm
             # point = norm_cond_lvalue
@@ -902,6 +904,13 @@ class KernelBench(Kernel):
             myright_lv2 += myinit_lv2
             mysize_lv2 = c_ast.BinaryOp('-', myleft_lv2, c_ast.Constant('int', myright_lv2))
 
+            lup_expression_long = c_ast.BinaryOp(
+                '*', c_ast.Cast(
+                    c_ast.IdentifierType(
+                        ['long long']), mysize_lv1),
+                c_ast.Cast(c_ast.IdentifierType(
+                    ['long long']),
+                mysize_lv2))
             lup_expression = c_ast.BinaryOp(
                 '*', c_ast.Cast(
                     c_ast.IdentifierType(
@@ -977,6 +986,14 @@ class KernelBench(Kernel):
             myright_lv3 += myinit_lv3
             mysize_lv3 = c_ast.BinaryOp('-', myleft_lv3, c_ast.Constant('int', myright_lv3))
 
+            lup_expression_long = c_ast.BinaryOp(
+                '*', c_ast.BinaryOp(
+                    '*', c_ast.Cast(c_ast.IdentifierType(
+                        ['long long']), mysize_lv1),
+                    c_ast.Cast(c_ast.IdentifierType(
+                        ['long long']), mysize_lv2)),
+                c_ast.Cast(c_ast.IdentifierType(
+                    ['long long']), mysize_lv3))
             lup_expression = c_ast.BinaryOp(
                 '*', c_ast.BinaryOp(
                     '*', c_ast.Cast(c_ast.IdentifierType(
@@ -1018,6 +1035,10 @@ class KernelBench(Kernel):
 
         # we build mlup. should be like:
         # (double)iter*(size_x-ghost)*(size_y-ghost)*(size_z-ghost)/runtime/1000000.
+        lup_expression_long = c_ast.BinaryOp('*',
+                                        c_ast.Cast(
+                                            c_ast.IdentifierType(['long long']), c_ast.ID('repeat')),
+                                        lup_expression_long)
         lup_expression = c_ast.BinaryOp('*',
                                         c_ast.Cast(
                                             c_ast.IdentifierType(['double']), c_ast.ID('repeat')),
@@ -1026,15 +1047,50 @@ class KernelBench(Kernel):
         #LUP_expr_cast =  c_ast.Cast(c_ast.IdentifierType(['double']), lup_expression)
         # we put all together to get mlup
         #MLUP = c_ast.BinaryOp('/', LUP_expr_cast, c_ast.BinaryOp('*', c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
-        mlup = c_ast.BinaryOp('/', lup_expression, c_ast.BinaryOp('*',
-                                                                  c_ast.ID('runtime'), c_ast.Constant('double', '1000000.')))
+        lup = c_ast.BinaryOp('/', lup_expression, c_ast.ID('runtime'))
+        glup = c_ast.BinaryOp('/', lup, c_ast.Constant('double', '1000000000.'))
 
         # insert the printf of the stats
-
-        mystring = "Performance in mlup/s: %lf\\n"
+        mystring = "iterations: %d\\n"
         ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                  mlup])))
+                                                                  c_ast.ID('repeat')])))
+        mystring = "Total iterations: %lld LUP\\n"
+        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  lup_expression_long])))
+
+        if self.flop:
+            #flops calculated before building the benchmark code
+            flop_per_lup = "FLOP: {}\\n".format(self.flop)
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(flop_per_lup))])))
+
+            #total work FLOP*LUPs
+            mystring = "Total work: %lld FLOP\\n"
+            total_work_long = c_ast.BinaryOp('*', lup_expression_long, c_ast.Constant('int', self.flop))
+            total_work = c_ast.BinaryOp('*', lup_expression, c_ast.Constant('int', self.flop))
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), total_work_long])))
+
+            #GLUPs = lup_expr / runtime / 1e9
+            mystring = "Performance in GLUP/s: %lf\\n"
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), glup])))
+
+            #GFLOPs = lup_expr / runtime / 1e9
+            mystring = "Performance in GFLOP/s: %lf\\n"
+            flops = c_ast.BinaryOp('/', total_work, c_ast.ID('runtime'))
+            gflops = c_ast.BinaryOp('/', flops, c_ast.Constant('double', '1000000000.'))
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), gflops])))
+
+        
+        else:
+            mystring = "Performance in GLUP/s: %lf\\n"
+            ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
+                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
+                                                                  glup])))
         mystring = "size: %d\\n"
         ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
@@ -1044,10 +1100,6 @@ class KernelBench(Kernel):
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                   c_ast.ID('runtime')])))
 
-        mystring = "iterations: %d\\n"
-        ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
-                                                  c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
-                                                                  c_ast.ID('repeat')])))
 
         # insert the loop computing the total squared
         decl = c_ast.Decl('total', [], [], [], c_ast.TypeDecl(

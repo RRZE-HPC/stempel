@@ -195,6 +195,8 @@ class StarConstant(object):
                 stencil = stencil + ')\n'
                 count = count + 1
 
+            flop = self.radius * (3 + (2 * (self.dimensions - 1))) + 1
+
         # heterogeneous
         elif self.classification == 'heterogeneous':
             print("heterogeneous")
@@ -215,6 +217,8 @@ class StarConstant(object):
                         right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 2
 
+            flop = self.radius * self.dimensions * 4 + 1
+
         # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
@@ -234,6 +238,8 @@ class StarConstant(object):
                         right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 1
 
+            flop = self.radius * self.dimensions * 3 + 1
+
         # homogeneous
         else:  # self.classification == 'homogeneous':
             print("homogeneous")
@@ -249,6 +255,8 @@ class StarConstant(object):
                     ) + '\n'
             stencil = stencil + ')'
 
+            flop = self.radius * self.dimensions * 2 + 1
+
         righthand = '{};'.format(stencil)
 
         closing = '}\n' * self.dimensions
@@ -257,7 +265,7 @@ class StarConstant(object):
 
         loop_lines.append(computation)
 
-        return loop_lines
+        return loop_lines, flop
 
 
 class StarVariable(object):
@@ -445,6 +453,8 @@ class StarVariable(object):
                 stencil = stencil + ')\n'
                 count = count + 1
 
+            flop = self.radius * (3 + (2 * (self.dimensions - 1))) + 1
+
         # heterogeneous
         elif self.classification == 'heterogeneous':
             print("heterogeneous")
@@ -463,6 +473,8 @@ class StarVariable(object):
                         str(self.coefficients[0]) + '[' + str(count + 1) + ']',
                         right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 2
+
+            flop = self.radius * self.dimensions * 4 + 1
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
@@ -483,6 +495,8 @@ class StarVariable(object):
                     ) + '\n'
                     count = count + 1
 
+            flop = self.radius * self.dimensions * 3 + 1
+
         elif self.classification == 'homogeneous':
             print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
@@ -497,6 +511,8 @@ class StarVariable(object):
                     ) + '\n'
             stencil = stencil + ')'
 
+            flop = self.radius * self.dimensions * 2 + 1
+
         righthand = '{};'.format(stencil)
 
         closing = '}\n' * self.dimensions
@@ -505,4 +521,4 @@ class StarVariable(object):
 
         loop_lines.append(computation)
 
-        return loop_lines
+        return loop_lines, flop
