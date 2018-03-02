@@ -181,8 +181,14 @@ int main(int argc, char **argv)
   #endif
 
   repeat /= 2;
-  printf("Performance in mlup/s: %lf\n", (((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / (runtime * 1000000.));
-  printf("size: %d    time: %lf    iter: %d    mlup/s: %lf\n", (M * N * P), runtime, repeat, (((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / (runtime * 1000000.));
+  printf("iterations: %d\n", repeat);
+  printf("Total iterations: %lld LUP\n", ((long long ) repeat) * ((((long long ) (M - 4)) * ((long long ) (N - 4))) * ((long long ) (P - 4))));
+  printf("FLOP: 19\n");
+  printf("Total work: %lld FLOP\n", (((long long ) repeat) * ((((long long ) (M - 4)) * ((long long ) (N - 4))) * ((long long ) (P - 4)))) * 19);
+  printf("Performance in GLUP/s: %lf\n", ((((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / runtime) / 1000000000.);
+  printf("Performance in GFLOP/s: %lf\n", (((((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) * 19) / runtime) / 1000000000.);
+  printf("size: %d\n", (P * M * N));
+  printf("time: %lf\n", runtime);
   double total = 0.0;
   for (int k = 2; k < (M - 2); k++)
   {
@@ -329,8 +335,14 @@ int main(int argc, char **argv)
   #endif
 
   repeat /= 2;
-  printf("Performance in mlup/s: %lf\n", (((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / (runtime * 1000000.));
-  printf("size: %d    time: %lf    iter: %d    mlup/s: %lf\n", (M * N * P), runtime, repeat, (((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / (runtime * 1000000.));
+  printf("iterations: %d\n", repeat);
+  printf("Total iterations: %lld LUP\n", ((long long ) repeat) * ((((long long ) (M - 4)) * ((long long ) (N - 4))) * ((long long ) (P - 4))));
+  printf("FLOP: 19\n");
+  printf("Total work: %lld FLOP\n", (((long long ) repeat) * ((((long long ) (M - 4)) * ((long long ) (N - 4))) * ((long long ) (P - 4)))) * 19);
+  printf("Performance in GLUP/s: %lf\n", ((((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) / runtime) / 1000000000.);
+  printf("Performance in GFLOP/s: %lf\n", (((((double ) repeat) * ((((double ) (M - 4)) * ((double ) (N - 4))) * ((double ) (P - 4)))) * 19) / runtime) / 1000000000.);
+  printf("size: %d\n", (N * M * P));
+  printf("time: %lf\n", runtime);
   double total = 0.0;
   for (int k = 2; k < (M - 2); k++)
   {
@@ -422,9 +434,15 @@ CPU name:	Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz
 CPU type:	Intel Core Westmere processor
 CPU clock:	2.67 GHz
 --------------------------------------------------------------------------------
-Performance in mlup/s: 90.453027
-size: 15625000    time: 0.658328    iter: 4    mlup/s: 90.453027
-diff(a-b): -288130.231583
+iterations: 8
+Total iterations: 119095488 LUP
+FLOP: 19
+Total work: 2262814272 FLOP
+Performance in GLUP/s: 0.180466
+Performance in GFLOP/s: 3.428860
+size: 15625000
+time: 0.659932
+diff(a-b): -22470.226750
 --------------------------------------------------------------------------------
 Region Sweep, Group 1: L2CACHE
 +-------------------+----------+
