@@ -86,7 +86,7 @@ The generated coded is compliant to the specifications available in the [stencil
 
 The command:
 
-``stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml``
+``stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml --store``
 
 produces the following output, saved in stencil_compilable.c:
 
@@ -233,7 +233,7 @@ void kernel_loop(double *a, double *b, double *W, int M, int N, int P)
 
 It is possible to generate a blocked version of the code, using the following command line:
 
-``stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml -b``
+``stempel bench stencil.c -m Intel_Xeon_CPU_E5-2640_v4_mod2.yml -b --store``
 
 and obtaining this stencil_compilable.c:
 
