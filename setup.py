@@ -56,7 +56,7 @@ setup(
 
     #Author details
     author='Danilo Guerrera',
-    author_email='danilo.guerrera@fau.de',
+    author_email='danilo.guerrera@unibas.ch',
 
     #Choose your license
     license='AGPLv3',
@@ -101,6 +101,7 @@ setup(
         'kerncraft'
     ],
 
+    python_requires='>=3.4',
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
