@@ -43,7 +43,7 @@ or
 
 2. Run stempel benchmark generator
 
-``stempel bench code.c -m machine_file.yaml -b 32``
+``stempel bench code.c -m machine_file.yaml -b``
 
 3. Run a full analysis (a stencil is generated, analysed through kerncraft applying ECM/Data, Roofline and Layer Condition models; a project is set up in PROVA! and an experiment is executed. The outputs are stored to the STEMPEL workspace):
 
