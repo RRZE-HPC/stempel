@@ -1074,7 +1074,7 @@ class KernelBench(Kernel):
                 c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), total_work_long])))
 
             #GLUPs = lup_expr / runtime / 1e9
-            mystring = "Performance in GLUP/s: %lf\\n"
+            mystring = "performance: %lf GLUP/s\\n"
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                 c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), glup])))
 
