@@ -151,7 +151,7 @@ def run_exp(provapath, provaworkspace, project, executions, param_values, method
     exp_threads = threads.split()
     # compile the code and run an experiment of the method
     cmd = ['workflow', 'run_exp', '-p', project, '-e', str(executions),
-           '-d', param_values, '-m', method_name, '-t'] + exp_threads + ['--pin', pinning]
+           '-d'] + param_values + ['-m', method_name, '-t'] + exp_threads + ['--pin', pinning]
     #logging.info('Threads: {}, type {}').format(threads, type(threads))
     #cmd = 'workflow run_exp -p {} -e {} -d {} -m {} -t {} --pin {}'.format(project, str(executions), param_values, method_name, threads, pinning)
     try:
@@ -171,7 +171,7 @@ def build_graph(project, exp_dir, param_values, method_name, threads, pinning):
     # compile the code and run an experiment of the method
     method_name += '_' + pinning
     cmd = ['workflow', 'build_graph', '-p', project, '-e', exp_dir,
-           '-d', param_values, '-m', method_name, '-t'] + exp_threads + ['-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
+           '-d'] + param_values + ['-m', method_name, '-t'] + exp_threads + ['-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
         out = subprocess.check_output(cmd)
@@ -314,7 +314,7 @@ def run_gen(args, output_file=sys.stdout):
                                 size = str(int(size))
 
                                 sizes = [quarter_size, half_size, size, double_size]
-                                param_values = ''
+                                param_values = []
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
@@ -333,10 +333,11 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
+                                        logging.error('It returned: {}'.format(out))
                                         sys.exit(1)
                                     # blocksize = 32
 
-                                    param_values = param_values + ' "{} {}"'.format(size, size)
+                                    param_values.append("{} {}".format(size, size))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -350,6 +351,7 @@ def run_gen(args, output_file=sys.stdout):
                                     #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
+                                    logging.error('It returned: {}'.format(out))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
@@ -396,7 +398,7 @@ def run_gen(args, output_file=sys.stdout):
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
                                 sizes = [quarter_size, half_size, size, double_size]
-                                param_values = ''
+                                param_values = []
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
@@ -415,9 +417,11 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
+                                        logging.error('It returned: {}'.format(out))
                                         sys.exit(1)
 
-                                    param_values = param_values + ' "{} {} {}"'.format(size, size, size)
+                                    #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
+                                    param_values.append("{} {} {}".format(size, size, size))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -431,6 +435,7 @@ def run_gen(args, output_file=sys.stdout):
                                     #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
+                                    logging.error('It returned: {}'.format(out))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
@@ -482,6 +487,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
     headers_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     headers_path = os.path.join(headers_path, 'headers')
     copyheaders(headers_path, destination_dir)
+
     run_exp(provapath, provaworkspace, project, executions, param_values,
             method_name, exp_threads, pinning)
 
@@ -497,7 +503,7 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
         logging.error('Unable to correctly retrieve the last experiment.')
 
     try:
-        logging.info('Copying file: results.json')
+        logging.info('Copying file: results.json to {}'.format(stencil_path))
         copyfile(outfile, os.path.join(stencil_path, 'results.json'))
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
