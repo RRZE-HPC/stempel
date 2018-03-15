@@ -152,8 +152,7 @@ def run_exp(provapath, provaworkspace, project, executions, param_values, method
     # compile the code and run an experiment of the method
     cmd = ['workflow', 'run_exp', '-p', project, '-e', str(executions),
            '-d'] + param_values + ['-m', method_name, '-t'] + exp_threads + ['--pin', pinning]
-    #logging.info('Threads: {}, type {}').format(threads, type(threads))
-    #cmd = 'workflow run_exp -p {} -e {} -d {} -m {} -t {} --pin {}'.format(project, str(executions), param_values, method_name, threads, pinning)
+
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
         out = subprocess.check_output(cmd)
