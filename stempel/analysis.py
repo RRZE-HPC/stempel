@@ -170,7 +170,7 @@ def build_graph(project, exp_dir, param_values, method_name, threads, pinning):
     # compile the code and run an experiment of the method
     method_name += '_' + pinning
     cmd = ['workflow', 'build_graph', '-p', project, '-e', exp_dir,
-           '-d'] + param_values + ['-m', method_name, '-t'] + exp_threads + ['-f', '0', '-T', 'stdev', '-M', 'MLUP/s']
+           '-d'] + param_values + ['-m', method_name, '-t'] + exp_threads + ['-f', '1', '-T', 'stdev', '-M', 'GFlop/s']
     try:
         logging.info('Running command: {}'.format(' '.join(cmd)))
         out = subprocess.check_output(cmd)
@@ -259,6 +259,8 @@ def run_gen(args, output_file=sys.stdout):
             radius = radius_box
             cache_model = "SIM"
         for c in coefficients:
+            if c == 'variable':
+                cache_model = "SIM"
             for l in classification:
                 for r in radius:
                     for d in dimensions:
@@ -312,21 +314,21 @@ def run_gen(args, output_file=sys.stdout):
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
 
-                                sizes = [quarter_size, half_size, size, double_size]
+                                sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [3000, 3000], [12000, 12000], [40000, 500]]
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
                                     else:
                                         ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-p', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
-                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-v']
+                                    cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
+                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-v']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
                                     try:
                                         # print(cmd)
                                         out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
                                             f.write(out)
                                     except subprocess.CalledProcessError as e:
                                         #print("kerncraft failed:", e)
@@ -336,7 +338,7 @@ def run_gen(args, output_file=sys.stdout):
                                         sys.exit(1)
                                     # blocksize = 32
 
-                                    param_values.append("{} {}".format(size, size))
+                                    param_values.append("{} {}".format(size[0], size[1]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -362,7 +364,7 @@ def run_gen(args, output_file=sys.stdout):
                                     mystencilname = mystencilname + '_compilable.c'
                                     
                                     params = 'M_MAX N_MAX'
-                                    values = '{} {}'.format(sizes[0], sizes[0])
+                                    values = '{} {}'.format(sizes[0][0], sizes[0][1])
                                     threads = 2
                                     logging.info('Using: {}'.format(mystencilname))
                                     logging.info('Running: {}'.format(project))
@@ -396,21 +398,21 @@ def run_gen(args, output_file=sys.stdout):
                                 quarter_size = str(int(size / 4))
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
-                                sizes = [quarter_size, half_size, size, double_size]
+                                sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [210, 210, 210], [525, 525, 525], [500, 500, 100]]
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
                                         ECM = 'ECM'
                                     else:
                                         ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-p', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                        machinefilepath, machine), '-D', 'M', size, '-D', 'N', size, '-D', 'P', size, '-v']
+                                    cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                        machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '-v']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
                                     try:
                                         # print(cmd)
                                         out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                             f.write(out)
                                     except subprocess.CalledProcessError as e:
                                         #print("kerncraft failed:", e)
@@ -420,7 +422,7 @@ def run_gen(args, output_file=sys.stdout):
                                         sys.exit(1)
 
                                     #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
-                                    param_values.append("{} {} {}".format(size, size, size))
+                                    param_values.append("{} {} {}".format(size[0], size[1], size[2]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -448,7 +450,7 @@ def run_gen(args, output_file=sys.stdout):
 
                                     params = 'M_MAX N_MAX P_MAX'
                                     values = '{} {} {}'.format(
-                                        sizes[0], sizes[0], sizes[0])
+                                        sizes[0][0], sizes[0][1], sizes[0][2])
                                     threads = 2
 
                                     logging.info('Using: {}'.format(mystencilname))
@@ -539,6 +541,23 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
     except IOError as e:
         logging.error('Unable to copy file {} to {}. {}'.format(
             outfile, stencil_path, e))
+
+    try:
+        logging.info('Copying output files')
+        outfilepath = os.path.join(provaworkspace, project, method_name, 'out')
+        src_files = os.listdir(outfilepath)
+        for file_name in src_files:
+            copyfile(os.path.join(outfilespath, file_name), os.path.join(stencil_path, file_name))
+    except IOError as e:
+        logging.error('Unable to copy output files. {}'.format(e))
+
+    try:
+        logging.info('Copying Makefile and topology')
+        outfilepath = os.path.join(provaworkspace, project, method_name, 'src')
+        copyfile(os.path.join(outfilespath, 'Makefile'), os.path.join(stencil_path, 'Makefile'))
+        copyfile(os.path.join(outfilespath, 'topology'), os.path.join(stencil_path, 'topology'))
+    except IOError as e:
+        logging.error('Unable to copy output files. {}'.format(e))
 
 
 def main():
