@@ -544,8 +544,8 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     try:
         logging.info('Copying output files')
-        outfilepath = os.path.join(provaworkspace, project, method_name, 'out')
-        src_files = os.listdir(outfilepath)
+        outfilespath = os.path.join(provaworkspace, project, method_name, 'out')
+        src_files = os.listdir(outfilespath)
         for file_name in src_files:
             copyfile(os.path.join(outfilespath, file_name), os.path.join(stencil_path, file_name))
     except IOError as e:
@@ -553,9 +553,9 @@ def run_prova(stencil_path, stencil_name, provapath, provaworkspace, likwid_inc,
 
     try:
         logging.info('Copying Makefile and topology')
-        outfilepath = os.path.join(provaworkspace, project, method_name, 'src')
-        copyfile(os.path.join(outfilespath, 'Makefile'), os.path.join(stencil_path, 'Makefile'))
-        copyfile(os.path.join(outfilespath, 'topology'), os.path.join(stencil_path, 'topology'))
+        filespath = os.path.join(provaworkspace, project, method_name, 'src')
+        copyfile(os.path.join(filespath, 'Makefile'), os.path.join(stencil_path, 'Makefile'))
+        copyfile(os.path.join(filespath, 'topology'), os.path.join(stencil_path, 'topology'))
     except IOError as e:
         logging.error('Unable to copy output files. {}'.format(e))
 
