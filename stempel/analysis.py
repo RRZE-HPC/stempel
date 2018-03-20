@@ -412,7 +412,7 @@ def run_gen(args, output_file=sys.stdout):
                                     try:
                                         # print(cmd)
                                         out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                             f.write(out)
                                     except subprocess.CalledProcessError as e:
                                         #print("kerncraft failed:", e)
