@@ -314,7 +314,7 @@ def run_gen(args, output_file=sys.stdout):
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
 
-                                sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [3000, 3000], [12000, 12000], [40000, 500]]
+                                sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)], [str(12000), str(12000)], [str(40000), str(500)]]
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
@@ -398,7 +398,7 @@ def run_gen(args, output_file=sys.stdout):
                                 quarter_size = str(int(size / 4))
                                 double_size = str(int(size * 2))
                                 size = str(int(size))
-                                sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [210, 210, 210], [525, 525, 525], [500, 500, 100]]
+                                sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)], [str(525), str(525), str(525)], [str(500), str(500), str(100)]]
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
