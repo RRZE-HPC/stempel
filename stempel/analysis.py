@@ -201,6 +201,7 @@ def run_gen(args, output_file=sys.stdout):
     machinefilepath = os.path.dirname(args.machinepath)
     machinefiles = [os.path.basename(args.machinepath)]
 
+
     stencilfiles = os.path.join(workspace, 'stencils')
     radius_star = None
     radius_box = None
@@ -334,7 +335,6 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
-                                        logging.error('It returned: {}'.format(out))
                                         sys.exit(1)
                                     # blocksize = 32
 
@@ -352,13 +352,45 @@ def run_gen(args, output_file=sys.stdout):
                                     #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
-                                    logging.error('It returned: {}'.format(out))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
 
                                 if withprova:
                                     # run the code through prova!
+
+
+                                    #check if architecture model passed matches the current arch (taken from kerncraft)
+                                    cpuinfo = ''
+                                    try:
+                                        with open('/proc/cpuinfo') as f:
+                                            cpuinfo = f.read()
+                                    except FileNotFoundError:
+                                        pass
+
+                                    try:
+                                        current_cpu_model = re.search(r'^model name\s+:\s+(.+?)\s*$',
+                                                                      cpuinfo,
+                                                                      flags=re.MULTILINE).groups()[0]
+                                    except AttributeError:
+                                        current_cpu_model = None
+                                    if results['model name'] != current_cpu_model:
+                                        print("WARNING: current CPU model and machine description do not "
+                                              "match. ({!r} vs {!r})".format(results['model name'],
+                                                                             current_cpu_model))
+                                    try:
+                                        current_cpu_freq = re.search(r'^cpu MHz\s+:\s+'
+                                                                     r'([0-9]+(?:\.[0-9]+)?)\s*$',
+                                                                     cpuinfo,
+                                                                     flags=re.MULTILINE).groups()[0]
+                                        current_cpu_freq = float(current_cpu_freq) * 1e6
+                                    except AttributeError:
+                                        current_cpu_freq = None
+                                    if float(results['clock']) != current_cpu_freq:
+                                        print("WARNING: current CPU frequency and machine description do "
+                                              "not match. ({!r} vs {!r})".format(float(results['clock']),
+                                                                                 current_cpu_freq))
+
                                     mystencilname = stencil_name.split('.')[0]
                                     project = mystencilname
                                     mystencilname = mystencilname + '_compilable.c'
@@ -418,7 +450,6 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
-                                        logging.error('It returned: {}'.format(out))
                                         sys.exit(1)
 
                                     #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
@@ -436,7 +467,6 @@ def run_gen(args, output_file=sys.stdout):
                                     #print("Run failed:", e)
                                     logging.error(
                                         'Failed to execute {}: {}'.format(cmd, e))
-                                    logging.error('It returned: {}'.format(out))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
@@ -444,6 +474,40 @@ def run_gen(args, output_file=sys.stdout):
 
                                 if withprova:
                                     # run the code through prova!
+
+
+                                    #check if architecture model passed matches the current arch
+                                    cpuinfo = ''
+                                    try:
+                                        with open('/proc/cpuinfo') as f:
+                                            cpuinfo = f.read()
+                                    except FileNotFoundError:
+                                        pass
+
+                                    try:
+                                        current_cpu_model = re.search(r'^model name\s+:\s+(.+?)\s*$',
+                                                                      cpuinfo,
+                                                                      flags=re.MULTILINE).groups()[0]
+                                    except AttributeError:
+                                        current_cpu_model = None
+                                    if results['model name'] != current_cpu_model:
+                                        print("WARNING: current CPU model and machine description do not "
+                                              "match. ({!r} vs {!r})".format(results['model name'],
+                                                                             current_cpu_model))
+                                    try:
+                                        current_cpu_freq = re.search(r'^cpu MHz\s+:\s+'
+                                                                     r'([0-9]+(?:\.[0-9]+)?)\s*$',
+                                                                     cpuinfo,
+                                                                     flags=re.MULTILINE).groups()[0]
+                                        current_cpu_freq = float(current_cpu_freq) * 1e6
+                                    except AttributeError:
+                                        current_cpu_freq = None
+                                    if float(results['clock']) != current_cpu_freq:
+                                        print("WARNING: current CPU frequency and machine description do "
+                                              "not match. ({!r} vs {!r})".format(float(results['clock']),
+                                                                                 current_cpu_freq))
+
+
                                     mystencilname = stencil_name.split('.')[0]
                                     project = mystencilname
                                     mystencilname = mystencilname + '_compilable.c'
