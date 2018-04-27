@@ -323,7 +323,7 @@ def run_gen(args, output_file=sys.stdout):
                                     else:
                                         ECM = 'ECMData'
                                     cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
-                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-v']
+                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-vv']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
                                     try:
@@ -438,7 +438,7 @@ def run_gen(args, output_file=sys.stdout):
                                     else:
                                         ECM = 'ECMData'
                                     cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                        machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '-v']
+                                        machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '-vv']
                                     logging.info(
                                         'Running command: {}'.format(' '.join(cmd)))
                                     try:
