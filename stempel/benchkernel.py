@@ -784,9 +784,10 @@ class KernelBench(Kernel):
         update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
                                        c_ast.Constant('int', '2'))
 
-        # while(runtime<.5) {...}
-        cond = c_ast.BinaryOp('<', c_ast.ID(
-            'runtime'), c_ast.Constant('double', '0.5'))
+        # while(runtime<2. || repeat<=2) {...}
+        cond = c_ast.BinaryOp( '||',
+                c_ast.BinaryOp('<', c_ast.ID( 'runtime'), c_ast.Constant('double', '2.0')),
+                c_ast.BinaryOp('<=', c_ast.ID( 'repeat'), c_ast.Constant('int', '2')));
         stmt = c_ast.Compound(
             [start_timing, myfor, end_timing, update_runtime, update_iter])
 
@@ -811,6 +812,40 @@ class KernelBench(Kernel):
                                pointers_list[0].type.type.type.type)),
                           None, None)
         ast.block_items.insert(-5, decl)
+
+        wu_index_name = 'n'
+        wu_init = c_ast.DeclList([
+            c_ast.Decl(
+                wu_index_name, [], [], [], c_ast.TypeDecl(
+                    wu_index_name, [], c_ast.IdentifierType(['int'])),
+                c_ast.Constant('int', '0'),
+                None)], None)
+        wu_cond = c_ast.BinaryOp('<', c_ast.ID(
+            wu_index_name), c_ast.Constant('int', '2'))
+        wu_next_ = c_ast.UnaryOp('++', c_ast.ID(wu_index_name))
+        #wu_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+
+        wu_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
+        if self.block_factor:
+            wu_expr_list = expr_list + [c_ast.ID('block_factor')]
+
+        wu_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
+                                 c_ast.ExprList(wu_expr_list))
+
+        # creating a list of pointer to all the variables of type pointer
+        wu_pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
+            [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
+
+        wu_swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
+                                    c_ast.ID(wu_pointers_list[0].type.type.declname))
+        wu_swap_grid = c_ast.Assignment('=', c_ast.ID(wu_pointers_list[0].type.type.declname),
+                                     c_ast.ID(wu_pointers_list[1].type.type.declname))
+        wu_last_swap = c_ast.Assignment('=', c_ast.ID(wu_pointers_list[1].type.type.declname),
+                                     c_ast.ID('tmp'))
+        wu_stmt = c_ast.Compound([wu_stmt, wu_swap_tmp, wu_swap_grid, wu_last_swap])
+        wu_myfor = c_ast.For(wu_init, wu_cond, wu_next_, wu_stmt)
+        ast.block_items.insert(-5, c_ast.Constant('string', '\n  /* Warmup: 2 iterations*/'))
+        ast.block_items.insert(-5, wu_myfor)
 
         # creating a list of standard types for all the non-pointer
         # variables
@@ -874,7 +909,7 @@ class KernelBench(Kernel):
                 norm_loop.stmt.rvalue = norm_cond_rvalue
 
         elif mydims == 2:
-            
+
             # mycode = CGenerator().visit(forloop.stmt.block_items[0].cond.right)
             # print(mycode)
             # exit(1)
@@ -918,7 +953,7 @@ class KernelBench(Kernel):
                 c_ast.Cast(c_ast.IdentifierType(
                     ['double']),
                 mysize_lv2))
-                
+
             # # norm
             # point = norm_cond_lvalue
             # # set the name of the grid to the first (the order changed
@@ -1002,7 +1037,7 @@ class KernelBench(Kernel):
                         ['double']), mysize_lv2)),
                 c_ast.Cast(c_ast.IdentifierType(
                     ['double']), mysize_lv3))
-                
+
 
             # # calculate norm
             # point = norm_cond_lvalue
@@ -1085,7 +1120,7 @@ class KernelBench(Kernel):
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
                 c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)), gflops])))
 
-        
+
         else:
             mystring = "Performance in GLUP/s: %lf\\n"
             ast.block_items.insert(-1, c_ast.FuncCall(c_ast.ID('printf'),
@@ -1257,9 +1292,9 @@ class KernelBench(Kernel):
 
         # logging.warning(type(forloop))
         ast_kernel = c_ast.FuncDef(decl_kernel, None, mycompound)
-        
+
         # ast = c_ast.FuncDef(decl_sig_kernel, None, ast)
-        
+
         ast = c_ast.FileAST([ast])
 
         #add the declaration of the kernel function to the AST
