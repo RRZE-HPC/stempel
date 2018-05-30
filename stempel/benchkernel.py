@@ -784,9 +784,10 @@ class KernelBench(Kernel):
         update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
                                        c_ast.Constant('int', '2'))
 
-        # while(runtime<2.) {...}
-        cond = c_ast.BinaryOp('<', c_ast.ID(
-            'runtime'), c_ast.Constant('double', '2.0'))
+        # while(runtime<2. || repeat<=2) {...}
+        cond = c_ast.BinaryOp( '||',
+                c_ast.BinaryOp('<', c_ast.ID( 'runtime'), c_ast.Constant('double', '2.0')),
+                c_ast.BinaryOp('<=', c_ast.ID( 'repeat'), c_ast.Constant('int', '2')));
         stmt = c_ast.Compound(
             [start_timing, myfor, end_timing, update_runtime, update_iter])
 
