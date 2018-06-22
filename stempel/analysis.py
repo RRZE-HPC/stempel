@@ -5,6 +5,7 @@ import subprocess
 import sys
 import logging
 import argparse
+import re
 from shutil import copyfile
 from glob import glob
 import pathlib
@@ -58,6 +59,8 @@ def create_parser():
                         choices=['isotropic', 'heterogeneous', 'homogeneous', 'point-symmetric'], help='Classification of the stencil')
     parser.add_argument('-C', '--coefficients', metavar=('COEFFICIENTS'),
                         choices=['constant', 'variable'], help='Kind of the coefficients of the stencil')
+    parser.add_argument('-s', '--sizes', metavar=('SIZE'),
+                        nargs='*', help='Size of the stencil in each dimension')
     parser.set_defaults(func=run_gen)
 
     return parser
@@ -246,6 +249,12 @@ def run_gen(args, output_file=sys.stdout):
     else:
         exp_threads = '2'
 
+
+    kern_sizes = []
+    if args.sizes:
+        for s in args.sizes:
+            kern_sizes.append(s)
+
     executions = args.executions
 
     method_type = args.method_type
@@ -308,14 +317,19 @@ def run_gen(args, output_file=sys.stdout):
                                         sets) * int(ways) * int(cl_size) / 1048576
                                     dimension = str(
                                         dimension).partition(' ')[0]
-                                size = float(dimension) * 1000000 / 8
-                                size = int(math.sqrt(size))
-                                half_size = str(int(size / 2))
-                                quarter_size = str(int(size / 4))
-                                double_size = str(int(size * 2))
-                                size = str(int(size))
 
-                                sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)], [str(12000), str(12000)], [str(40000), str(500)]]
+                                if not kern_sizes:
+                                    size = float(dimension) * 1000000 / 8
+                                    size = int(math.sqrt(size))
+                                    half_size = str(int(size / 2))
+                                    quarter_size = str(int(size / 4))
+                                    double_size = str(int(size * 2))
+                                    size = str(int(size))
+
+                                    sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)], [str(12000), str(12000)], [str(40000), str(500)]]
+                                else:
+                                    sizes = [kern_sizes]
+
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
@@ -335,7 +349,10 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
-                                        sys.exit(1)
+                                        #sys.exit(1)
+                                        sizes.remove([size[0], size[1]])
+                                        logging.error(
+                                            'Removed {} from the input sizes'.format(size))
                                     # blocksize = 32
 
                                     param_values.append("{} {}".format(size[0], size[1]))
@@ -424,13 +441,19 @@ def run_gen(args, output_file=sys.stdout):
                                         sets) * int(ways) * int(cl_size) / 1048576
                                     dimension = str(
                                         dimension).partition(' ')[0]
-                                size = float(dimension) * 1000000 / 8
-                                size = int(round(size ** (1. / 3)))
-                                half_size = str(int(size / 2))
-                                quarter_size = str(int(size / 4))
-                                double_size = str(int(size * 2))
-                                size = str(int(size))
-                                sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)], [str(525), str(525), str(525)], [str(500), str(500), str(100)]]
+
+                                if not kern_sizes:
+                                    size = float(dimension) * 1000000 / 8
+                                    size = int(round(size ** (1. / 3)))
+                                    half_size = str(int(size / 2))
+                                    quarter_size = str(int(size / 4))
+                                    double_size = str(int(size * 2))
+                                    size = str(int(size))
+                                    sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)], [str(525), str(525), str(525)], [str(500), str(500), str(100)]]
+                                
+                                else:
+                                    sizes = [kern_sizes]
+
                                 param_values = []
                                 for size in sizes:
                                     if iaca:
@@ -450,7 +473,10 @@ def run_gen(args, output_file=sys.stdout):
                                         #print("kerncraft failed:", e)
                                         logging.error(
                                             'Failed to execute {}: {}'.format(cmd, e))
-                                        sys.exit(1)
+                                        #sys.exit(1)
+                                        sizes.remove([size[0], size[1], size[2]])
+                                        logging.error(
+                                            'Removed {} from the input sizes'.format(size))
 
                                     #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
                                     param_values.append("{} {} {}".format(size[0], size[1], size[2]))
