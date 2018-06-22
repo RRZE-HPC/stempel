@@ -53,10 +53,12 @@ memory hierarchy:
     evicts: (UNC_DRAM_ACCESSES_DCT0_ALL:UPMC[0] + UNC_DRAM_ACCESSES_DCT1_ALL:UPMC[1])
   cores per group: 8.0
   cache per group:
-    ways: 48
+    #ways: 48
+    ways: 32
     cl_size: 64
     replacement_policy: LRU
-    sets: 2048
+    #sets: 2048
+    sets: 3072
     write_back: True
     write_allocate: True
 - penalty cycles per read stream: 0
