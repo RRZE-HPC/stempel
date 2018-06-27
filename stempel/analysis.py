@@ -326,7 +326,10 @@ def run_gen(args, output_file=sys.stdout):
                                     double_size = str(int(size * 2))
                                     size = str(int(size))
 
-                                    sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)], [str(12000), str(12000)], [str(40000), str(500)]]
+                                    if cache_model == "LC":
+                                        sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)], [str(12000), str(12000)], [str(40000), str(500)]]
+                                    else:
+                                        sizes = [[quarter_size, quarter_size], [half_size, half_size], [size, size], [double_size, double_size], [str(3000), str(3000)]]
                                 else:
                                     sizes = [kern_sizes]
 
@@ -449,7 +452,11 @@ def run_gen(args, output_file=sys.stdout):
                                     quarter_size = str(int(size / 4))
                                     double_size = str(int(size * 2))
                                     size = str(int(size))
-                                    sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)], [str(525), str(525), str(525)], [str(500), str(500), str(100)]]
+
+                                    if cache_model == "LC":
+                                        sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)], [str(525), str(525), str(525)], [str(500), str(500), str(100)]]
+                                    else:
+                                        sizes = [[quarter_size, quarter_size, quarter_size], [half_size, half_size, half_size], [size, size, size], [double_size, double_size, double_size], [str(210), str(210), str(210)]]
                                 
                                 else:
                                     sizes = [kern_sizes]
