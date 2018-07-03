@@ -663,14 +663,6 @@ class KernelBench(Kernel):
                             c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
                     iffalse=None))
 
-        if type_ == 'likwid':
-            # Instrument the outer for-loop with likwid
-            # ast.block_items.insert(-2, c_ast.FuncCall(
-            #     c_ast.ID('likwid_markerStartRegion'),
-            #     c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
-            ast.block_items.insert(-2,
-                                   c_ast.Constant('string', 'INSERTMACROSTART'))
-
         # if we do not want the version accepting inputs from command line,
         # we need to declare the blocking factor
         if not from_cli:
@@ -791,15 +783,55 @@ class KernelBench(Kernel):
 
         ast.block_items.insert(-1, c_ast.While(cond, stmt))
 
-        if type_ == 'likwid':
-            # close the region "Sweep" of likwid
-            ast.block_items.insert(-1,
-                                   c_ast.Constant('string', 'INSERTMACROSTOP'))
-
         # the variable repeat must be divided by 2 since in the last loop
         # was doubled before exiting
         ast.block_items.insert(-1, c_ast.Assignment('/=',
                                                     c_ast.ID('repeat'), c_ast.Constant('int', '2')))
+
+        if type_ == 'likwid':
+            # Instrument the outer for-loop with likwid
+            # ast.block_items.insert(-2, c_ast.FuncCall(
+            #     c_ast.ID('likwid_markerStartRegion'),
+            #     c_ast.ExprList([c_ast.Constant('string', '"Sweep"')])))
+            ast.block_items.insert(-1,
+                                   c_ast.Constant('string', 'INSERTMACROSTART'))
+
+        run_index_name = 'n'
+        run_init = c_ast.DeclList([
+            c_ast.Decl(
+                run_index_name, [], [], [], c_ast.TypeDecl(
+                    run_index_name, [], c_ast.IdentifierType(['int'])),
+                c_ast.Constant('int', '0'),
+                None)], None)
+        run_cond = c_ast.BinaryOp('<', c_ast.ID(run_index_name), c_ast.ID('repeat'))
+        run_next_ = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
+        #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+
+        run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
+        if self.block_factor:
+            run_expr_list = expr_list + [c_ast.ID('block_factor')]
+
+        run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
+                                 c_ast.ExprList(run_expr_list))
+
+        # creating a list of pointer to all the variables of type pointer
+        run_pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
+            [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
+
+        run_swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
+                                    c_ast.ID(run_pointers_list[0].type.type.declname))
+        run_swap_grid = c_ast.Assignment('=', c_ast.ID(run_pointers_list[0].type.type.declname),
+                                     c_ast.ID(run_pointers_list[1].type.type.declname))
+        run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
+                                     c_ast.ID('tmp'))
+        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap])
+        run_myfor = c_ast.For(run_init, run_cond, run_next_, run_stmt)
+        ast.block_items.insert(-1, run_myfor)
+
+        if type_ == 'likwid':
+            # close the region "Sweep" of likwid
+            ast.block_items.insert(-1,
+                                   c_ast.Constant('string', 'INSERTMACROSTOP'))
 
         # calculate the size of the grid, taking the letters representing
         # its dimensions from the array of constants
@@ -809,41 +841,7 @@ class KernelBench(Kernel):
             [], c_ast.TypeDecl('tmp', [],
                                pointers_list[0].type.type.type.type)),
                           None, None)
-        ast.block_items.insert(-5, decl)
-
-        wu_index_name = 'n'
-        wu_init = c_ast.DeclList([
-            c_ast.Decl(
-                wu_index_name, [], [], [], c_ast.TypeDecl(
-                    wu_index_name, [], c_ast.IdentifierType(['int'])),
-                c_ast.Constant('int', '0'),
-                None)], None)
-        wu_cond = c_ast.BinaryOp('<', c_ast.ID(
-            wu_index_name), c_ast.Constant('int', '2'))
-        wu_next_ = c_ast.UnaryOp('++', c_ast.ID(wu_index_name))
-        #wu_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
-
-        wu_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
-        if self.block_factor:
-            wu_expr_list = expr_list + [c_ast.ID('block_factor')]
-
-        wu_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
-                                 c_ast.ExprList(wu_expr_list))
-
-        # creating a list of pointer to all the variables of type pointer
-        wu_pointers_list = [c_ast.Typename(None, [], c_ast.PtrDecl(
-            [], c_ast.TypeDecl(d.name, [], d.type.type))) for d in declarations if type(d.type) is c_ast.PtrDecl]
-
-        wu_swap_tmp = c_ast.Assignment('=', c_ast.ID('tmp'),
-                                    c_ast.ID(wu_pointers_list[0].type.type.declname))
-        wu_swap_grid = c_ast.Assignment('=', c_ast.ID(wu_pointers_list[0].type.type.declname),
-                                     c_ast.ID(wu_pointers_list[1].type.type.declname))
-        wu_last_swap = c_ast.Assignment('=', c_ast.ID(wu_pointers_list[1].type.type.declname),
-                                     c_ast.ID('tmp'))
-        wu_stmt = c_ast.Compound([wu_stmt, wu_swap_tmp, wu_swap_grid, wu_last_swap])
-        wu_myfor = c_ast.For(wu_init, wu_cond, wu_next_, wu_stmt)
-        ast.block_items.insert(-5, c_ast.Constant('string', '\n  /* Warmup: 2 iterations*/'))
-        ast.block_items.insert(-5, wu_myfor)
+        ast.block_items.insert(-7, decl)
 
         # creating a list of standard types for all the non-pointer
         # variables
