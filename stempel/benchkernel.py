@@ -598,6 +598,11 @@ class KernelBench(Kernel):
                     '=',
                     c_ast.ArrayRef(c_ast.ID(d.name), c_ast.ID(counter_name)),
                     rand_max)
+                pragma_numa = c_ast.Pragma('omp parallel for schedule(runtime)')
+                ast.block_items.insert(
+                    i, pragma_numa)
+                # ast.block_items.insert(
+                #     i + 1, c_ast.Pragma('omp parallel for schedule(runtime)')
                 ast.block_items.insert(
                     i + 1, c_ast.For(init, cond, next_, stmt))
 
