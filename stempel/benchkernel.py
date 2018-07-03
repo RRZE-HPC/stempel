@@ -443,7 +443,7 @@ class KernelBench(Kernel):
         sizes_decls_typenames = []
         # add declarations for constants from the executable command line
         if(from_cli):
-            var_list = sorted([k.name for k in self.constants])
+            var_list = [k.name for k in self.constants]
             blocking = ''
             num_args = 1
             # add declaration of the block
