@@ -500,8 +500,6 @@ class KernelBench(Kernel):
             ast.block_items.insert(
                 0, c_ast.Constant('string', 'INSERTMACROINIT'))
             # Call likwid_markerThreadInit()
-            ast.block_items.insert(1, c_ast.Constant(
-                'string', 'INSERTMACROTHREADINIT'))
             # Call likwid_markerClose()
             #ast.block_items.append(c_ast.FuncCall(c_ast.ID('likwid_markerClose'), None))
             ast.block_items.append(c_ast.Constant(
@@ -1360,13 +1358,10 @@ class KernelBench(Kernel):
         pragraomp = '  #pragma omp parallel\n  {}\n    ' + '{}' + '\n  {}'
 
         likwid_init = 'LIKWID_MARKER_INIT;'
-        macroinit = '\n  ' + ifdefperf + '  ' + likwid_init + '\n  ' + endif
+        likwid_register = 'LIKWID_MARKER_REGISTER("Sweep");'
+        macroinit = '\n  ' + ifdefperf + '  ' + likwid_init + '\n  '
+        macroinit += likwid_register + '\n  ' + endif
         code = code.replace('INSERTMACROINIT;', macroinit)
-
-        likwid_thread_init = 'LIKWID_MARKER_THREADINIT;'
-        pragma_start_init = pragraomp.format('{', likwid_thread_init, '}')
-        macrothreadinit = '\n  ' + ifdefperf + pragma_start_init + '\n  ' + endif
-        code = code.replace('INSERTMACROTHREADINIT;', macrothreadinit)
 
         start_sweep = 'LIKWID_MARKER_START("Sweep");'
         pragma_start_sweep = pragraomp.format('{', start_sweep, '}')
