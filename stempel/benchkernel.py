@@ -804,12 +804,12 @@ class KernelBench(Kernel):
                 c_ast.Constant('int', '0'),
                 None)], None)
         run_cond = c_ast.BinaryOp('<', c_ast.ID(run_index_name), c_ast.ID('repeat'))
-        run_next_ = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
+        run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
         #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
         if self.block_factor:
-            run_expr_list = expr_list
+            run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
@@ -825,7 +825,7 @@ class KernelBench(Kernel):
         run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
         run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap])
-        run_myfor = c_ast.For(run_init, run_cond, run_next_, run_stmt)
+        run_myfor = c_ast.For(run_init, run_cond, run_next, run_stmt)
         ast.block_items.insert(-1, run_myfor)
 
         if type_ == 'likwid':
@@ -1367,7 +1367,10 @@ class KernelBench(Kernel):
         code = code.replace('INSERTMACROSTART;', macrostart)
 
         stop_sweep = 'LIKWID_MARKER_STOP("Sweep");'
-        pragma_stop_sweep = pragraomp.format('{', stop_sweep, '}')
+        marker_get = '\n    int nevents, count;\n'
+        marker_get += '    double * events;\n'
+        marker_get += '    LIKWID_MARKER_GET("Sweep", &nevents, events, &runtime, &count );'
+        pragma_stop_sweep = pragraomp.format('{', stop_sweep + marker_get, '}')
         macrostop = '\n  ' + ifdefperf + pragma_stop_sweep + '\n  ' + endif
         code = code.replace('INSERTMACROSTOP;', macrostop)
 
