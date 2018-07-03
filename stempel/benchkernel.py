@@ -809,7 +809,7 @@ class KernelBench(Kernel):
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
         if self.block_factor:
-            run_expr_list = expr_list + [c_ast.ID('block_factor')]
+            run_expr_list = expr_list
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
