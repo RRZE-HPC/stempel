@@ -1364,7 +1364,8 @@ class KernelBench(Kernel):
 
         likwid_init = 'LIKWID_MARKER_INIT;'
         likwid_register = 'LIKWID_MARKER_REGISTER("Sweep");'
-        macroinit = '\n  ' + ifdefperf + '  ' + likwid_init + '\n  '
+        likwid_register = pragraomp.format('{', likwid_register, '}')
+        macroinit = '\n  ' + ifdefperf + '  ' + likwid_init + '\n'
         macroinit += likwid_register + '\n  ' + endif
         code = code.replace('INSERTMACROINIT;', macroinit)
 
