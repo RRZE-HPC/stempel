@@ -598,11 +598,11 @@ class KernelBench(Kernel):
                     rand_max)
                 pragma_numa = c_ast.Pragma('omp parallel for schedule(runtime)')
                 ast.block_items.insert(
-                    i, pragma_numa)
+                    i + 1, pragma_numa)
                 # ast.block_items.insert(
                 #     i + 1, c_ast.Pragma('omp parallel for schedule(runtime)')
                 ast.block_items.insert(
-                    i + 1, c_ast.For(init, cond, next_, stmt))
+                    i + 2, c_ast.For(init, cond, next_, stmt))
 
                 # inject dummy access to arrays, so compiler does not over-optimize code
                 # with if around it, so code will actually run
