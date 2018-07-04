@@ -659,6 +659,7 @@ class KernelBench(Kernel):
                             c_ast.ID('dummy'),
                             c_ast.ExprList([c_ast.ID(d.name)]))]),
                     iffalse=None))
+                ast.block_items.insert(-3,dummies[-1])
             else:
                 dummies.append(c_ast.If(
                     cond=c_ast.ID('var_false'),
@@ -667,6 +668,7 @@ class KernelBench(Kernel):
                             c_ast.ID('dummy'),
                             c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
                     iffalse=None))
+                ast.block_items.insert(-2,dummies[-1])
 
         # if we do not want the version accepting inputs from command line,
         # we need to declare the blocking factor
@@ -765,7 +767,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(pointers_list[1].type.type.declname))
         last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap])
+        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap] + dummies )
         myfor = c_ast.For(init, cond, next_, stmt)
 
         # call the timing function at the beginning
@@ -829,7 +831,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(run_pointers_list[1].type.type.declname))
         run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap])
+        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap] + dummies )
         run_myfor = c_ast.For(run_init, run_cond, run_next, run_stmt)
         ast.block_items.insert(-1, run_myfor)
 
