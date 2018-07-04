@@ -1394,9 +1394,10 @@ class KernelBench(Kernel):
             code = code = code[0:-1]
 
         kernel = CGenerator().visit(ast_kernel)
-        kernel = '#endif\n' + kernel
-        kernel = '#define min( a, b ) ( ((a) < (b)) ? (a) : (b) )\n' + kernel
-        kernel = '#ifndef min\n' + kernel
+        if self.block_factor:
+            kernel = '#endif\n' + kernel
+            kernel = '#define min( a, b ) ( ((a) < (b)) ? (a) : (b) )\n' + kernel
+            kernel = '#ifndef min\n' + kernel
 
         # return mycode
         return code, kernel
