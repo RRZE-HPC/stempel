@@ -443,7 +443,7 @@ class KernelBench(Kernel):
         sizes_decls_typenames = []
         # add declarations for constants from the executable command line
         if(from_cli):
-            var_list = [k.name for k in self.constants]
+            var_list = sorted([k.name for k in self.constants])
             blocking = ''
             num_args = 1
             # add declaration of the block
@@ -752,7 +752,7 @@ class KernelBench(Kernel):
         next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
         #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-        expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
+        expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
         if self.block_factor:
             expr_list = expr_list + [c_ast.ID('block_factor')]
 
@@ -812,7 +812,7 @@ class KernelBench(Kernel):
         run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
         #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-        run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s.name) for s in self.constants]
+        run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
         if self.block_factor:
             run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
 
@@ -840,7 +840,7 @@ class KernelBench(Kernel):
 
         # calculate the size of the grid, taking the letters representing
         # its dimensions from the array of constants
-        size = '(' + ' * '.join(k.name for k in self.constants) + ')'
+        size = '(' + ' * '.join(s for s in sorted([k.name for k in self.constants])) + ')'
 
         decl = c_ast.Decl('tmp', [], [], [], c_ast.PtrDecl(
             [], c_ast.TypeDecl('tmp', [],
