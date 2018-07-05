@@ -335,30 +335,31 @@ def run_gen(args, output_file=sys.stdout):
 
                                 param_values = []
                                 for size in sizes:
-                                    if iaca:
-                                        ECM = 'ECM'
-                                    else:
-                                        ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
-                                        stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-vv']
-                                    logging.info(
-                                        'Running command: {}'.format(' '.join(cmd)))
-                                    try:
-                                        # print(cmd)
-                                        out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
-                                            f.write(out)
-                                    except subprocess.CalledProcessError as e:
-                                        #print("kerncraft failed:", e)
-                                        logging.error(
-                                            'Failed to execute {}: {}'.format(cmd, e))
-                                        #sys.exit(1)
-                                        sizes.remove([size[0], size[1]])
-                                        logging.error(
-                                            'Removed {} from the input sizes'.format(size))
-                                    # blocksize = 32
+                                    for threads in exp_threads:
+                                        if iaca:
+                                            ECM = 'ECM'
+                                        else:
+                                            ECM = 'ECMData'
+                                        cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
+                                            stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '--unit FLOP/s', '--cores', str(threads), '-vv']
+                                        logging.info(
+                                            'Running command: {}'.format(' '.join(cmd)))
+                                        try:
+                                            # print(cmd)
+                                            out = subprocess.check_output(cmd)
+                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                                f.write(out)
+                                        except subprocess.CalledProcessError as e:
+                                            #print("kerncraft failed:", e)
+                                            logging.error(
+                                                'Failed to execute {}: {}'.format(cmd, e))
+                                            #sys.exit(1)
+                                            sizes.remove([size[0], size[1]])
+                                            logging.error(
+                                                'Removed {} from the input sizes'.format(size))
+                                        # blocksize = 32
 
-                                    param_values.append("{} {}".format(size[0], size[1]))
+                                        param_values.append("{} {}".format(size[0], size[1]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -463,30 +464,31 @@ def run_gen(args, output_file=sys.stdout):
 
                                 param_values = []
                                 for size in sizes:
-                                    if iaca:
-                                        ECM = 'ECM'
-                                    else:
-                                        ECM = 'ECMData'
-                                    cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                        machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '-vv']
-                                    logging.info(
-                                        'Running command: {}'.format(' '.join(cmd)))
-                                    try:
-                                        # print(cmd)
-                                        out = subprocess.check_output(cmd)
-                                        with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
-                                            f.write(out)
-                                    except subprocess.CalledProcessError as e:
-                                        #print("kerncraft failed:", e)
-                                        logging.error(
-                                            'Failed to execute {}: {}'.format(cmd, e))
-                                        #sys.exit(1)
-                                        sizes.remove([size[0], size[1], size[2]])
-                                        logging.error(
-                                            'Removed {} from the input sizes'.format(size))
+                                    for threads in exp_threads:
+                                        if iaca:
+                                            ECM = 'ECM'
+                                        else:
+                                            ECM = 'ECMData'
+                                        cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
+                                            machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '--unit FLOP/s', '--cores', str(threads), '-vv']
+                                        logging.info(
+                                            'Running command: {}'.format(' '.join(cmd)))
+                                        try:
+                                            # print(cmd)
+                                            out = subprocess.check_output(cmd)
+                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                                f.write(out)
+                                        except subprocess.CalledProcessError as e:
+                                            #print("kerncraft failed:", e)
+                                            logging.error(
+                                                'Failed to execute {}: {}'.format(cmd, e))
+                                            #sys.exit(1)
+                                            sizes.remove([size[0], size[1], size[2]])
+                                            logging.error(
+                                                'Removed {} from the input sizes'.format(size))
 
-                                    #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
-                                    param_values.append("{} {} {}".format(size[0], size[1], size[2]))
+                                        #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
+                                        param_values.append("{} {} {}".format(size[0], size[1], size[2]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
