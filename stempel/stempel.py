@@ -181,8 +181,10 @@ def create_parser():
                               required=True, help='Path to machine description '
                               'yaml file.')
     parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1,
-                              help='Blocking factor for the middle (3D) or '
-                              'outermost (2D) loop')
+                              help='Blocking factor:\n'\
+                              '0:  no blocking\n'\
+                              '1:  blocking for the middle (3D) or outermost (2D) loop\n'\
+                              '>1: full blocking in all three dimensions')
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
                               action=AppendStringRange,
                               help='Define constant to be used in C code. Values '\
@@ -301,7 +303,7 @@ def run_gen(args, parser, output_file=sys.stdout):
     declaration = stencil.declaration()
     # create the loop part of the final C code
     loop, flop = stencil.loop()
-    
+
     code = declaration + '\n'.join(loop)
 
     if args.coefficient == 'variable':

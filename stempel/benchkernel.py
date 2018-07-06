@@ -1254,42 +1254,88 @@ class KernelBench(Kernel):
                 mycompound = c_ast.Compound([pragma, newfor])
 
             elif mydims == 3:  # blocking on the middle loop
-                beginning = myvariables[1] + 'b'
-                end = myvariables[1] + 'end'
-                pragma = c_ast.Pragma(
-                    'omp parallel')# private({}, {})'.format(beginning, end))
+                if self.block_factor == 1:
+                    beginning = myvariables[1] + 'b'
+                    end = myvariables[1] + 'end'
+                    pragma = c_ast.Pragma(
+                        'omp parallel')# private({}, {})'.format(beginning, end))
 
-                init = c_ast.DeclList([
-                    c_ast.Decl(
-                        beginning, [], [], [], c_ast.TypeDecl(
-                            beginning, [], c_ast.IdentifierType(['int'])),
-                        myblockstmt.init.decls[0].init,
-                        None)], None)
-                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
-                # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
-                cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), myblockstmt.cond.right)
-                next_ = c_ast.BinaryOp(
-                    '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
-                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+                    init = c_ast.DeclList([
+                        c_ast.Decl(
+                            beginning, [], [], [], c_ast.TypeDecl(
+                                beginning, [], c_ast.IdentifierType(['int'])),
+                            myblockstmt.init.decls[0].init,
+                            None)], None)
+                    # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                    # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                    cond = c_ast.BinaryOp('<', c_ast.ID(
+                        beginning), myblockstmt.cond.right)
+                    next_ = c_ast.BinaryOp(
+                        '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                    #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
-                decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
-                    end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
-                    c_ast.ID('min'), c_ast.ExprList([
-                        c_ast.BinaryOp(
-                                '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                        myblockstmt.cond.right])), None)
+                    decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                        end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                        c_ast.ID('min'), c_ast.ExprList([
+                            c_ast.BinaryOp(
+                                    '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                            myblockstmt.cond.right])), None)
 
-                myblockstmt.init.decls[0].init = c_ast.ID(beginning)
-                myblockstmt.cond.right = c_ast.ID(end)
+                    myblockstmt.init.decls[0].init = c_ast.ID(beginning)
+                    myblockstmt.cond.right = c_ast.ID(end)
 
-                mycompound = c_ast.Compound(
-                    [decl, pragma_int, forloop])
+                    mycompound = c_ast.Compound(
+                        [decl, pragma_int, forloop])
 
-                newfor = c_ast.For(init, cond, next_, mycompound)
+                    newfor = c_ast.For(init, cond, next_, mycompound)
 
-                mycompound = c_ast.Compound([pragma, newfor])
+                    mycompound = c_ast.Compound([pragma, newfor])
+                elif self.block_factor > 1:
+                    blk_forloop = forloop
+                    blk = [blk_forloop.stmt.block_items[0].stmt.block_items[0],
+                           blk_forloop.stmt.block_items[0],
+                           blk_forloop]
 
+                    from_ = [blk[0].init.decls[0].init,blk[1].init.decls[0].init,blk[2].init.decls[0].init]
+                    to_   = [blk[0].cond.right,blk[1].cond.right,blk[2].cond.right]
+
+                    for dim in range(0,mydims):
+                        beginning = myvariables[dim] + 'b'
+                        end = myvariables[dim] + 'end'
+
+                        blk[dim].init.decls[0].init = c_ast.ID(beginning)
+                        blk[dim].cond.right = c_ast.ID(end)
+
+                    mycompound = c_ast.Compound([pragma_int,blk_forloop])
+
+                    for dim in range(0,mydims):
+                        beginning = myvariables[dim] + 'b'
+                        end = myvariables[dim] + 'end'
+
+                        init = c_ast.DeclList([
+                            c_ast.Decl(
+                                beginning, [], [], [], c_ast.TypeDecl(
+                                    beginning, [], c_ast.IdentifierType(['int'])),
+                                from_[dim],
+                                None)], None)
+                        # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                        # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                        cond = c_ast.BinaryOp('<', c_ast.ID(
+                            beginning), to_[dim])
+                        next_ = c_ast.BinaryOp(
+                            '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+
+                        decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                            end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                            c_ast.ID('min'), c_ast.ExprList([
+                                c_ast.BinaryOp(
+                                        '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                                to_[dim]])), None)
+
+                        mycompound = c_ast.For(init, cond, next_, c_ast.Compound([decl, mycompound]))
+
+                    pragma = c_ast.Pragma('omp parallel')# private({}, {})'.format(beginning, end))
+                    mycompound = c_ast.Compound([pragma,mycompound])
         else:
             mycompound = c_ast.Compound([pragma_int, forloop])
 
