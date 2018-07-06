@@ -335,13 +335,13 @@ def run_gen(args, output_file=sys.stdout):
 
                                 param_values = []
                                 for size in sizes:
-                                    for threads in exp_threads:
+                                    for threads in exp_threads.split():
                                         if iaca:
                                             ECM = 'ECM'
                                         else:
                                             ECM = 'ECMData'
                                         cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(
-                                            stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '--unit FLOP/s', '--cores', str(threads), '-vv']
+                                            stencil_path, stencil_name), '-m', os.path.join(machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '--unit=FLOP/s', '--cores='+threads, '-vv']
                                         logging.info(
                                             'Running command: {}'.format(' '.join(cmd)))
                                         try:
@@ -464,13 +464,13 @@ def run_gen(args, output_file=sys.stdout):
 
                                 param_values = []
                                 for size in sizes:
-                                    for threads in exp_threads:
+                                    for threads in exp_threads.split():
                                         if iaca:
                                             ECM = 'ECM'
                                         else:
                                             ECM = 'ECMData'
                                         cmd = ['kerncraft', '-P', cache_model, '-p', 'Roofline', '-p', ECM, os.path.join(stencil_path, stencil_name), '-m', os.path.join(
-                                            machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '--unit FLOP/s', '--cores', str(threads), '-vv']
+                                            machinefilepath, machine), '-D', 'M', size[0], '-D', 'N', size[1], '-D', 'P', size[2], '--unit=FLOP/s', '--cores='+threads, '-vv']
                                         logging.info(
                                             'Running command: {}'.format(' '.join(cmd)))
                                         try:
