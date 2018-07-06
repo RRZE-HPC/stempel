@@ -447,10 +447,15 @@ class KernelBench(Kernel):
             blocking = ''
             num_args = 1
             # add declaration of the block
-            if self.block_factor:
+            if self.block_factor == 1:
                 var_list.append('block_factor')
                 blocking = 'blocking'
                 num_args = num_args + 1
+            elif self.block_factor > 1:
+                for dim in range(0,3):
+                    var_list.append('block_factor_' + var_list[dim])
+                    blocking = blocking + 'blocking '
+                    num_args = num_args + 1
 
             i = 1  # subscript for cli input
             for k in var_list:
@@ -674,7 +679,7 @@ class KernelBench(Kernel):
         # we need to declare the blocking factor
         if not from_cli:
             # add declaration of the block
-            if self.block_factor:
+            if self.block_factor == 1:
                 type_decl = c_ast.TypeDecl(
                     'block_factor', [], c_ast.IdentifierType(['int']))
                 decl = c_ast.Decl(
@@ -685,6 +690,20 @@ class KernelBench(Kernel):
                 # add it to the list of declarations, so it gets passed to the
                 # kernel_loop
                 declarations.append(decl)
+            elif self.block_factor > 1:
+                # add declaration of the block
+                for dim in range(0,3):
+                    name = 'block_factor_' + var_list[dim]
+                    type_decl = c_ast.TypeDecl(
+                        name, [], c_ast.IdentifierType(['int']))
+                    decl = c_ast.Decl(
+                        name, ['const'], [], [],
+                        type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                    ast.block_items.insert(-3, decl)
+
+                    # add it to the list of declarations, so it gets passed to the
+                    # kernel_loop
+                    declarations.append(decl)
 
         # Wrap everything in a loop
         # int repeat = atoi(argv[2])
@@ -755,8 +774,10 @@ class KernelBench(Kernel):
         #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
+        if self.block_factor == 1:
             expr_list = expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                               c_ast.ExprList(expr_list))
@@ -815,8 +836,10 @@ class KernelBench(Kernel):
         #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
+        if self.block_factor == 1:
             run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
