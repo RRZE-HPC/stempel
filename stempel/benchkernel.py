@@ -1346,13 +1346,13 @@ class KernelBench(Kernel):
                         cond = c_ast.BinaryOp('<', c_ast.ID(
                             beginning), to_[dim])
                         next_ = c_ast.BinaryOp(
-                            '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
+                            '+=', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim]))
 
                         decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
                             end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
                             c_ast.ID('min'), c_ast.ExprList([
                                 c_ast.BinaryOp(
-                                        '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                                        '+', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim])),
                                 to_[dim]])), None)
 
                         mycompound = c_ast.For(init, cond, next_, c_ast.Compound([decl, mycompound]))
