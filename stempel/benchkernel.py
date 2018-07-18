@@ -698,33 +698,33 @@ class KernelBench(Kernel):
         # ast.block_items.insert(-3, c_ast.Decl(
         #     'repeat', ['const'], [], [],
         #     type_decl, init, None))
-        ast.block_items.insert(-3, c_ast.Decl(
+        ast.block_items.insert(-2, c_ast.Decl(
             'repeat', ['const'], [], [],
             type_decl, c_ast.Constant('int', '1'), None))
 
         # timing variables declaration and initialisation
         type_decl = c_ast.TypeDecl(
             'runtime', [], c_ast.IdentifierType(['double']))
-        ast.block_items.insert(-3, c_ast.Decl(
+        ast.block_items.insert(-2, c_ast.Decl(
             'runtime', ['const'], [], [],
             type_decl, c_ast.Constant('double', '0.0'), None))
 
         decl = c_ast.Decl('wct_start', [], [], [], c_ast.TypeDecl(
             'wct_start', [], c_ast.IdentifierType(['double'])
         ), None, None)
-        ast.block_items.insert(-3, decl)
+        ast.block_items.insert(-2, decl)
         decl = c_ast.Decl('wct_end', [], [], [], c_ast.TypeDecl(
             'wct_end', [], c_ast.IdentifierType(['double'])
         ), None, None)
-        ast.block_items.insert(-3, decl)
+        ast.block_items.insert(-2, decl)
         decl = c_ast.Decl('cput_start', [], [], [], c_ast.TypeDecl(
             'cput_start', [], c_ast.IdentifierType(['double'])
         ), None, None)
-        ast.block_items.insert(-3, decl)
+        ast.block_items.insert(-2, decl)
         decl = c_ast.Decl('cput_end', [], [], [], c_ast.TypeDecl(
             'cput_end', [], c_ast.IdentifierType(['double'])
         ), None, None)
-        ast.block_items.insert(-3, decl)
+        ast.block_items.insert(-2, decl)
 
         # call the timing function at the beginning
         start_timing = c_ast.FuncCall(c_ast.ID('timing'),
