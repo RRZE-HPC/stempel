@@ -347,7 +347,7 @@ def run_gen(args, output_file=sys.stdout):
                                         try:
                                             # print(cmd)
                                             out = subprocess.check_output(cmd)
-                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-'  + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + threads + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                                 f.write(out)
                                         except subprocess.CalledProcessError as e:
                                             #print("kerncraft failed:", e)
@@ -415,6 +415,8 @@ def run_gen(args, output_file=sys.stdout):
                                     mystencilname = stencil_name.split('.')[0]
                                     project = mystencilname
                                     mystencilname = mystencilname + '_compilable.c'
+                                    logging.info('My stencil name is: {}'.format(
+                                    mystencilname))
                                     
                                     params = 'M_MAX N_MAX'
                                     values = '{} {}'.format(sizes[0][0], sizes[0][1])
@@ -476,7 +478,7 @@ def run_gen(args, output_file=sys.stdout):
                                         try:
                                             # print(cmd)
                                             out = subprocess.check_output(cmd)
-                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
+                                            with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-'  + threads + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                                 f.write(out)
                                         except subprocess.CalledProcessError as e:
                                             #print("kerncraft failed:", e)
