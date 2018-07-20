@@ -359,7 +359,7 @@ def run_gen(args, output_file=sys.stdout):
                                                 'Removed {} from the input sizes'.format(size))
                                         # blocksize = 32
 
-                                        param_values.append("{} {}".format(size[0], size[1]))
+                                    param_values.append("{} {}".format(size[0], size[1]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
@@ -490,7 +490,7 @@ def run_gen(args, output_file=sys.stdout):
                                                 'Removed {} from the input sizes'.format(size))
 
                                         #param_values = param_values + ' "{} {} {}"'.format(size, size, size)
-                                        param_values.append("{} {} {}".format(size[0], size[1], size[2]))
+                                    param_values.append("{} {} {}".format(size[0], size[1], size[2]))
 
                                 # #run stempel bench to create actual C code
                                 cmd = ['stempel', 'bench', os.path.join(stencil_path, stencil_name), '-m', os.path.join(
