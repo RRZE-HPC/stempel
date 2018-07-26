@@ -1423,7 +1423,7 @@ class KernelBench(Kernel):
 
         start_sweep = 'LIKWID_MARKER_START("Sweep");'
         pragma_start_sweep = pragraomp.format('{', start_sweep, '}')
-        macrostart = '\n  ' + ifdefperf + pragma_start_sweep + '\n  ' + endif
+        macrostart = '\n  ' + ifdefperf + pragma_start_sweep + '\n'
         code = code.replace('INSERTMACROSTART;', macrostart)
 
         stop_sweep = 'LIKWID_MARKER_STOP("Sweep");'
@@ -1431,7 +1431,7 @@ class KernelBench(Kernel):
         marker_get += '    double events[50];\n'
         marker_get += '    LIKWID_MARKER_GET("Sweep", &nevents, events, &runtime, &count );'
         pragma_stop_sweep = pragraomp.format('{', stop_sweep + marker_get, '}')
-        macrostop = '\n  ' + ifdefperf + pragma_stop_sweep + '\n  ' + endif
+        macrostop = pragma_stop_sweep[2:] + '\n  ' + endif
         code = code.replace('INSERTMACROSTOP;', macrostop)
 
         likwid_close = 'LIKWID_MARKER_CLOSE;'
