@@ -180,7 +180,7 @@ def create_parser():
     parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
                               required=True, help='Path to machine description '
                               'yaml file.')
-    parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1,
+    parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1, default=0,
                               help='Blocking factor:\n'\
                               '0:  no blocking\n'\
                               '1 (default):  blocking for the middle (3D) or outermost (2D) loop\n'\

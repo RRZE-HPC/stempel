@@ -450,16 +450,15 @@ class KernelBench(Kernel):
             blocking = ''
             num_args = 1
             # add declaration of the block
-            if self.block_factor:
-                if self.block_factor == 1:
-                    var_list.append('block_factor')
-                    blocking = 'blocking'
+            if self.block_factor == 1:
+                var_list.append('block_factor')
+                blocking = 'blocking'
+                num_args = num_args + 1
+            elif self.block_factor > 1:
+                for dim in range(0,3):
+                    var_list.append('block_factor_' + var_list[dim])
+                    blocking = blocking + 'blocking_' + var_list[dim] + ' '
                     num_args = num_args + 1
-                elif self.block_factor > 1:
-                    for dim in range(0,3):
-                        var_list.append('block_factor_' + var_list[dim])
-                        blocking = blocking + 'blocking_' + var_list[dim] + ' '
-                        num_args = num_args + 1
 
             i = 1  # subscript for cli input
             for k in var_list:
@@ -762,11 +761,10 @@ class KernelBench(Kernel):
         next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
 
         expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
-            if self.block_factor == 1:
-                expr_list = expr_list + [c_ast.ID('block_factor')]
-            elif self.block_factor > 1:
-                expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
+        if self.block_factor == 1:
+            expr_list = expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                               c_ast.ExprList(expr_list))
@@ -824,11 +822,10 @@ class KernelBench(Kernel):
         run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
-            if self.block_factor == 1:
-                run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
-            elif self.block_factor > 1:
-                run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
+        if self.block_factor == 1:
+            run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
