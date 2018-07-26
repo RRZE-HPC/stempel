@@ -458,7 +458,7 @@ class KernelBench(Kernel):
                 elif self.block_factor > 1:
                     for dim in range(0,3):
                         var_list.append('block_factor_' + var_list[dim])
-                        blocking = blocking + 'blocking '
+                        blocking = blocking + 'blocking_' + var_list[dim] + ' '
                         num_args = num_args + 1
 
             i = 1  # subscript for cli input
@@ -476,7 +476,7 @@ class KernelBench(Kernel):
                 ast.block_items.insert(0, decl)
 
             #build and add the if statement checking the number of arguments passed on the command line
-            mysize = 'size ' * len(self.constants)
+            mysize = ''.join(['size_' + c + ' ' for c in sorted([k.name for k in self.constants])])
             num_args = num_args + len(self.constants)
 
             argerror_string = 'Wrong number of arguments. Usage:\\n%s {}{}\\n'.format(mysize, blocking)
@@ -777,7 +777,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(pointers_list[1].type.type.declname))
         last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap] + [dummies] )
+        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap, dummies] )
         myfor = c_ast.For(init, cond, next_, stmt)
 
         # call the timing function at the beginning
@@ -843,7 +843,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(run_pointers_list[1].type.type.declname))
         run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap] + [dummies] )
+        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap, dummies] )
         run_myfor = c_ast.For(run_init, run_cond, run_next, run_stmt)
         ast.block_items.insert(-1, run_myfor)
 
