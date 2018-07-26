@@ -447,15 +447,16 @@ class KernelBench(Kernel):
             blocking = ''
             num_args = 1
             # add declaration of the block
-            if self.block_factor == 1:
-                var_list.append('block_factor')
-                blocking = 'blocking'
-                num_args = num_args + 1
-            elif self.block_factor > 1:
-                for dim in range(0,3):
-                    var_list.append('block_factor_' + var_list[dim])
-                    blocking = blocking + 'blocking '
+            if self.block_factor:
+                if self.block_factor == 1:
+                    var_list.append('block_factor')
+                    blocking = 'blocking'
                     num_args = num_args + 1
+                elif self.block_factor > 1:
+                    for dim in range(0,3):
+                        var_list.append('block_factor_' + var_list[dim])
+                        blocking = blocking + 'blocking '
+                        num_args = num_args + 1
 
             i = 1  # subscript for cli input
             for k in var_list:
@@ -774,10 +775,11 @@ class KernelBench(Kernel):
         #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor == 1:
-            expr_list = expr_list + [c_ast.ID('block_factor')]
-        elif self.block_factor > 1:
-            expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
+        if self.block_factor:
+            if self.block_factor == 1:
+                expr_list = expr_list + [c_ast.ID('block_factor')]
+            elif self.block_factor > 1:
+                expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                               c_ast.ExprList(expr_list))
@@ -836,10 +838,11 @@ class KernelBench(Kernel):
         #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor == 1:
-            run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
-        elif self.block_factor > 1:
-            run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
+        if self.block_factor:
+            if self.block_factor == 1:
+                run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
+            elif self.block_factor > 1:
+                run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
