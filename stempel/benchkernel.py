@@ -1444,8 +1444,8 @@ class KernelBench(Kernel):
         code = code.replace('INSERTMACROSTART;', macrostart)
 
         stop_sweep = 'LIKWID_MARKER_STOP("Sweep");'
-        marker_get = '\n    int nevents, count;\n'
-        marker_get += '    double * events;\n'
+        marker_get = '\n    int nevents = 50, count = 50;\n'
+        marker_get += '    double events[50];\n'
         marker_get += '    LIKWID_MARKER_GET("Sweep", &nevents, events, &runtime, &count );'
         pragma_stop_sweep = pragraomp.format('{', stop_sweep + marker_get, '}')
         macrostop = '\n  ' + ifdefperf + pragma_stop_sweep + '\n  ' + endif
