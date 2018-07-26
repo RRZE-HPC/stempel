@@ -14,6 +14,7 @@ import os
 import os.path
 import sys
 import collections
+import random
 from functools import reduce
 
 #import logging
@@ -154,7 +155,8 @@ class KernelBench(Kernel):
     This version allows compilation and generation of code for benchmarking
     """
 
-    def __init__(self, kernel_code, machine, block_factor=None, flop=None, filename=None):
+    def __init__(self, kernel_code, machine, block_factor=None,
+                 flop=None, filename=None, initwithrand=False):
         super(KernelBench, self).__init__(machine=machine)
 
         # Initialize state
@@ -164,6 +166,7 @@ class KernelBench(Kernel):
         self._filename = filename
         self.block_factor = block_factor
         self.flop = flop
+        self.initwithrand = initwithrand
         # need to refer to local lextab, otherwise the systemwide lextab would
         # be imported
         parser = CParser()
@@ -575,28 +578,34 @@ class KernelBench(Kernel):
                         else:#(sizeof(double)) * (((3 * M) * N) * P)
                             factor = float(d.init.args.exprs[0].right.left.left.left.value)
 
-                    # we add 2 in order to get a factor that stabilizes the results
-                    # empirical value
-                    factor = factor + 2.0
-                    rand_max = c_ast.BinaryOp(
-                        '/', c_ast.BinaryOp('/', c_ast.FuncCall(
-                            c_ast.ID('rand'), c_ast.ExprList([])),
-                                            c_ast.Cast(
-                                                c_ast.IdentifierType(['double']),
-                                                c_ast.ID('RAND_MAX'))),
-                        c_ast.Constant('float', factor))
+                    if self.initwithrand is True:
+                        # we add 2 in order to get a factor that stabilizes the results
+                        # empirical value
+                        factor = factor + 2.0
+                        rand_max = c_ast.BinaryOp(
+                            '/', c_ast.BinaryOp('/', c_ast.FuncCall(
+                                c_ast.ID('rand'), c_ast.ExprList([])),
+                                                c_ast.Cast(
+                                                    c_ast.IdentifierType(['double']),
+                                                    c_ast.ID('RAND_MAX'))),
+                            c_ast.Constant('float', factor))
+                    else:
+                        rand_max = c_ast.Constant('float', random.uniform(-23.42,+23.42))
                     #, rand_max))
                     #,
                     # c_ast.Constant('float', factor))
                 else:
                     #array a or b
-                    rand_max = c_ast.BinaryOp(
-                            '/', c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                            c_ast.Cast(
-                                c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX')))
+                    if self.initwithrand is True:
+                        rand_max = c_ast.BinaryOp(
+                                '/', c_ast.FuncCall(
+                                    c_ast.ID('rand'),
+                                    c_ast.ExprList([])),
+                                c_ast.Cast(
+                                    c_ast.IdentifierType(['double']),
+                                    c_ast.ID('RAND_MAX')))
+                    else:
+                        rand_max = c_ast.Constant('float', random.uniform(-23.42,+23.42))
 
                 stmt = c_ast.Assignment(
                     '=',
@@ -624,19 +633,25 @@ class KernelBench(Kernel):
                 # this is a scalar, so a simple Assignment is enough
 
                 #calculate the factor
-                factor = 2.0 + float(nconstants)
-
-                ast.block_items.insert(
-                    i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
-                        c_ast.BinaryOp(
-                        '/', c_ast.BinaryOp(
-                            '/', c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                            c_ast.Cast(
-                                c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX'))),
-                        c_ast.Constant('float', factor))))
+                if self.initwithrand is True:
+                    factor = 2.0 + float(nconstants)
+                    ast.block_items.insert(
+                        i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
+                            c_ast.BinaryOp(
+                            '/', c_ast.BinaryOp(
+                                '/', c_ast.FuncCall(
+                                    c_ast.ID('rand'),
+                                    c_ast.ExprList([])),
+                                c_ast.Cast(
+                                    c_ast.IdentifierType(['double']),
+                                    c_ast.ID('RAND_MAX'))),
+                            c_ast.Constant('float', factor))))
+                else:
+                    ast.block_items.insert(
+                        i + 1,
+                        c_ast.Assignment(
+                            '=', c_ast.ID(d.name),
+                            c_ast.Constant('float', random.uniform(-23.42,+23.42))))
 
                 # inject dummy access to scalar, so compiler does not over-optimize code
                 # TODO put if around it, so code will actually run
