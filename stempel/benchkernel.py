@@ -618,20 +618,8 @@ class KernelBench(Kernel):
                 #     i + 1, c_ast.Pragma('omp parallel for schedule(runtime)')
                 ast.block_items.insert(
                     i + 2, c_ast.For(init, cond, next_, stmt))
-
-                # inject dummy access to arrays, so compiler does not over-optimize code
-                # with if around it, so code will actually run
-                # ast.block_items.insert(
-                #     i + 2, c_ast.If(
-                #         cond=c_ast.ID('var_false'),
-                #         iftrue=c_ast.Compound([
-                #             c_ast.FuncCall(
-                #                 c_ast.ID('dummy'),
-                #                 c_ast.ExprList([c_ast.ID(d.name)]))]),
-                #         iffalse=None))
             else:
                 # this is a scalar, so a simple Assignment is enough
-
                 #calculate the factor
                 if self.initwithrand is True:
                     factor = 2.0 + float(nconstants)
@@ -653,43 +641,28 @@ class KernelBench(Kernel):
                             '=', c_ast.ID(d.name),
                             c_ast.Constant('float', random.uniform(-23.42,+23.42))))
 
-                # inject dummy access to scalar, so compiler does not over-optimize code
-                # TODO put if around it, so code will actually run
-                # ast.block_items.insert(
-                #     i + 2, c_ast.If(
-                #         cond=c_ast.ID('var_false'),
-                #         iftrue=c_ast.Compound([
-                #             c_ast.FuncCall(
-                #                 c_ast.ID('dummy'),
-                #                 c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
-                #         iffalse=None))
-
         # transform multi-dimensional array references to one dimensional
         # references
         list(map(lambda aref: transform_multidim_to_1d_ref(aref, array_dimensions),
                  find_array_references(ast)))
 
-        dummies = []
+        dummylist=[]
         # Make sure nothing gets removed by inserting dummy calls
         for d in declarations:
             if array_dimensions[d.name]:
-                dummies.append(c_ast.If(
-                    cond=c_ast.ID('var_false'),
-                    iftrue=c_ast.Compound([
-                        c_ast.FuncCall(
-                            c_ast.ID('dummy'),
-                            c_ast.ExprList([c_ast.ID(d.name)]))]),
-                    iffalse=None))
-                ast.block_items.insert(-3,dummies[-1])
+                dummylist.append(c_ast.FuncCall(
+                    c_ast.ID('dummy'),
+                    c_ast.ExprList([c_ast.ID(d.name)])))
             else:
-                dummies.append(c_ast.If(
-                    cond=c_ast.ID('var_false'),
-                    iftrue=c_ast.Compound([
-                        c_ast.FuncCall(
+                dummylist.append(c_ast.FuncCall(
                             c_ast.ID('dummy'),
-                            c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
-                    iffalse=None))
-                ast.block_items.insert(-2,dummies[-1])
+                            c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))])))
+
+        dummies = c_ast.If(
+            cond=c_ast.ID('var_false'),
+            iftrue=c_ast.Compound(dummylist),
+            iffalse=None)
+        ast.block_items.insert(-2,dummies)
 
         # if we do not want the version accepting inputs from command line,
         # we need to declare the blocking factor
@@ -787,7 +760,6 @@ class KernelBench(Kernel):
         cond = c_ast.BinaryOp('<', c_ast.ID(
             index_name), c_ast.ID('repeat'))
         next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
-        #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
         if self.block_factor:
@@ -805,7 +777,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(pointers_list[1].type.type.declname))
         last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap] + dummies )
+        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap] + [dummies] )
         myfor = c_ast.For(init, cond, next_, stmt)
 
         # call the timing function at the beginning
@@ -850,7 +822,6 @@ class KernelBench(Kernel):
                 None)], None)
         run_cond = c_ast.BinaryOp('<', c_ast.ID(run_index_name), c_ast.ID('repeat'))
         run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
-        #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
         if self.block_factor:
@@ -872,7 +843,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(run_pointers_list[1].type.type.declname))
         run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap] + dummies )
+        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap] + [dummies] )
         run_myfor = c_ast.For(run_init, run_cond, run_next, run_stmt)
         ast.block_items.insert(-1, run_myfor)
 
@@ -1203,10 +1174,6 @@ class KernelBench(Kernel):
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                   c_ast.ID('total')])))
 
-
-        # else:
-        #     ast.block_items += dummies
-
         # embed compound into main FuncDecl
         decl = c_ast.Decl('main', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList([
@@ -1275,7 +1242,6 @@ class KernelBench(Kernel):
                     beginning), myblockstmt.cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
-                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
                 decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
                     end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
@@ -1313,7 +1279,6 @@ class KernelBench(Kernel):
                         beginning), myblockstmt.cond.right)
                     next_ = c_ast.BinaryOp(
                         '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
-                    #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
                     decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
                         end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
