@@ -180,9 +180,11 @@ def create_parser():
     parser_bench.add_argument('--machine', '-m', type=argparse.FileType('r'),
                               required=True, help='Path to machine description '
                               'yaml file.')
-    parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1,
-                              help='Blocking factor for the middle (3D) or '
-                              'outermost (2D) loop')
+    parser_bench.add_argument('--block', '-b', nargs='?', type=int, const=1, default=0,
+                              help='Blocking factor:\n'\
+                              '0:  no blocking\n'\
+                              '1 (default):  blocking for the middle (3D) or outermost (2D) loop\n'\
+                              '>1: full blocking in all three dimensions')
     parser_bench.add_argument('-D', '--define', nargs=2, metavar=('KEY', 'VALUE'), default=[],
                               action=AppendStringRange,
                               help='Define constant to be used in C code. Values '\
@@ -193,6 +195,8 @@ def create_parser():
                                       'command line interface or via PROVA')
     parser_bench.add_argument('--store', action='store_true',
                               help='Addes results to a C file for later processing.')
+    parser_bench.add_argument('--initwithrand', action='store_true', default=False,
+                              help='Initialize the arrays with random numbers.')
 
     parser_bench.set_defaults(func=run_bench)
     # for s in stencils.__all__:
@@ -301,7 +305,7 @@ def run_gen(args, parser, output_file=sys.stdout):
     declaration = stencil.declaration()
     # create the loop part of the final C code
     loop, flop = stencil.loop()
-    
+
     code = declaration + '\n'.join(loop)
 
     if args.coefficient == 'variable':
@@ -365,7 +369,8 @@ def run_bench(args, output_file=sys.stdout):
     flop = count_ops(code)
 
     kernel = KernelBench(code, filename=args.code_file.name,
-                         machine=machine, block_factor=args.block, flop=flop)
+                         machine=machine, block_factor=args.block,
+                         flop=flop, initwithrand=args.initwithrand )
 
     # taken from kerncraft
     # # works only for up to 3 dimensions

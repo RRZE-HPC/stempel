@@ -14,6 +14,7 @@ import os
 import os.path
 import sys
 import collections
+import random
 from functools import reduce
 
 #import logging
@@ -154,7 +155,8 @@ class KernelBench(Kernel):
     This version allows compilation and generation of code for benchmarking
     """
 
-    def __init__(self, kernel_code, machine, block_factor=None, flop=None, filename=None):
+    def __init__(self, kernel_code, machine, block_factor=None,
+                 flop=None, filename=None, initwithrand=False):
         super(KernelBench, self).__init__(machine=machine)
 
         # Initialize state
@@ -164,6 +166,7 @@ class KernelBench(Kernel):
         self._filename = filename
         self.block_factor = block_factor
         self.flop = flop
+        self.initwithrand = initwithrand
         # need to refer to local lextab, otherwise the systemwide lextab would
         # be imported
         parser = CParser()
@@ -447,10 +450,15 @@ class KernelBench(Kernel):
             blocking = ''
             num_args = 1
             # add declaration of the block
-            if self.block_factor:
+            if self.block_factor == 1:
                 var_list.append('block_factor')
                 blocking = 'blocking'
                 num_args = num_args + 1
+            elif self.block_factor > 1:
+                for dim in range(0,3):
+                    var_list.append('block_factor_' + var_list[dim])
+                    blocking = blocking + 'blocking_' + var_list[dim] + ' '
+                    num_args = num_args + 1
 
             i = 1  # subscript for cli input
             for k in var_list:
@@ -467,7 +475,7 @@ class KernelBench(Kernel):
                 ast.block_items.insert(0, decl)
 
             #build and add the if statement checking the number of arguments passed on the command line
-            mysize = 'size ' * len(self.constants)
+            mysize = ''.join(['size_' + c + ' ' for c in sorted([k.name for k in self.constants])])
             num_args = num_args + len(self.constants)
 
             argerror_string = 'Wrong number of arguments. Usage:\\n%s {}{}\\n'.format(mysize, blocking)
@@ -569,28 +577,34 @@ class KernelBench(Kernel):
                         else:#(sizeof(double)) * (((3 * M) * N) * P)
                             factor = float(d.init.args.exprs[0].right.left.left.left.value)
 
-                    # we add 2 in order to get a factor that stabilizes the results
-                    # empirical value
-                    factor = factor + 2.0
-                    rand_max = c_ast.BinaryOp(
-                        '/', c_ast.BinaryOp('/', c_ast.FuncCall(
-                            c_ast.ID('rand'), c_ast.ExprList([])),
-                                            c_ast.Cast(
-                                                c_ast.IdentifierType(['double']),
-                                                c_ast.ID('RAND_MAX'))),
-                        c_ast.Constant('float', factor))
+                    if self.initwithrand is True:
+                        # we add 2 in order to get a factor that stabilizes the results
+                        # empirical value
+                        factor = factor + 2.0
+                        rand_max = c_ast.BinaryOp(
+                            '/', c_ast.BinaryOp('/', c_ast.FuncCall(
+                                c_ast.ID('rand'), c_ast.ExprList([])),
+                                                c_ast.Cast(
+                                                    c_ast.IdentifierType(['double']),
+                                                    c_ast.ID('RAND_MAX'))),
+                            c_ast.Constant('float', factor))
+                    else:
+                        rand_max = c_ast.Constant('float', random.uniform(-23.42,+23.42))
                     #, rand_max))
                     #,
                     # c_ast.Constant('float', factor))
                 else:
                     #array a or b
-                    rand_max = c_ast.BinaryOp(
-                            '/', c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                            c_ast.Cast(
-                                c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX')))
+                    if self.initwithrand is True:
+                        rand_max = c_ast.BinaryOp(
+                                '/', c_ast.FuncCall(
+                                    c_ast.ID('rand'),
+                                    c_ast.ExprList([])),
+                                c_ast.Cast(
+                                    c_ast.IdentifierType(['double']),
+                                    c_ast.ID('RAND_MAX')))
+                    else:
+                        rand_max = c_ast.Constant('float', random.uniform(-23.42,+23.42))
 
                 stmt = c_ast.Assignment(
                     '=',
@@ -603,78 +617,57 @@ class KernelBench(Kernel):
                 #     i + 1, c_ast.Pragma('omp parallel for schedule(runtime)')
                 ast.block_items.insert(
                     i + 2, c_ast.For(init, cond, next_, stmt))
-
-                # inject dummy access to arrays, so compiler does not over-optimize code
-                # with if around it, so code will actually run
-                # ast.block_items.insert(
-                #     i + 2, c_ast.If(
-                #         cond=c_ast.ID('var_false'),
-                #         iftrue=c_ast.Compound([
-                #             c_ast.FuncCall(
-                #                 c_ast.ID('dummy'),
-                #                 c_ast.ExprList([c_ast.ID(d.name)]))]),
-                #         iffalse=None))
             else:
                 # this is a scalar, so a simple Assignment is enough
-
                 #calculate the factor
-                factor = 2.0 + float(nconstants)
-
-                ast.block_items.insert(
-                    i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
-                        c_ast.BinaryOp(
-                        '/', c_ast.BinaryOp(
-                            '/', c_ast.FuncCall(
-                                c_ast.ID('rand'),
-                                c_ast.ExprList([])),
-                            c_ast.Cast(
-                                c_ast.IdentifierType(['double']),
-                                c_ast.ID('RAND_MAX'))),
-                        c_ast.Constant('float', factor))))
-
-                # inject dummy access to scalar, so compiler does not over-optimize code
-                # TODO put if around it, so code will actually run
-                # ast.block_items.insert(
-                #     i + 2, c_ast.If(
-                #         cond=c_ast.ID('var_false'),
-                #         iftrue=c_ast.Compound([
-                #             c_ast.FuncCall(
-                #                 c_ast.ID('dummy'),
-                #                 c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
-                #         iffalse=None))
+                if self.initwithrand is True:
+                    factor = 2.0 + float(nconstants)
+                    ast.block_items.insert(
+                        i + 1, c_ast.Assignment('=', c_ast.ID(d.name),
+                            c_ast.BinaryOp(
+                            '/', c_ast.BinaryOp(
+                                '/', c_ast.FuncCall(
+                                    c_ast.ID('rand'),
+                                    c_ast.ExprList([])),
+                                c_ast.Cast(
+                                    c_ast.IdentifierType(['double']),
+                                    c_ast.ID('RAND_MAX'))),
+                            c_ast.Constant('float', factor))))
+                else:
+                    ast.block_items.insert(
+                        i + 1,
+                        c_ast.Assignment(
+                            '=', c_ast.ID(d.name),
+                            c_ast.Constant('float', random.uniform(-23.42,+23.42))))
 
         # transform multi-dimensional array references to one dimensional
         # references
         list(map(lambda aref: transform_multidim_to_1d_ref(aref, array_dimensions),
                  find_array_references(ast)))
 
-        dummies = []
+        dummylist=[]
         # Make sure nothing gets removed by inserting dummy calls
         for d in declarations:
             if array_dimensions[d.name]:
-                dummies.append(c_ast.If(
-                    cond=c_ast.ID('var_false'),
-                    iftrue=c_ast.Compound([
-                        c_ast.FuncCall(
-                            c_ast.ID('dummy'),
-                            c_ast.ExprList([c_ast.ID(d.name)]))]),
-                    iffalse=None))
-                ast.block_items.insert(-3,dummies[-1])
+                dummylist.append(c_ast.FuncCall(
+                    c_ast.ID('dummy'),
+                    c_ast.ExprList([c_ast.ID(d.name)])))
             else:
-                dummies.append(c_ast.If(
-                    cond=c_ast.ID('var_false'),
-                    iftrue=c_ast.Compound([
-                        c_ast.FuncCall(
+                dummylist.append(c_ast.FuncCall(
                             c_ast.ID('dummy'),
-                            c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))]))]),
-                    iffalse=None))
-                ast.block_items.insert(-2,dummies[-1])
+                            c_ast.ExprList([c_ast.UnaryOp('&', c_ast.ID(d.name))])))
+
+        dummies = c_ast.If(
+            cond=c_ast.ID('var_false'),
+            iftrue=c_ast.Compound(dummylist),
+            iffalse=None)
+        ast.block_items.insert(-2,dummies)
 
         # if we do not want the version accepting inputs from command line,
         # we need to declare the blocking factor
         if not from_cli:
             # add declaration of the block
-            if self.block_factor:
+            if self.block_factor == 1:
                 type_decl = c_ast.TypeDecl(
                     'block_factor', [], c_ast.IdentifierType(['int']))
                 decl = c_ast.Decl(
@@ -685,6 +678,20 @@ class KernelBench(Kernel):
                 # add it to the list of declarations, so it gets passed to the
                 # kernel_loop
                 declarations.append(decl)
+            elif self.block_factor > 1:
+                # add declaration of the block
+                for dim in range(0,3):
+                    name = 'block_factor_' + var_list[dim]
+                    type_decl = c_ast.TypeDecl(
+                        name, [], c_ast.IdentifierType(['int']))
+                    decl = c_ast.Decl(
+                        name, ['const'], [], [],
+                        type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                    ast.block_items.insert(-3, decl)
+
+                    # add it to the list of declarations, so it gets passed to the
+                    # kernel_loop
+                    declarations.append(decl)
 
         # Wrap everything in a loop
         # int repeat = atoi(argv[2])
@@ -752,11 +759,12 @@ class KernelBench(Kernel):
         cond = c_ast.BinaryOp('<', c_ast.ID(
             index_name), c_ast.ID('repeat'))
         next_ = c_ast.UnaryOp('++', c_ast.ID(index_name))
-        #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
+        if self.block_factor == 1:
             expr_list = expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            expr_list = expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                               c_ast.ExprList(expr_list))
@@ -767,7 +775,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(pointers_list[1].type.type.declname))
         last_swap = c_ast.Assignment('=', c_ast.ID(pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap] + dummies )
+        stmt = c_ast.Compound([stmt, swap_tmp, swap_grid, last_swap, dummies] )
         myfor = c_ast.For(init, cond, next_, stmt)
 
         # call the timing function at the beginning
@@ -812,11 +820,12 @@ class KernelBench(Kernel):
                 None)], None)
         run_cond = c_ast.BinaryOp('<', c_ast.ID(run_index_name), c_ast.ID('repeat'))
         run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
-        #run_stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
         run_expr_list = [c_ast.ID(d.name) for d in declarations] + [c_ast.ID(s) for s in sorted([k.name for k in self.constants])]
-        if self.block_factor:
+        if self.block_factor == 1:
             run_expr_list = run_expr_list + [c_ast.ID('block_factor')]
+        elif self.block_factor > 1:
+            run_expr_list = run_expr_list + [c_ast.ID('block_factor_'+var_list[dim]) for dim in range(0,3)]
 
         run_stmt = c_ast.FuncCall(c_ast.ID('kernel_loop'),
                                  c_ast.ExprList(run_expr_list))
@@ -831,7 +840,7 @@ class KernelBench(Kernel):
                                      c_ast.ID(run_pointers_list[1].type.type.declname))
         run_last_swap = c_ast.Assignment('=', c_ast.ID(run_pointers_list[1].type.type.declname),
                                      c_ast.ID('tmp'))
-        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap] + dummies )
+        run_stmt = c_ast.Compound([run_stmt, run_swap_tmp, run_swap_grid, run_last_swap, dummies] )
         run_myfor = c_ast.For(run_init, run_cond, run_next, run_stmt)
         ast.block_items.insert(-1, run_myfor)
 
@@ -1162,10 +1171,6 @@ class KernelBench(Kernel):
                                                   c_ast.ExprList([c_ast.Constant('string', '"{}"'.format(mystring)),
                                                                   c_ast.ID('total')])))
 
-
-        # else:
-        #     ast.block_items += dummies
-
         # embed compound into main FuncDecl
         decl = c_ast.Decl('main', [], [], [], c_ast.FuncDecl(
             c_ast.ParamList([
@@ -1234,7 +1239,6 @@ class KernelBench(Kernel):
                     beginning), myblockstmt.cond.right)
                 next_ = c_ast.BinaryOp(
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
-                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
 
                 decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
                     end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
@@ -1254,42 +1258,87 @@ class KernelBench(Kernel):
                 mycompound = c_ast.Compound([pragma, newfor])
 
             elif mydims == 3:  # blocking on the middle loop
-                beginning = myvariables[1] + 'b'
-                end = myvariables[1] + 'end'
-                pragma = c_ast.Pragma(
-                    'omp parallel')# private({}, {})'.format(beginning, end))
+                if self.block_factor == 1:
+                    beginning = myvariables[1] + 'b'
+                    end = myvariables[1] + 'end'
+                    pragma = c_ast.Pragma(
+                        'omp parallel')# private({}, {})'.format(beginning, end))
 
-                init = c_ast.DeclList([
-                    c_ast.Decl(
-                        beginning, [], [], [], c_ast.TypeDecl(
-                            beginning, [], c_ast.IdentifierType(['int'])),
-                        myblockstmt.init.decls[0].init,
-                        None)], None)
-                # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
-                # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
-                cond = c_ast.BinaryOp('<', c_ast.ID(
-                    beginning), myblockstmt.cond.right)
-                next_ = c_ast.BinaryOp(
-                    '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
-                #stmt = c_ast.Compound([ast.block_items.pop(-2)]+dummies)
+                    init = c_ast.DeclList([
+                        c_ast.Decl(
+                            beginning, [], [], [], c_ast.TypeDecl(
+                                beginning, [], c_ast.IdentifierType(['int'])),
+                            myblockstmt.init.decls[0].init,
+                            None)], None)
+                    # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                    # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                    cond = c_ast.BinaryOp('<', c_ast.ID(
+                        beginning), myblockstmt.cond.right)
+                    next_ = c_ast.BinaryOp(
+                        '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
 
-                decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
-                    end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
-                    c_ast.ID('min'), c_ast.ExprList([
-                        c_ast.BinaryOp(
-                                '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
-                        myblockstmt.cond.right])), None)
+                    decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                        end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                        c_ast.ID('min'), c_ast.ExprList([
+                            c_ast.BinaryOp(
+                                    '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
+                            myblockstmt.cond.right])), None)
 
-                myblockstmt.init.decls[0].init = c_ast.ID(beginning)
-                myblockstmt.cond.right = c_ast.ID(end)
+                    myblockstmt.init.decls[0].init = c_ast.ID(beginning)
+                    myblockstmt.cond.right = c_ast.ID(end)
 
-                mycompound = c_ast.Compound(
-                    [decl, pragma_int, forloop])
+                    mycompound = c_ast.Compound(
+                        [decl, pragma_int, forloop])
 
-                newfor = c_ast.For(init, cond, next_, mycompound)
+                    newfor = c_ast.For(init, cond, next_, mycompound)
 
-                mycompound = c_ast.Compound([pragma, newfor])
+                    mycompound = c_ast.Compound([pragma, newfor])
+                elif self.block_factor > 1:
+                    blk_forloop = forloop
+                    blk = [blk_forloop.stmt.block_items[0].stmt.block_items[0],
+                           blk_forloop.stmt.block_items[0],
+                           blk_forloop]
 
+                    from_ = [blk[0].init.decls[0].init,blk[1].init.decls[0].init,blk[2].init.decls[0].init]
+                    to_   = [blk[0].cond.right,blk[1].cond.right,blk[2].cond.right]
+
+                    for dim in range(0,mydims):
+                        beginning = myvariables[dim] + 'b'
+                        end = myvariables[dim] + 'end'
+
+                        blk[dim].init.decls[0].init = c_ast.ID(beginning)
+                        blk[dim].cond.right = c_ast.ID(end)
+
+                    mycompound = c_ast.Compound([pragma_int,blk_forloop])
+
+                    for dim in range(0,mydims):
+                        beginning = myvariables[dim] + 'b'
+                        end = myvariables[dim] + 'end'
+
+                        init = c_ast.DeclList([
+                            c_ast.Decl(
+                                beginning, [], [], [], c_ast.TypeDecl(
+                                    beginning, [], c_ast.IdentifierType(['int'])),
+                                from_[dim],
+                                None)], None)
+                        # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
+                        # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
+                        cond = c_ast.BinaryOp('<', c_ast.ID(
+                            beginning), to_[dim])
+                        next_ = c_ast.BinaryOp(
+                            '+=', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim]))
+
+                        decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
+                            end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                            c_ast.ID('min'), c_ast.ExprList([
+                                c_ast.BinaryOp(
+                                        '+', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim])),
+                                to_[dim]])), None)
+
+                        mycompound = c_ast.For(init, cond, next_, c_ast.Compound([decl, mycompound]))
+
+                    pragma = c_ast.Pragma('omp parallel')# private({}, {})'.format(beginning, end))
+                    mycompound = c_ast.Compound([pragma,mycompound])
         else:
             mycompound = c_ast.Compound([pragma_int, forloop])
 
@@ -1371,15 +1420,15 @@ class KernelBench(Kernel):
 
         start_sweep = 'LIKWID_MARKER_START("Sweep");'
         pragma_start_sweep = pragraomp.format('{', start_sweep, '}')
-        macrostart = '\n  ' + ifdefperf + pragma_start_sweep + '\n  ' + endif
+        macrostart = '\n  ' + ifdefperf + pragma_start_sweep + '\n'
         code = code.replace('INSERTMACROSTART;', macrostart)
 
         stop_sweep = 'LIKWID_MARKER_STOP("Sweep");'
-        marker_get = '\n    int nevents, count;\n'
-        marker_get += '    double * events;\n'
+        marker_get = '\n    int nevents = 50, count = 50;\n'
+        marker_get += '    double events[50];\n'
         marker_get += '    LIKWID_MARKER_GET("Sweep", &nevents, events, &runtime, &count );'
         pragma_stop_sweep = pragraomp.format('{', stop_sweep + marker_get, '}')
-        macrostop = '\n  ' + ifdefperf + pragma_stop_sweep + '\n  ' + endif
+        macrostop = pragma_stop_sweep[2:] + '\n  ' + endif
         code = code.replace('INSERTMACROSTOP;', macrostop)
 
         likwid_close = 'LIKWID_MARKER_CLOSE;'
