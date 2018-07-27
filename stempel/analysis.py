@@ -52,7 +52,7 @@ def create_parser():
     parser.add_argument('-e', '--executions', metavar=('EXECUTIONS'),
                         type=int, default=5, help='Number of executions of the code')
     parser.add_argument('-t', '--threads', metavar=('THREADS'),
-                        nargs='*', help='Number of dimensions of the stencil')
+                        nargs='*', help='Number of threads to use for the analysis and execution of the stencils')
     parser.add_argument('--method_type', metavar=('METHODTYPE'),
                         default='OpenMP-4.0-GCC-4.9.3-2.25', help='Method type to use for the actual implementation')
     parser.add_argument('-c', '--classification', metavar=('CLASSIFICATION'),
