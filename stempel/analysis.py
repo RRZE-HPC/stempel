@@ -261,6 +261,14 @@ def run_gen(args, output_file=sys.stdout):
     method_name = 'openMP'
     pinning = 'node'
 
+    cmd = ['gcc', '--version']
+    try:
+        out = subprocess.check_output(cmd)
+    except subprocess.CalledProcessError as e:
+        logging.error('Failed to execute {}: {}'.format(cmd, e))
+        sys.exit(1)
+    logging.info('Running with GCC version: {}.'.format(out))
+
     for k in kind:
         if k == 'star':
             radius = radius_star
