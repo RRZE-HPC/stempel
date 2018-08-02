@@ -9,16 +9,7 @@ generate a full C code and parallelize it via openMP and blocking.
 
 For a detailed documentation see in `<docs/>`_.
 
-.. image:: https://travis-ci.org/RRZE-HPC/stempel.svg?branch=normal_measurements
-    :target: https://travis-ci.org/RRZE-HPC/stempel?branch=normal_measurements
 
-.. image:: https://codecov.io/github/RRZE-HPC/stempel/coverage.svg?branch=normal_measurements
-    :target: https://codecov.io/github/RRZE-HPC/stempel?branch=normal_measurements
-
-.. image:: https://landscape.io/github/RRZE-HPC/stempel/normal_measurements/landscape.svg?style=flat
-   :target: https://landscape.io/github/RRZE-HPC/stempel/normal_measurements
-   :alt: Code Health
-   
 Installation
 ============
 
