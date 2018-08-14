@@ -369,18 +369,12 @@ def run_bench(args, output_file=sys.stdout):
 
     # taken from kerncraft
     # # works only for up to 3 dimensions
-    array = []
-    required_consts = []
-    for v in kernel.variables.values():
-        array = []
-        if v[1] is not None:
-            for c in v[1]:
-                if type(c) is not (sympy.Integer and sympy.numbers.One):
-                    array.append(c)
-        required_consts.append(array)
-
-    # required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
-    required_consts = set([i for l in required_consts for i in l])
+    # works only for up to 3 dimensions
+    required_consts = [v[1] for v in kernel.variables.values() if v[1] is not None]
+    required_consts += [[l['start'], l['stop']] for l in kernel.get_loop_stack()]
+    # split into individual consts
+    required_consts = [i for l in required_consts for i in l]
+    required_consts = set([i for l in required_consts for i in l.free_symbols])
 
     if len(required_consts) > 0:
         define_dict = {}
