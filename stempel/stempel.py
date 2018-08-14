@@ -375,7 +375,7 @@ def run_bench(args, output_file=sys.stdout):
         array = []
         if v[1] is not None:
             for c in v[1]:
-                if type(c) is not sympy.Integer:
+                if type(c) is not (sympy.Integer and sympy.numbers.One):
                     array.append(c)
         required_consts.append(array)
 
