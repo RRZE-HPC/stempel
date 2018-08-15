@@ -265,7 +265,7 @@ def run_gen(args, output_file=sys.stdout):
     try:
         out = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
-        logging.error('Failed to execute {}: {}'.format(cmd, e))
+        logging.error('Failed to execute {}: {}'.format(cmd, e.output))
         sys.exit(1)
     logging.info('Running with GCC version: {}.'.format(out))
 
@@ -358,6 +358,8 @@ def run_gen(args, output_file=sys.stdout):
                                             with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + threads + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                                 f.write(out)
                                         except subprocess.CalledProcessError as e:
+                                            logging.error(
+                                                'An error occurred while running the previous command: {}.'.format(e.output))
                                             #the cache model used has failed so we try the other one
                                             if cache_model == 'SIM':
                                                 cache_model = 'LC'
@@ -376,7 +378,7 @@ def run_gen(args, output_file=sys.stdout):
                                             except subprocess.CalledProcessError as e:
                                                 #print("kerncraft failed:", e)
                                                 logging.error(
-                                                    'Failed to execute {}: {}'.format(cmd, e))
+                                                    'Failed to execute {}: {}'.format(cmd, e.output))
                                                 #sys.exit(1)
                                                 sizes.remove([size[0], size[1]])
                                                 logging.error(
@@ -395,7 +397,7 @@ def run_gen(args, output_file=sys.stdout):
                                 except subprocess.CalledProcessError as e:
                                     #print("Run failed:", e)
                                     logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
+                                        'Failed to execute {}: {}'.format(cmd, e.output))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
@@ -504,6 +506,8 @@ def run_gen(args, output_file=sys.stdout):
                                             with open(os.path.join(stencil_path, stencil_name.split('.')[0] + '-' + size[0] + '-' + size[1] + '-' + size[2] + '-'  + threads + '-' + machine.split('.')[0] + '.txt'), 'wb') as f:
                                                 f.write(out)
                                         except subprocess.CalledProcessError as e:
+                                            logging.error(
+                                                'An error occurred while running the previous command: {}.'.format(e.output))
                                             #the cache model used has failed so we try the other one
                                             if cache_model == 'SIM':
                                                 cache_model = 'LC'
@@ -523,7 +527,7 @@ def run_gen(args, output_file=sys.stdout):
                                             except subprocess.CalledProcessError as e:
                                                 #print("kerncraft failed:", e)
                                                 logging.error(
-                                                    'Failed to execute {}: {}'.format(cmd, e))
+                                                    'Failed to execute {}: {}'.format(cmd, e.output))
                                                 #sys.exit(1)
                                                 sizes.remove([size[0], size[1], size[2]])
                                                 logging.info(
@@ -542,7 +546,7 @@ def run_gen(args, output_file=sys.stdout):
                                 except subprocess.CalledProcessError as e:
                                     #print("Run failed:", e)
                                     logging.error(
-                                        'Failed to execute {}: {}'.format(cmd, e))
+                                        'Failed to execute {}: {}'.format(cmd, e.output))
                                     sys.exit(1)
                                 logging.info('Successfully created benchmark file: {}{}'.format(
                                     stencil_name.split('.')[0], '_compilable.c'))
