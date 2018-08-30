@@ -502,7 +502,7 @@ class StarVariable(object):
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
-            stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
+            stencil = self.coefficients[0] + '[0]' + ' * (' + centerpoint + '\n'
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} + {}'.format(
