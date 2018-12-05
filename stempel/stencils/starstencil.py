@@ -369,13 +369,12 @@ class StarVariable(object):
 
         # coefficients matrix
         for lineno in range(len(init_coefficients)):
+            # add extra dimension for the weighting factor
+            line = init_coefficients[lineno] + '[' + str(self.num_coefficients) + ']'
             for i in range(0, self.dimensions):
-                line = init_coefficients[lineno] + '[' + self.dims[i] + ']'
+                line = line + '[' + self.dims[i] + ']'
                 init_coefficients.pop(lineno)
                 init_coefficients.insert(lineno, line)
-            # add extra dimension for the weighting factor
-            line = init_coefficients[lineno] + '[' + str(self.num_coefficients)\
-                + ']'
             init_coefficients.pop(lineno)
             init_coefficients.insert(lineno, line)
 
@@ -437,11 +436,12 @@ class StarVariable(object):
                 "In case of an isotropic and symmetric stencil with constant "\
                 "coefficient, the number of the coefficient must be equal to "\
                 "(radius + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
+
             count = 1
             for i in range(self.radius):
                 stencil = stencil + '+ {} * (({} + {})'.format(
-                    str(self.coefficients[0]) + '[' + str(count) + ']',
+                    self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:],
                     left(centerpoint, 0, self.loop_variables, i + 1),
                     right(centerpoint, 0, self.loop_variables, i + 1)
                 )
@@ -463,14 +463,15 @@ class StarVariable(object):
                 "In case of an asymmetric stencil with constant coefficient, "\
                 "the number of the coefficient must be equal to "\
                 "(2 * radius * dimensions + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
+            print(self.coefficients[0])
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(
-                        str(self.coefficients[0]) + '[' + str(count) + ']',
+                        self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:],
                         left(centerpoint, j, self.loop_variables, i + 1),
-                        str(self.coefficients[0]) + '[' + str(count + 1) + ']',
+                        self.coefficients[0][:1] + '[' + str(count + 1) + ']' + self.coefficients[0][1:],
                         right(centerpoint, j, self.loop_variables, i + 1)) + '\n'
                     count = count + 2
 
@@ -484,12 +485,12 @@ class StarVariable(object):
                 "In case of anisotropic and symmetric stencil with constant "\
                 "coefficient, the number of the coefficient must be equal to "\
                 "(radius * dimensions + 1)"
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * ({} + {})'.format(
-                        str(self.coefficients[0]) + '[' + str(count) + ']',
+                        self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:],
                         left(centerpoint, j, self.loop_variables, i + 1),
                         right(centerpoint, j, self.loop_variables, i + 1)
                     ) + '\n'
@@ -502,7 +503,7 @@ class StarVariable(object):
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
-            stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * (' + centerpoint + '\n'
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} + {}'.format(

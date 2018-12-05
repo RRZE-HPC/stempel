@@ -324,7 +324,7 @@ class BoxConstant(object):
 
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
-            flop = 1 
+            flop = 1
             for point in points:
                 stencil = stencil + '+ {} * {}\n'.format(
                     self.coefficients[count], point)
@@ -515,13 +515,12 @@ class BoxVariable(object):
 
         # coefficients matrix
         for lineno in range(len(init_coefficients)):
+            # add extra dimension for the weighting factor
+            line = init_coefficients[lineno] + '[' + str(self.num_coefficients)+ ']'
             for i in range(0, self.dimensions):
-                line = init_coefficients[lineno] + '[' + self.dims[i] + ']'
+                line = line + '[' + self.dims[i] + ']'
                 init_coefficients.pop(lineno)
                 init_coefficients.insert(lineno, line)
-            # add extra dimension for the weighting factor
-            line = init_coefficients[lineno] + '[' + str(self.num_coefficients)\
-                + ']'
             init_coefficients.pop(lineno)
             init_coefficients.insert(lineno, line)
 
@@ -574,61 +573,48 @@ class BoxVariable(object):
 
         # declare an empty stencil line (string)
         stencil = ''
-
         max_distance = self.dimensions * self.radius
 
         points = []
         for i in range((self.radius * 2 + 1)**self.dimensions):
-            mypoint = boxpoint(centerpoint, i, self.dimensions, self.radius,
-                               self.loop_variables)
+            mypoint = boxpoint(centerpoint, i, self.dimensions, self.radius, self.loop_variables)
             if mypoint:
                 points.append(mypoint)
 
         ordered_points = []
         for i in range(1, max_distance + 1):
-            ordered_points.insert(i, points_at_distance(points,
-                                                        self.loop_variables, i))
+            ordered_points.insert(i, points_at_distance(points, self.loop_variables, i))
 
         # isotropic
         if self.classification == 'isotropic':
             print("isotropic")
-
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
-
             for i in range(max_distance):
-
                 stencil = stencil + '+ {} * ({})\n'.format(
-                    str(self.coefficients[0]) + '[' + str(count) + ']',
+                    self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:],
                     ' + '.join(ordered_points[i]))
-
                 count += 1
                 flop += 2 + len(ordered_points[i]) - 1
 
         # heterogeneous
         elif self.classification == 'heterogeneous':
             print("heterogeneous")
-
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
-
             for point in points:
-                stencil = stencil + '+ {} * {}\n'.format(
-                    str(self.coefficients[0]) + '[' + str(count) + ']', point)
+                stencil = stencil + '+ {} * {}\n'.format( self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:], point)
                 count += 1
-
             flop += 2 * len(points)
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
             print("point-symmetric")
-
-            stencil = self.coefficients[0] + '[0]' + ' * ' + centerpoint + '\n'
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
-
             # for i in range(max_distance):
 
             #     stencil = stencil + '+ {} * ({})\n'.format(
@@ -636,46 +622,34 @@ class BoxVariable(object):
             #         ' + '.join(ordered_points[i]))
 
             #     count += 1
-
             for i in range(max_distance):
                 symmetricpoints = []
-
                 for p in ordered_points[i]:
                     points = [p]
                     sp = origin_symmetric(p)
                     points.append(sp)
                     ordered_points[i].remove(sp)
                     symmetricpoints.append(points)
-
                 newline = ''
                 for i in range(len(ordered_points[i])):
                     newline += '+ {} * ({})\n'.format(
-                        str(self.coefficients[0]) + '[' + str(count) + ']',
+                        self.coefficients[0][:1] + '[' + str(count) + ']' + self.coefficients[0][1:],
                         ' + '.join(symmetricpoints[i]))
                     count += 1
                     flop += 2 + len(symmetricpoints[i]) - 1
-
                 stencil = stencil + newline
-
 
         elif self.classification == 'homogeneous':
             print("homogeneous")
-
-            stencil = self.coefficients[0] + \
-                '[0]' + ' * (' + centerpoint + '\n'
-
+            stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * (' + centerpoint + '\n'
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'
-
             stencil = stencil + ')'
             flop = 1 + len(points)
 
         righthand = '{};'.format(stencil)
-
         closing = '}\n' * self.dimensions
-
         computation = lefthand + ' = ' + righthand + '\n' + closing
-
         loop_lines.append(computation)
 
         return loop_lines, flop
