@@ -152,7 +152,7 @@ class StarConstant(object):
 
         # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
-            line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
+            line = 'for(long {}={}; {} < {}-{}; ++{})'.format(
                 self.loop_variables[i],
                 self.radius,
                 self.loop_variables[i],
@@ -407,7 +407,7 @@ class StarVariable(object):
 
         # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
-            line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
+            line = 'for(long {}={}; {} < {}-{}; ++{})'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
                 self.dims[i], self.radius, self.loop_variables[i]) + '{'
             loop_lines.insert(i, line)

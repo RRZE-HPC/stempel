@@ -260,7 +260,6 @@ class BoxConstant(object):
         declaration = declaration + init_output + '\n' + init_coefficients \
             + '\n'
 
-        print(declaration)
         return declaration
 
     def loop(self):
@@ -271,7 +270,7 @@ class BoxConstant(object):
 
         # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
-            line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
+            line = 'for(long {}={}; {} < {}-{}; ++{})'.format(
                 self.loop_variables[i],
                 self.radius,
                 self.loop_variables[i],
@@ -553,7 +552,7 @@ class BoxVariable(object):
 
         # build the lines of the foor loop, according to the dimensions we have
         for i in range(0, self.dimensions):
-            line = 'for(int {}={}; {} < {}-{}; {}++)'.format(
+            line = 'for(long {}={}; {} < {}-{}; ++{})'.format(
                 self.loop_variables[i], self.radius, self.loop_variables[i],
                 self.dims[i], self.radius, self.loop_variables[i]) + '{'
             loop_lines.insert(i, line)

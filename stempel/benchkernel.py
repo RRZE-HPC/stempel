@@ -123,7 +123,7 @@ def transform_array_decl_to_malloc(decl):
                     c_ast.Typename(None, [], c_ast.TypeDecl(
                         None, [], decl.type.type.type))),
                 decl.type.dim),
-            c_ast.Constant('int', '32')]))
+            c_ast.Constant('size_t', '32')]))
     decl.type = type_
 
 
@@ -462,11 +462,11 @@ class KernelBench(Kernel):
 
             i = 1  # subscript for cli input
             for k in var_list:
-                # cont int N = atoi(argv[1])
-                type_decl = c_ast.TypeDecl(k, [], c_ast.IdentifierType(['int']))
+                # const long N = atoi(argv[1])
+                type_decl = c_ast.TypeDecl(k, [], c_ast.IdentifierType(['long']))
                 init = c_ast.FuncCall(
-                    c_ast.ID('atoi'),
-                    c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('int', str(i)))]))
+                    c_ast.ID('atoll'),
+                    c_ast.ExprList([c_ast.ArrayRef(c_ast.ID('argv'), c_ast.Constant('long', str(i)))]))
                 i += 1
                 #add the variable to the list of variables
                 type_name = c_ast.Typename(None, [], type_decl)
@@ -493,11 +493,11 @@ class KernelBench(Kernel):
         else:
             # add declarations for constants from value passed to stempel
             for name, value in list(self.constants.items()):
-                type_decl = c_ast.TypeDecl(str(name), [], c_ast.IdentifierType(['int']))
+                type_decl = c_ast.TypeDecl(str(name), [], c_ast.IdentifierType(['size_t']))
                 decl = c_ast.Decl(
                     name, ['const'], [], [],
                         #type_decl, c_ast.Constant('int', str(value)), None)
-                        type_decl, c_ast.Constant('int', str(name.name+'_MAX')), None)
+                        type_decl, c_ast.Constant('long', str(name.name+'_MAX')), None)
                 type_name = c_ast.Typename(None, [], type_decl)
                 sizes_decls_typenames.append(type_name)
                 ast.block_items.insert(0, decl)
@@ -535,8 +535,8 @@ class KernelBench(Kernel):
                 init = c_ast.DeclList([
                     c_ast.Decl(
                         counter_name, [], [], [], c_ast.TypeDecl(
-                            counter_name, [], c_ast.IdentifierType(['int'])),
-                        c_ast.Constant('int', '0'), None)], None)
+                            counter_name, [], c_ast.IdentifierType(['long'])),
+                        c_ast.Constant('long', '0'), None)], None)
 
                 # Cond: i < ... (... is length of array)
                 cond = c_ast.BinaryOp(
@@ -669,10 +669,10 @@ class KernelBench(Kernel):
             # add declaration of the block
             if self.block_factor == 1:
                 type_decl = c_ast.TypeDecl(
-                    'block_factor', [], c_ast.IdentifierType(['int']))
+                    'block_factor', [], c_ast.IdentifierType(['size_t']))
                 decl = c_ast.Decl(
                     'block_factor', ['const'], [], [],
-                    type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                    type_decl, c_ast.Constant('size_t', str(self.block_factor)), None)
                 ast.block_items.insert(-3, decl)
 
                 # add it to the list of declarations, so it gets passed to the
@@ -683,10 +683,10 @@ class KernelBench(Kernel):
                 for dim in range(0,3):
                     name = 'block_factor_' + var_list[dim]
                     type_decl = c_ast.TypeDecl(
-                        name, [], c_ast.IdentifierType(['int']))
+                        name, [], c_ast.IdentifierType(['size_t']))
                     decl = c_ast.Decl(
                         name, ['const'], [], [],
-                        type_decl, c_ast.Constant('int', str(self.block_factor)), None)
+                        type_decl, c_ast.Constant('size_t', str(self.block_factor)), None)
                     ast.block_items.insert(-3, decl)
 
                     # add it to the list of declarations, so it gets passed to the
@@ -694,9 +694,9 @@ class KernelBench(Kernel):
                     declarations.append(decl)
 
         # Wrap everything in a loop
-        # int repeat = atoi(argv[2])
+        # size_t repeat = atoi(argv[2])
         type_decl = c_ast.TypeDecl(
-            'repeat', [], c_ast.IdentifierType(['int']))
+            'repeat', [], c_ast.IdentifierType(['size_t']))
         # init = c_ast.FuncCall(
         #     c_ast.ID('atoi'),
         #     c_ast.ExprList([c_ast.ArrayRef(
@@ -706,7 +706,7 @@ class KernelBench(Kernel):
         #     type_decl, init, None))
         ast.block_items.insert(-3, c_ast.Decl(
             'repeat', ['const'], [], [],
-            type_decl, c_ast.Constant('int', '1'), None))
+            type_decl, c_ast.Constant('size_t', '1'), None))
 
         # timing variables declaration and initialisation
         type_decl = c_ast.TypeDecl(
@@ -753,8 +753,8 @@ class KernelBench(Kernel):
         init = c_ast.DeclList([
             c_ast.Decl(
                 index_name, [], [], [], c_ast.TypeDecl(
-                    index_name, [], c_ast.IdentifierType(['int'])),
-                c_ast.Constant('int', '0'),
+                    index_name, [], c_ast.IdentifierType(['size_t'])),
+                c_ast.Constant('size_t', '0'),
                 None)], None)
         cond = c_ast.BinaryOp('<', c_ast.ID(
             index_name), c_ast.ID('repeat'))
@@ -787,12 +787,12 @@ class KernelBench(Kernel):
                                           c_ast.BinaryOp('-', c_ast.ID('wct_end'), c_ast.ID('wct_start')))
 
         update_iter = c_ast.Assignment('*=', c_ast.ID('repeat'),
-                                       c_ast.Constant('int', '2'))
+                                       c_ast.Constant('size_t', '2'))
 
         # while(runtime<2. || repeat<=2) {...}
         cond = c_ast.BinaryOp( '||',
                 c_ast.BinaryOp('<', c_ast.ID( 'runtime'), c_ast.Constant('double', '2.0')),
-                c_ast.BinaryOp('<=', c_ast.ID( 'repeat'), c_ast.Constant('int', '2')));
+                c_ast.BinaryOp('<=', c_ast.ID( 'repeat'), c_ast.Constant('size_t', '2')));
         stmt = c_ast.Compound(
             [start_timing, myfor, end_timing, update_runtime, update_iter])
 
@@ -801,7 +801,7 @@ class KernelBench(Kernel):
         # the variable repeat must be divided by 2 since in the last loop
         # was doubled before exiting
         ast.block_items.insert(-1, c_ast.Assignment('/=',
-                                                    c_ast.ID('repeat'), c_ast.Constant('int', '2')))
+                                                    c_ast.ID('repeat'), c_ast.Constant('size_t', '2')))
 
         if type_ == 'likwid':
             # Instrument the outer for-loop with likwid
@@ -815,8 +815,8 @@ class KernelBench(Kernel):
         run_init = c_ast.DeclList([
             c_ast.Decl(
                 run_index_name, [], [], [], c_ast.TypeDecl(
-                    run_index_name, [], c_ast.IdentifierType(['int'])),
-                c_ast.Constant('int', '0'),
+                    run_index_name, [], c_ast.IdentifierType(['size_t'])),
+                c_ast.Constant('size_t', '0'),
                 None)], None)
         run_cond = c_ast.BinaryOp('<', c_ast.ID(run_index_name), c_ast.ID('repeat'))
         run_next = c_ast.UnaryOp('++', c_ast.ID(run_index_name))
@@ -1231,7 +1231,7 @@ class KernelBench(Kernel):
                 init = c_ast.DeclList([
                     c_ast.Decl(
                         beginning, [], [], [], c_ast.TypeDecl(
-                            beginning, [], c_ast.IdentifierType(['int'])),
+                            beginning, [], c_ast.IdentifierType(['size_t'])),
                         myblockstmt.init.decls[0].init, None)], None)
                 # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
                 # r: c_ast.BinaryOp('*', l, r), array_dimensions[d.name]))
@@ -1241,7 +1241,7 @@ class KernelBench(Kernel):
                     '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
 
                 decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
-                    end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                    end, [], c_ast.IdentifierType(['size_t'])), c_ast.FuncCall(
                     c_ast.ID('min'), c_ast.ExprList([
                         c_ast.BinaryOp(
                                 '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
@@ -1267,7 +1267,7 @@ class KernelBench(Kernel):
                     init = c_ast.DeclList([
                         c_ast.Decl(
                             beginning, [], [], [], c_ast.TypeDecl(
-                                beginning, [], c_ast.IdentifierType(['int'])),
+                                beginning, [], c_ast.IdentifierType(['size_t'])),
                             myblockstmt.init.decls[0].init,
                             None)], None)
                     # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
@@ -1278,7 +1278,7 @@ class KernelBench(Kernel):
                         '+=', c_ast.ID(beginning), c_ast.ID('block_factor'))
 
                     decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
-                        end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                        end, [], c_ast.IdentifierType(['size_t'])), c_ast.FuncCall(
                         c_ast.ID('min'), c_ast.ExprList([
                             c_ast.BinaryOp(
                                     '+', c_ast.ID(beginning), c_ast.ID('block_factor')),
@@ -1318,7 +1318,7 @@ class KernelBench(Kernel):
                         init = c_ast.DeclList([
                             c_ast.Decl(
                                 beginning, [], [], [], c_ast.TypeDecl(
-                                    beginning, [], c_ast.IdentifierType(['int'])),
+                                    beginning, [], c_ast.IdentifierType(['size_t'])),
                                 from_[dim],
                                 None)], None)
                         # for(jb = 1; jb < N-1; jb+=block_factor) {...}reduce(lambda l,
@@ -1329,7 +1329,7 @@ class KernelBench(Kernel):
                             '+=', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim]))
 
                         decl = c_ast.Decl(end, [], [], [], c_ast.TypeDecl(
-                            end, [], c_ast.IdentifierType(['int'])), c_ast.FuncCall(
+                            end, [], c_ast.IdentifierType(['size_t'])), c_ast.FuncCall(
                             c_ast.ID('min'), c_ast.ExprList([
                                 c_ast.BinaryOp(
                                         '+', c_ast.ID(beginning), c_ast.ID('block_factor_' + var_list[2-dim])),
@@ -1403,7 +1403,6 @@ class KernelBench(Kernel):
         code = '#include "kerncraft.h"\n' + code
         code = '#include "timing.h"\n' + code
 
-        code = '#include <math.h>\n\n' + code
         code = '#include <stdlib.h>\n' + code
 
         # substitute the string added with the macro, since there is no way to
