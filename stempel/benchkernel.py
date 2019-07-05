@@ -26,7 +26,7 @@ from pycparser import CParser, c_ast, plyparser
 from pycparser.c_generator import CGenerator
 
 import kerncraft
-from kerncraft.kernel import Kernel
+from kerncraft.kernel import KernelCode
 from kerncraft.machinemodel import MachineModel
 
 if sys.version_info[0] == 2 and sys.version_info >= (2, 7):
@@ -149,7 +149,7 @@ def force_iterable(f):
             return [r]
     return wrapper
 
-class KernelBench(Kernel):
+class KernelBench(KernelCode):
     """
     Kernel information gathered from code using pycparser
     This version allows compilation and generation of code for benchmarking
@@ -157,266 +157,13 @@ class KernelBench(Kernel):
 
     def __init__(self, kernel_code, machine, block_factor=None,
                  flop=None, filename=None, initwithrand=False):
-        super(KernelBench, self).__init__(machine=machine)
-
-        # Initialize state
-        self.asm_block = None
-
-        self.kernel_code = kernel_code
-        self._filename = filename
+        super(KernelBench, self).__init__(kernel_code=kernel_code, machine=machine, filename=filename)
+        
         self.block_factor = block_factor
         self.flop = flop
         self.initwithrand = initwithrand
         # need to refer to local lextab, otherwise the systemwide lextab would
         # be imported
-        parser = CParser()
-        try:
-            self.kernel_ast = parser.parse(
-                self._as_function(),
-                filename=filename).ext[0].body
-        except plyparser.ParseError as e:
-            print('Error parsing kernel code:', e)
-            sys.exit(1)
-
-        self._process_code()
-
-        self.check()
-
-    def print_kernel_code(self, output_file=sys.stdout):
-        """Print source code of kernel."""
-        print(self.kernel_code, file=output_file)
-
-    def _as_function(self, func_name='test', filename=None):
-        if filename is None:
-            filename = ''
-        else:
-            filename = '"{}"'.format(filename)
-        return '#line 0 \nvoid {}() {{\n#line 1 {}\n{}\n#line 999 \n}}'.format(
-            func_name, filename, self.kernel_code)
-
-    def clear_state(self):
-        """Clears mutable internal states"""
-        super(KernelBench, self).clear_state()
-        self.asm_block = None
-
-    def _process_code(self):
-        assert type(self.kernel_ast) is c_ast.Compound, "Kernel has to be a compound statement"
-        assert all([type(s) in [c_ast.Decl, c_ast.Pragma]
-                    for s in self.kernel_ast.block_items[:-1]]), \
-            'all statements before the for loop need to be declarations or pragmas'
-        assert type(self.kernel_ast.block_items[-1]) is c_ast.For, \
-            'last statement in kernel code must be a loop'
-
-        for item in self.kernel_ast.block_items[:-1]:
-            if type(item) is c_ast.Pragma:
-                continue
-            array = type(item.type) is c_ast.ArrayDecl
-
-            if array:
-                dims = []
-                t = item.type
-                while type(t) is c_ast.ArrayDecl:
-                    dims.append(self.conv_ast_to_sym(t.dim))
-                    t = t.type
-
-                assert len(t.type.names) == 1, "only single types are supported"
-                self.set_variable(item.name, t.type.names[0], tuple(dims))
-
-            else:
-                assert len(item.type.type.names) == 1, "only single types are supported"
-                self.set_variable(item.name, item.type.type.names[0], None)
-
-        floop = self.kernel_ast.block_items[-1]
-        self._p_for(floop)
-
-    def conv_ast_to_sym(self, math_ast):
-        """
-        Convert mathematical expressions to a sympy representation.
-        May only contain paranthesis, addition, subtraction and multiplication from AST.
-        """
-        if type(math_ast) is c_ast.ID:
-            return symbol_pos_int(math_ast.name)
-        elif type(math_ast) is c_ast.Constant:
-            return sympy.Integer(math_ast.value)
-        else:  # elif type(dim) is c_ast.BinaryOp:
-            op = {
-                '*': operator.mul,
-                '+': operator.add,
-                '-': operator.sub
-            }
-
-            return op[math_ast.op](
-                self.conv_ast_to_sym(math_ast.left),
-                self.conv_ast_to_sym(math_ast.right))
-
-    def _get_offsets(self, aref, dim=0):
-        """
-        Return a tuple of offsets of an ArrayRef object in all dimensions.
-        The index order is right to left (c-code order).
-        e.g. c[i+1][j-2] -> (-2, +1)
-        If aref is actually a c_ast.ID, None will be returned.
-        """
-        if isinstance(aref, c_ast.ID):
-            return None
-
-        # Check for restrictions
-        assert type(aref.name) in [c_ast.ArrayRef, c_ast.ID], \
-            "array references must only be used with variables or other array references"
-        assert type(aref.subscript) in [c_ast.ID, c_ast.Constant, c_ast.BinaryOp], \
-            'array subscript must only contain variables or binary operations'
-
-        # Convert subscript to sympy and append
-        idxs = [self.conv_ast_to_sym(aref.subscript)]
-
-        # Check for more indices (multi-dimensional access)
-        if type(aref.name) is c_ast.ArrayRef:
-            idxs += self._get_offsets(aref.name, dim=dim+1)
-
-        # Reverse to preserver order (the subscripts in the AST are traversed backwards)
-        if dim == 0:
-            idxs.reverse()
-
-        return tuple(idxs)
-
-    @classmethod
-    def _get_basename(cls, aref):
-        """
-        Return base name of ArrayRef object.
-        e.g. c[i+1][j-2] -> 'c'
-        """
-        if isinstance(aref.name, c_ast.ArrayRef):
-            return cls._get_basename(aref.name)
-        elif isinstance(aref.name, str):
-            return aref.name
-        else:
-            return aref.name.name
-
-    def _p_for(self, floop):
-        # Check for restrictions
-        assert type(floop) is c_ast.For, "May only be a for loop"
-        assert hasattr(floop, 'init') and hasattr(floop, 'cond') and hasattr(floop, 'next'), \
-            "Loop must have initial, condition and next statements."
-        assert type(floop.init) is c_ast.DeclList, \
-            "Initialization of loops need to be declarations."
-        assert len(floop.init.decls) == 1, "Only single declaration is allowed in init. of loop."
-        assert floop.cond.op in '<', "only lt (<) is allowed as loop condition"
-        assert type(floop.cond.left) is c_ast.ID, 'left of cond. operand has to be a variable'
-        assert type(floop.cond.right) in [c_ast.Constant, c_ast.ID, c_ast.BinaryOp], \
-            'right of cond. operand has to be a constant, a variable or a binary operation'
-        assert type(floop.next) in [c_ast.UnaryOp, c_ast.Assignment], \
-            'next statement has to be a unary or assignment operation'
-        assert floop.next.op in ['++', 'p++', '+='], 'only ++ and += next operations are allowed'
-        assert type(floop.stmt) in [c_ast.Compound, c_ast.Assignment, c_ast.For], \
-            'the inner loop may contain only assignments or compounds of assignments'
-
-        if type(floop.cond.right) is c_ast.ID:
-            const_name = floop.cond.right.name
-            iter_max = symbol_pos_int(const_name)
-        elif type(floop.cond.right) is c_ast.Constant:
-            iter_max = sympy.Integer(floop.cond.right.value)
-        else:  # type(floop.cond.right) is c_ast.BinaryOp
-            bop = floop.cond.right
-            assert bop.op in '+-*', ('only addition (+), substraction (-) and multiplications (*) '
-                                     'are accepted operators')
-            iter_max = self.conv_ast_to_sym(bop)
-
-        iter_min = self.conv_ast_to_sym(floop.init.decls[0].init)
-
-        if type(floop.next) is c_ast.Assignment:
-            assert type(floop.next.lvalue) is c_ast.ID, \
-                'next operation may only act on loop counter'
-            assert type(floop.next.rvalue) is c_ast.Constant, 'only constant increments are allowed'
-            assert floop.next.lvalue.name == floop.cond.left.name == floop.init.decls[0].name, \
-                'initial, condition and next statement of for loop must act on same loop ' \
-                'counter variable'
-            step_size = int(floop.next.rvalue.value)
-        else:
-            assert type(floop.next.expr) is c_ast.ID, 'next operation may only act on loop counter'
-            assert floop.next.expr.name == floop.cond.left.name == floop.init.decls[0].name, \
-                'initial, condition and next statement of for loop must act on same loop ' \
-                'counter variable'
-            assert isinstance(floop.next, c_ast.UnaryOp), 'only assignment or unary operations ' \
-                'are allowed for next statement of loop.'
-            assert floop.next.op in ['++', 'p++', '--', 'p--'], 'Unary operation can only be ++ ' \
-                'or -- in next statement'
-            if floop.next.op in ['++', 'p++']:
-                step_size = sympy.Integer('1')
-            else:  # floop.next.op in ['--', 'p--']:
-                step_size = sympy.Integer('-1')
-
-        # Document for loop stack
-        self._loop_stack.append(
-            # (index name, min, max, step size)
-            (floop.init.decls[0].name, iter_min, iter_max, step_size)
-        )
-
-        # Traverse tree
-        if type(floop.stmt) is c_ast.For:
-            self._p_for(floop.stmt)
-        elif type(floop.stmt) is c_ast.Assignment:
-            self._p_assignment(floop.stmt)
-        # Handle For if it is the last statement, only preceeded by Pragmas
-        elif type(floop.stmt.block_items[-1]) is c_ast.For and \
-                all([type(s) == c_ast.Pragma for s in floop.stmt.block_items[:-1]]):
-            self._p_for(floop.stmt.block_items[-1])
-        else:  # type(floop.stmt) is c_ast.Compound
-            # Handle Assignments
-            for assgn in floop.stmt.block_items:
-                self._p_assignment(assgn)
-
-    def _p_assignment(self, stmt):
-        # Check for restrictions
-        assert type(stmt) is c_ast.Assignment, \
-            "Only assignment statements are allowed in loops."
-        assert type(stmt.lvalue) in [c_ast.ArrayRef, c_ast.ID], \
-            "Only assignment to array element or varialbe is allowed."
-
-        write_and_read = False
-        if stmt.op != '=':
-            write_and_read = True
-            op = stmt.op.strip('=')
-            self._flops[op] = self._flops.get(op, 0)+1
-
-        # Document data destination
-        # self.destinations[dest name] = [dest offset, ...])
-        self.destinations.setdefault(self._get_basename(stmt.lvalue), set())
-        self.destinations[self._get_basename(stmt.lvalue)].add(
-            self._get_offsets(stmt.lvalue))
-
-        if write_and_read:
-            # this means that +=, -= or something of that sort was used
-            self.sources.setdefault(self._get_basename(stmt.lvalue), set())
-            self.sources[self._get_basename(stmt.lvalue)].add(
-                self._get_offsets(stmt.lvalue))
-
-        # Traverse tree
-        self._p_sources(stmt.rvalue)
-
-    def _p_sources(self, stmt):
-        sources = []
-        assert type(stmt) in \
-            [c_ast.ArrayRef, c_ast.Constant, c_ast.ID, c_ast.BinaryOp, c_ast.UnaryOp], \
-            'only references to arrays, constants and variables as well as binary operations ' + \
-            'are supported'
-        assert type(stmt) is not c_ast.UnaryOp or stmt.op in ['-', '--', '++', 'p++', 'p--'], \
-            'unary operations are only allowed with -, -- and ++'
-
-        if type(stmt) in [c_ast.ArrayRef, c_ast.ID]:
-            # Document data source
-            bname = self._get_basename(stmt)
-            self.sources.setdefault(bname, set())
-            self.sources[bname].add(self._get_offsets(stmt))
-        elif type(stmt) is c_ast.BinaryOp:
-            # Traverse tree
-            self._p_sources(stmt.left)
-            self._p_sources(stmt.right)
-
-            self._flops[stmt.op] = self._flops.get(stmt.op, 0)+1
-        elif type(stmt) is c_ast.UnaryOp:
-            self._p_sources(stmt.expr)
-            self._flops[stmt.op] = self._flops.get(stmt.op[-1], 0)+1
-
-        return sources
 
     def as_code(self, type_='likwid', from_cli=True):
         """
