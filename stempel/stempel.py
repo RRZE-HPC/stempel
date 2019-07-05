@@ -148,9 +148,11 @@ def create_parser():
                             'matrix')
 
     parser_gen.add_argument('-t', '--datatype', type=str,
-                            choices=['float', 'double'], default='double',
+                            choices=['float', 'double', 'float _Complex', 'double _Complex'],
+                            default='double',
                             help='Define the datatype of the grids used in the '
-                            'stencil. Value must be double or float')
+                            'stencil. Value must be double, float, "float _Complex" or "double '
+                            '_Complex"')
 
     parser_gen.add_argument('-d', '--dimofcoeffs', type=int,
                             help='Variable coefficients are stored as an array. '
@@ -211,8 +213,9 @@ def check_arguments(args, parser):
     """This method checks that some of the arguments given to the parser
     respect our convention (are what they are supposed to be)
     """
-    if args.datatype not in ['float', 'double']:
-        parser.error('--coefficient can only be "float" or "double"')
+    if args.datatype not in ['float', 'double', 'float _Complex', 'double _Complex']:
+        parser.error('--coefficient can only be "float", "double", "float _Complex" or '
+                     '"double _Complex".')
 
     if args.kind == 'box':
         if args.dimensions == 2 and args.radius > 6:
