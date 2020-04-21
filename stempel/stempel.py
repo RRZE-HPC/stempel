@@ -114,8 +114,12 @@ def create_parser():
                             default=2, required=True, help='Define the radius of '
                             'the stencil in each dimension. Value must be integer.')
 
-    classification_group = parser_gen.add_mutually_exclusive_group(
-        required=True)
+    classification = parser_gen.add_mutually_exclusive_group(required=True)
+    classification.add_argument('-c', '--classification', dest='classification',
+                                choices=['isotropic', 'heterogeneous', 'homogeneous',
+                                         'point-symetric'],
+                                help="Define the coefficitions to be used.")
+    classification_group = classification.add_mutually_exclusive_group()
     classification_group.add_argument('-i', '--isotropic', action='store_const',
                                       dest='classification', const='isotropic',
                                       help='Define if the coefficients are '\
