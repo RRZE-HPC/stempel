@@ -117,7 +117,7 @@ def create_parser():
     classification = parser_gen.add_mutually_exclusive_group(required=True)
     classification.add_argument('-c', '--classification', dest='classification',
                                 choices=['isotropic', 'heterogeneous', 'homogeneous',
-                                         'point-symetric'],
+                                         'point-symmetric'],
                                 help="Define the coefficitions to be used.")
     classification_group = classification.add_mutually_exclusive_group()
     classification_group.add_argument('-i', '--isotropic', action='store_const',
@@ -338,19 +338,10 @@ def run_gen(args, parser, output_file=sys.stdout):
 
     # Save storage to file or print to STDOUT
     if args.store:
-        # build the name of the output file according to dimensions and
-        # diameter
-        tempname = args.store.name + '.tmp'
-
-        with open(tempname, 'w') as out:
-            out.write(code)
-        shutil.move(tempname, args.store.name)
-
-        with open(args.store.name.split('.')[0]+'.flop', 'w') as out:
-            out.write('FLOP: {}'.format(flop))
+        args.store.write(code)
     else:
-        print(code)
-        print('The kernel consists of {} FLOP'.format(flop))
+        print(code, file=output_file)
+        print('The kernel consists of {} FLOP'.format(flop), file=output_file)
 
     # if verbose print a little bit more infos
     if args.verbose > 0:
@@ -447,8 +438,8 @@ def run_bench(args, output_file=sys.stdout):
         with open(os.path.join(os.path.dirname(tempname), 'kernel.c'), 'w') as out:
             out.write(kernel)
     else:
-        print(c_code)
-        print(kernel)
+        print(c_code, file=output_file)
+        print(kernel, file=output_file)
 
 
 def main():

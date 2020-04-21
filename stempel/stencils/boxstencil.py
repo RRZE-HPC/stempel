@@ -39,7 +39,6 @@ def points_at_distance(points=None, loop_variables=None, distance=1):
             good_points.append(point)
         else:
             pass
-    # print(good_points)
     return [x for x in good_points if x]
 
 
@@ -99,7 +98,6 @@ def boxpoint(centerpoint='a[j][i]', point=0, dimensions=2, radius=2,
 
         newpoint = newpoint.replace(loop_variables[i], loop_variables[i]
                                     + '{}{}'.format(sig, strnumber))
-    # print(str(point) + ' ' + newpoint)
     if newpoint == centerpoint:
         return None
     else:
@@ -304,8 +302,6 @@ class BoxConstant(object):
                                                         self.loop_variables, i))
 
         if self.classification == 'isotropic':
-            print("isotropic")
-
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -319,8 +315,6 @@ class BoxConstant(object):
 
 
         elif self.classification == 'heterogeneous':
-            print("heterogeneous")
-
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -333,9 +327,6 @@ class BoxConstant(object):
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
-            print("point-symmetric")
-            # print(ordered_points)
-
             stencil = self.coefficients[0] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -352,8 +343,6 @@ class BoxConstant(object):
                     symmetricpoints.append(points)
 
                 newline = ''
-                # print(ordered_points[i])
-                # print(len(ordered_points[i]))
                 for i in range(len(ordered_points[i])):
                     newline += '+ {} * ({})\n'.format(
                         self.coefficients[count], ' + '.join(symmetricpoints[i]))
@@ -363,8 +352,6 @@ class BoxConstant(object):
                 stencil = stencil + newline
 
         elif self.classification == 'homogeneous':
-            print("homogeneous")
-
             stencil = self.coefficients[0] + ' * (' + centerpoint + '\n'
 
             for point in points:
@@ -586,7 +573,6 @@ class BoxVariable(object):
 
         # isotropic
         if self.classification == 'isotropic':
-            print("isotropic")
             stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -599,7 +585,6 @@ class BoxVariable(object):
 
         # heterogeneous
         elif self.classification == 'heterogeneous':
-            print("heterogeneous")
             stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -610,7 +595,6 @@ class BoxVariable(object):
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
-            print("point-symmetric")
             stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
             flop = 1
@@ -639,7 +623,6 @@ class BoxVariable(object):
                 stencil = stencil + newline
 
         elif self.classification == 'homogeneous':
-            print("homogeneous")
             stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * (' + centerpoint + '\n'
             for point in points:
                 stencil = stencil + '+ {}'.format(point) + '\n'

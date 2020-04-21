@@ -174,7 +174,6 @@ class StarConstant(object):
 
         # isotropic
         if self.classification == 'isotropic':
-            print("isotropic")
             assert (len(self.coefficients) == (self.radius + 1)), "In case of"\
                 " an isotropic and symmetric stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to (radius + 1)"
@@ -199,7 +198,6 @@ class StarConstant(object):
 
         # heterogeneous
         elif self.classification == 'heterogeneous':
-            print("heterogeneous")
             mymax = 2 * self.radius * self.dimensions + 1
             assert (len(self.coefficients) == (mymax)), \
                 "In case of an asymmetric stencil with constant " \
@@ -221,7 +219,6 @@ class StarConstant(object):
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
-            print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
             assert (len(self.coefficients) == mymax), \
                 "In case of anisotropic and symmetric stencil with constant "\
@@ -242,7 +239,6 @@ class StarConstant(object):
 
         # homogeneous
         else:  # self.classification == 'homogeneous':
-            print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
@@ -430,7 +426,6 @@ class StarVariable(object):
 
         # isotropic
         if self.classification == 'isotropic':
-            print("isotropic")
             mymax = (self.radius + 1)
             assert (self.num_coefficients == mymax), \
                 "In case of an isotropic and symmetric stencil with constant "\
@@ -457,7 +452,6 @@ class StarVariable(object):
 
         # heterogeneous
         elif self.classification == 'heterogeneous':
-            print("heterogeneous")
             mymax = (2 * self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
                 "In case of an asymmetric stencil with constant coefficient, "\
@@ -465,7 +459,6 @@ class StarVariable(object):
                 "(2 * radius * dimensions + 1)"
             stencil = self.coefficients[0][:1] + '[0]' + self.coefficients[0][1:] + ' * ' + centerpoint + '\n'
             count = 1
-            print(self.coefficients[0])
             for i in range(self.radius):
                 for j in range(self.dimensions):
                     stencil = stencil + '+ {} * {} + {} * {}'.format(
@@ -479,7 +472,6 @@ class StarVariable(object):
 
         # point-symmetric
         elif self.classification == 'point-symmetric':
-            print("point-symmetric")
             mymax = (self.radius * self.dimensions + 1)
             assert (self.num_coefficients == mymax), \
                 "In case of anisotropic and symmetric stencil with constant "\
@@ -499,7 +491,6 @@ class StarVariable(object):
             flop = self.radius * self.dimensions * 3 + 1
 
         elif self.classification == 'homogeneous':
-            print("homogeneous")
             assert (len(self.coefficients) == 1), "In case of"\
                 " an homogeneous stencil with constant coefficient"\
                 ", the number of the coefficient must be equal to 1"
